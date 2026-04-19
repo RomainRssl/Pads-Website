@@ -44,6 +44,12 @@ export default async function AdminLayout({
             >
               🏁 Résultats
             </Link>
+            <Link
+              href="/admin/streamers"
+              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            >
+              📺 Streamers
+            </Link>
           </nav>
         </div>
       </div>

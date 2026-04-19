@@ -125,3 +125,12 @@ model RaceResult {
   moneyGained   Int
   isClean       Boolean     @default(true)
 }
+
+// ── Twitch multiplex ──────────────────────────────────────────────────────────
+
+model TwitchStreamer {
+  id          String   @id @default(cuid())
+  username    String   @unique  // Twitch login (lowercase)
+  displayName String?           // Synced from Twitch API
+  addedAt     DateTime @default(now())
+}
