@@ -1,4 +1,5 @@
 import type { Event } from "@prisma/client";
+import { getGuildConfig } from "./config";
 
 interface DiscordField {
   name: string;
@@ -21,9 +22,11 @@ interface WebhookPayload {
 }
 
 export async function sendEventNotification(event: Event): Promise<void> {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  const config = await getGuildConfig();
+  const webhookUrl = config?.webhookUrl || process.env.DISCORD_WEBHOOK_URL;
+
   if (!webhookUrl) {
-    console.warn("[webhook] DISCORD_WEBHOOK_URL not set, skipping notification");
+    console.warn("[webhook] No webhook URL configured, skipping notification");
     return;
   }
 

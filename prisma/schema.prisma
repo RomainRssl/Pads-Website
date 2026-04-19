@@ -72,3 +72,12 @@ model Event {
   updatedAt   DateTime @updatedAt
   createdById String
 }
+
+// Singleton row — configuration du serveur Discord (remplie via /setup)
+model GuildConfig {
+  id          String   @id @default("singleton")
+  guildId     String
+  webhookUrl  String
+  adminRoleId String?
+  configuredAt DateTime @default(now())
+}
