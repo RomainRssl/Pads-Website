@@ -62,6 +62,18 @@ export default async function AdminLayout({
             >
               👤 Pilotes
             </Link>
+            <Link
+              href="/admin/categories"
+              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            >
+              🏁 Catégories
+            </Link>
+            <Link
+              href="/admin/licenses"
+              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            >
+              🎖️ Licences
+            </Link>
           </nav>
         </div>
       </div>

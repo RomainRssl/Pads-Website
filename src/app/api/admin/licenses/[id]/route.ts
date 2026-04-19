@@ -12,19 +12,13 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { discordId, teamId, reputation } = await req.json();
+  const { label, minXp, color, order } = await req.json();
 
-  const player = await prisma.player.update({
+  const license = await prisma.licenseConfig.update({
     where: { id },
-    data: {
-      discordId: discordId?.trim() || null,
-      teamId: teamId || null,
-      ...(reputation !== undefined && { reputation: Math.max(0, Math.min(100, Number(reputation))) }),
-    },
-    include: { team: { select: { id: true, name: true } } },
+    data: { label, minXp: Number(minXp), color, order: Number(order) },
   });
-
-  return NextResponse.json(player);
+  return NextResponse.json(license);
 }
 
 export async function DELETE(
@@ -37,6 +31,6 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  await prisma.player.delete({ where: { id } });
+  await prisma.licenseConfig.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }

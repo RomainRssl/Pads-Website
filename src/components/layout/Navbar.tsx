@@ -19,6 +19,12 @@ export default function Navbar() {
             <span className="text-brand-red">spin</span>
           </Link>
           <Link
+            href="/pilotes"
+            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
+          >
+            Pilotes
+          </Link>
+          <Link
             href="/lives"
             className="hidden sm:flex items-center gap-1.5 text-sm text-brand-muted hover:text-white transition-colors"
           >
