@@ -1,32 +1,76 @@
 # Par amour du spin — Sim Racing Community
 
-Site web communautaire pour la gestion des événements de Sim Racing, avec authentification Discord, panel d'administration protégé par rôles, et notifications automatiques via webhook Discord.
+Site web communautaire complet pour la gestion d'une ligue de Sim Racing : authentification Discord, calendrier de courses, traitement des résultats avec calcul de récompenses, statistiques des joueurs, multiplex de streams Twitch en direct et notifications automatiques via webhook Discord.
 
 ---
 
 ## Table des matières
 
-1. [Prérequis](#1-prérequis)
-2. [Cloner le projet](#2-cloner-le-projet)
-3. [Installer les dépendances](#3-installer-les-dépendances)
-4. [Configurer Discord](#4-configurer-discord)
-   - 4.1 [Créer une application Discord (OAuth2)](#41-créer-une-application-discord-oauth2)
-   - 4.2 [Créer le Bot Discord](#42-créer-le-bot-discord)
-   - 4.3 [Inviter le bot sur votre serveur](#43-inviter-le-bot-sur-votre-serveur)
-   - 4.4 [Créer le Webhook Discord](#44-créer-le-webhook-discord)
-   - 4.5 [Récupérer les IDs de votre serveur](#45-récupérer-les-ids-de-votre-serveur)
-5. [Configurer les variables d'environnement](#5-configurer-les-variables-denvironnement)
-6. [Initialiser la base de données](#6-initialiser-la-base-de-données)
-7. [Lancer le projet en développement](#7-lancer-le-projet-en-développement)
-8. [Déploiement en production](#8-déploiement-en-production)
-9. [Architecture du projet](#9-architecture-du-projet)
-10. [Fonctionnement technique](#10-fonctionnement-technique)
+1. [Fonctionnalités](#1-fonctionnalités)
+2. [Prérequis](#2-prérequis)
+3. [Cloner le projet](#3-cloner-le-projet)
+4. [Installer les dépendances](#4-installer-les-dépendances)
+5. [Configurer Discord](#5-configurer-discord)
+6. [Configurer Twitch (optionnel)](#6-configurer-twitch-optionnel)
+7. [Configurer les variables d'environnement](#7-configurer-les-variables-denvironnement)
+8. [Initialiser la base de données](#8-initialiser-la-base-de-données)
+9. [Configuration initiale via /setup](#9-configuration-initiale-via-setup)
+10. [Lancer le projet en développement](#10-lancer-le-projet-en-développement)
+11. [Déploiement sur VPS](#11-déploiement-sur-vps)
+12. [Architecture du projet](#12-architecture-du-projet)
+13. [Fonctionnement technique](#13-fonctionnement-technique)
 
 ---
 
-## 1. Prérequis
+## 1. Fonctionnalités
 
-Avant de commencer, assurez-vous d'avoir installé sur votre machine :
+### Site public
+
+| Page | Description |
+|------|-------------|
+| `/` | **Accueil** — Hero racing, calendrier des prochaines courses avec badges Jeu / Circuit / Voiture, indicateur de compte à rebours |
+| `/lives` | **Multiplex Twitch** — Liste des membres en live avec statut en temps réel, sélection jusqu'à **10 streams simultanés**, grille adaptive, rafraîchissement auto toutes les 60 s |
+
+### Panel d'administration (`/admin`)
+
+Accessible uniquement aux membres possédant le rôle Discord configuré.
+
+| Page | Description |
+|------|-------------|
+| `/admin` | **Tableau de bord** — Liste de tous les événements avec suppression |
+| `/admin/create` | **Créer une course** — Formulaire (Titre, Date, Jeu, Circuit, Voiture, Description) + notification Discord automatique |
+| `/admin/results` | **Traitement des résultats** — Upload JSON/CSV, prévisualisation des récompenses calculées, validation → mise à jour BDD + notification Discord |
+| `/admin/streamers` | **Gestion des streamers** — Ajout/suppression des pseudos Twitch affichés sur `/lives` |
+
+### Authentification & Rôles
+
+- Connexion via **Discord OAuth2**
+- À chaque connexion, le bot Discord vérifie automatiquement le rôle du membre sur le serveur
+- Rôle `ADMIN` attribué si le membre possède le rôle Discord configuré (`ADMIN_ROLE_ID`), sinon `USER`
+- Routes `/admin` protégées par middleware (Edge-compatible, sans appel base de données)
+
+### Calcul des récompenses de course
+
+Lors du traitement d'un fichier de résultats :
+
+```
+XP de base   = durée (minutes) × 10
+Bonus pos.   = XP base × (nb joueurs − position) / nb joueurs
+Bonus propre = +10 % XP si course sans incident
+Argent       = XP total × 0,5
+```
+
+L'XP gagné est également reversé à la **Team** du joueur. Tous les joueurs non trouvés en base sont ignorés sans bloquer le traitement.
+
+### Notifications Discord automatiques
+
+Deux types d'embeds envoyés automatiquement :
+- **Nouvelle course** : titre, jeu, circuit, voiture, date
+- **Résultats traités** : top 3, plus gros gain XP, nombre de joueurs mis à jour
+
+---
+
+## 2. Prérequis
 
 | Outil | Version minimale | Vérification |
 |-------|-----------------|--------------|
@@ -36,11 +80,12 @@ Avant de commencer, assurez-vous d'avoir installé sur votre machine :
 
 Vous aurez également besoin :
 - D'un **compte Discord** avec accès aux paramètres développeur
-- D'un **serveur Discord** dont vous êtes administrateur (pour configurer les rôles et le webhook)
+- D'un **serveur Discord** dont vous êtes administrateur
+- D'un compte **Twitch Developer** (optionnel, pour le statut live en temps réel)
 
 ---
 
-## 2. Cloner le projet
+## 3. Cloner le projet
 
 ```bash
 git clone https://github.com/romainrssl/pads-website.git
@@ -49,352 +94,520 @@ cd pads-website
 
 ---
 
-## 3. Installer les dépendances
+## 4. Installer les dépendances
 
 ```bash
 npm install
 ```
 
-Cette commande installe toutes les dépendances listées dans `package.json` :
-
 | Package | Rôle |
 |---------|------|
 | `next` 15 | Framework React (App Router) |
-| `next-auth` v5 | Authentification (session Discord) |
+| `next-auth` v5 | Authentification Discord OAuth2 |
 | `@auth/prisma-adapter` | Liaison NextAuth ↔ base de données |
 | `@prisma/client` | ORM pour accéder à la base SQLite |
-| `discord.js` | Lecture des rôles Discord via l'API Bot |
+| `discord.js` | Lecture des rôles Discord via l'API Bot REST |
 | `zod` | Validation des données côté serveur |
-| `tailwindcss` | Styles CSS utilitaires |
+| `tailwindcss` | Styles CSS utilitaires (thème dark/racing) |
 
 ---
 
-## 4. Configurer Discord
+## 5. Configurer Discord
 
-Cette étape est la plus importante. Vous allez créer deux entités distinctes sur Discord :
-- Une **Application** (pour le login OAuth2 des utilisateurs)
-- Un **Bot** (pour lire les rôles des membres en arrière-plan)
+Vous allez créer **une application** (pour le login OAuth2) et **un bot** (pour lire les rôles).
 
-### 4.1 Créer une application Discord (OAuth2)
+### 5.1 Créer l'application Discord
 
 1. Rendez-vous sur le [Discord Developer Portal](https://discord.com/developers/applications)
-2. Cliquez sur **"New Application"** en haut à droite
-3. Donnez un nom à votre application (ex. : `Par amour du spin`)
-4. Cliquez sur **"Create"**
+2. Cliquez sur **"New Application"** → nommez-la (ex. : `Par amour du spin`)
+3. Dans **"OAuth2"**, copiez le **Client ID** → `DISCORD_CLIENT_ID`
+4. Cliquez **"Reset Secret"** → copiez le secret → `DISCORD_CLIENT_SECRET`
 
-**Récupérer le Client ID et Client Secret :**
+**Configurer les URLs de redirection :**
 
-5. Dans le menu de gauche, cliquez sur **"OAuth2"**
-6. Copiez le **Client ID** → ce sera votre `DISCORD_CLIENT_ID`
-7. Cliquez sur **"Reset Secret"** puis copiez le secret → ce sera votre `DISCORD_CLIENT_SECRET`
+5. Dans **"OAuth2" → "Redirects"**, ajoutez :
+   - `http://localhost:3000/api/auth/callback/discord` (développement)
+   - `http://localhost:3000/api/setup/callback` (setup initial, développement)
+   - `https://votre-domaine.com/api/auth/callback/discord` (production)
+   - `https://votre-domaine.com/api/setup/callback` (setup initial, production)
+6. Cliquez **"Save Changes"**
 
-**Configurer l'URL de redirection :**
-
-8. Toujours dans **"OAuth2"**, section **"Redirects"**, cliquez sur **"Add Redirect"**
-9. Ajoutez cette URL : `http://localhost:3000/api/auth/callback/discord`
-10. En production, ajoutez également : `https://votre-domaine.com/api/auth/callback/discord`
-11. Cliquez sur **"Save Changes"**
-
-### 4.2 Créer le Bot Discord
-
-Le bot est nécessaire pour vérifier si un utilisateur possède le rôle admin sur votre serveur. Il ne se connecte pas en temps réel (pas de gateway WebSocket) — il fait simplement une requête HTTP à chaque connexion d'un utilisateur.
+### 5.2 Créer le Bot Discord
 
 1. Dans le menu de gauche, cliquez sur **"Bot"**
-2. Cliquez sur **"Add Bot"** puis confirmez
-3. Sous le nom du bot, cliquez sur **"Reset Token"** et copiez le token → ce sera votre `DISCORD_BOT_TOKEN`
+2. Cliquez **"Add Bot"** puis confirmez
+3. Cliquez **"Reset Token"** → copiez le token → `DISCORD_BOT_TOKEN`
+4. Désactivez **"Public Bot"** (recommandé)
+5. Aucun "Privileged Gateway Intent" requis
 
-> **Sécurité :** Ne partagez jamais ce token. Il donne un accès complet à votre bot.
+### 5.3 Inviter le bot sur votre serveur
 
-**Permissions requises pour le bot :**
+1. Dans **"OAuth2" → "URL Generator"**
+2. Cochez uniquement le scope `bot`
+3. Dans **"Bot Permissions"**, cochez `View Channels`
+4. Copiez l'URL générée, ouvrez-la, sélectionnez votre serveur → **"Autoriser"**
 
-Le bot n'a besoin que de permissions minimales. Dans la section **"Bot"** :
-- Désactivez **"Public Bot"** si vous ne voulez pas que d'autres puissent l'inviter
-- Aucun "Privileged Gateway Intent" n'est nécessaire (le bot utilise uniquement l'API REST)
+### 5.4 Créer le Webhook Discord (pour les annonces)
 
-### 4.3 Inviter le bot sur votre serveur
+> **Alternative simplifiée** : Le webhook peut être créé automatiquement via la page `/setup` (voir section 9).
 
-Le bot doit être membre de votre serveur Discord pour pouvoir lire les rôles des membres.
+Manuellement :
+1. Dans votre serveur Discord, clic droit sur le salon d'annonces → **"Modifier le salon"**
+2. **"Intégrations"** → **"Créer un Webhook"**
+3. Copiez l'URL du webhook → `DISCORD_WEBHOOK_URL`
 
-1. Dans le menu de gauche, cliquez sur **"OAuth2"** → **"URL Generator"**
-2. Dans **"Scopes"**, cochez uniquement : `bot`
-3. Dans **"Bot Permissions"**, cochez : `View Channels` (permission minimale)
-4. Copiez l'URL générée en bas de page et ouvrez-la dans votre navigateur
-5. Sélectionnez votre serveur et cliquez sur **"Autoriser"**
+### 5.5 Récupérer les IDs Discord
 
-### 4.4 Créer le Webhook Discord
+Activez le **Mode Développeur** : Paramètres Discord → **Avancé** → Mode développeur.
 
-Le webhook permet d'envoyer automatiquement un message dans un salon Discord à chaque fois qu'une course est créée.
+| Variable | Comment l'obtenir |
+|----------|-------------------|
+| `GUILD_ID` | Clic droit sur l'icône du serveur → "Copier l'identifiant du serveur" |
+| `ADMIN_ROLE_ID` | Paramètres du serveur → Rôles → clic droit sur le rôle → "Copier l'identifiant du rôle" |
 
-1. Ouvrez votre serveur Discord
-2. Faites un clic droit sur le **salon** où vous voulez recevoir les annonces de courses
-3. Cliquez sur **"Modifier le salon"**
-4. Dans le menu de gauche, cliquez sur **"Intégrations"**
-5. Cliquez sur **"Créer un Webhook"**
-6. Donnez-lui un nom (ex. : `Spin Bot`) et optionnellement une photo de profil
-7. Cliquez sur **"Copier l'URL du Webhook"** → ce sera votre `DISCORD_WEBHOOK_URL`
-8. Cliquez sur **"Enregistrer"**
-
-### 4.5 Récupérer les IDs de votre serveur
-
-Pour récupérer des IDs sur Discord, vous devez d'abord activer le **Mode Développeur** :
-
-1. Ouvrez Discord → **Paramètres utilisateur** (engrenage) → **Avancé**
-2. Activez **"Mode développeur"**
-
-**Récupérer le GUILD_ID (ID de votre serveur) :**
-
-3. Faites un clic droit sur l'**icône de votre serveur** dans la barre latérale gauche
-4. Cliquez sur **"Copier l'identifiant du serveur"** → ce sera votre `GUILD_ID`
-
-**Récupérer le ADMIN_ROLE_ID (ID du rôle admin) :**
-
-5. Dans votre serveur, allez dans **Paramètres du serveur** → **Rôles**
-6. Faites un clic droit sur le rôle que vous souhaitez utiliser comme rôle admin
-7. Cliquez sur **"Copier l'identifiant du rôle"** → ce sera votre `ADMIN_ROLE_ID`
-
-> **Note :** Si le rôle n'existe pas encore, créez-le d'abord dans Paramètres du serveur → Rôles → "Créer un rôle", puis attribuez-le aux membres qui doivent avoir accès au panel admin.
+> Si le rôle admin n'existe pas encore, créez-le dans Paramètres du serveur → Rôles → "Créer un rôle", puis attribuez-le aux membres concernés.
 
 ---
 
-## 5. Configurer les variables d'environnement
+## 6. Configurer Twitch (optionnel)
 
-Copiez le fichier d'exemple et remplissez-le avec vos valeurs :
+Sans configuration Twitch, la page `/lives` fonctionne toujours (les embeds s'affichent), mais le statut LIVE, le nombre de spectateurs et les miniatures ne seront pas disponibles.
+
+### 6.1 Créer une application Twitch
+
+1. Connectez-vous sur [dev.twitch.tv/console](https://dev.twitch.tv/console)
+2. Cliquez **"Register Your Application"**
+3. Nom : `Par amour du spin` (ou autre)
+4. OAuth Redirect URLs : `http://localhost:3000` (peu importe, on n'utilise pas le flux utilisateur)
+5. Category : **Website Integration**
+6. Cliquez **"Create"**
+7. Sur la page de votre application : copiez le **Client ID** → `TWITCH_CLIENT_ID`
+8. Cliquez **"New Secret"** → copiez le secret → `TWITCH_CLIENT_SECRET`
+
+### 6.2 Paramètre domaine pour les embeds Twitch
+
+Twitch exige que le paramètre `parent` de l'embed corresponde exactement au domaine servi :
+
+```bash
+NEXT_PUBLIC_SITE_DOMAIN="localhost"          # développement
+NEXT_PUBLIC_SITE_DOMAIN="votre-domaine.com"  # production (sans https://)
+```
+
+---
+
+## 7. Configurer les variables d'environnement
 
 ```bash
 cp .env.example .env.local
 ```
 
-Ouvrez `.env.local` et renseignez chaque variable :
+Ouvrez `.env.local` et renseignez toutes les valeurs :
 
 ```bash
 # ── Base de données ───────────────────────────────────────────────────────────
-# Chemin relatif au fichier prisma/schema.prisma
-# Ne pas modifier sauf si vous changez l'emplacement de la DB
 DATABASE_URL="file:./dev.db"
 
 # ── NextAuth ──────────────────────────────────────────────────────────────────
-# Clé secrète pour signer les tokens JWT — générer avec :
-# openssl rand -base64 32
-NEXTAUTH_SECRET="votre-secret-genere"
-
-# URL de votre application (sans slash final)
+# Générer avec : openssl rand -base64 32
+NEXTAUTH_SECRET="votre-secret-genere-ici"
 NEXTAUTH_URL="http://localhost:3000"
 
 # ── Discord OAuth2 ────────────────────────────────────────────────────────────
-# Depuis Developer Portal → votre application → OAuth2
 DISCORD_CLIENT_ID="123456789012345678"
 DISCORD_CLIENT_SECRET="AbCdEfGhIjKlMnOpQrStUvWxYz123456"
 
 # ── Discord Bot ───────────────────────────────────────────────────────────────
-# Depuis Developer Portal → votre application → Bot → Reset Token
-DISCORD_BOT_TOKEN="MTIzNDU2Ljc4OTAxMjM0NTY.AbCdEf.GhIjKlMnOpQrStUvWxYz123456"
+DISCORD_BOT_TOKEN="MTIzNDU2Ljc4OTAxMjM0NTY.AbCdEf.GhIjKlMnOpQrStUvWxYz"
 
-# ── Serveur Discord ───────────────────────────────────────────────────────────
-# Clic droit sur votre serveur → "Copier l'identifiant du serveur"
+# ── Serveur Discord (rempli automatiquement via /setup, ou manuellement) ──────
 GUILD_ID="987654321098765432"
-
-# Clic droit sur le rôle admin → "Copier l'identifiant du rôle"
 ADMIN_ROLE_ID="111222333444555666"
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
 
-# ── Webhook Discord ───────────────────────────────────────────────────────────
-# Salon Discord → Intégrations → Webhooks → Copier l'URL
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/123456789/AbCdEfGhIjKlMnOpQrStUvWxYz"
+# ── Twitch (optionnel) ────────────────────────────────────────────────────────
+TWITCH_CLIENT_ID=""
+TWITCH_CLIENT_SECRET=""
+# Domaine exact pour les embeds Twitch (sans https://)
+NEXT_PUBLIC_SITE_DOMAIN="localhost"
 ```
 
-> **Important :** Le fichier `.env.local` est ignoré par Git (listé dans `.gitignore`). Ne committez jamais vos secrets.
+> **Important :** `.env.local` est ignoré par Git. Ne committez jamais vos secrets.
 
 ---
 
-## 6. Initialiser la base de données
-
-Cette commande crée le fichier SQLite `prisma/dev.db` et génère toutes les tables décrites dans `prisma/schema.prisma` :
+## 8. Initialiser la base de données
 
 ```bash
 npm run db:push
 ```
 
-Vous devriez voir :
-```
-🚀  Your database is now in sync with your Prisma schema.
-✔ Generated Prisma Client
-```
+Cette commande crée `prisma/dev.db` et génère toutes les tables :
 
-**Commandes Prisma disponibles :**
+| Table | Contenu |
+|-------|---------|
+| `User` | Comptes Discord connectés |
+| `Account` / `Session` | Données NextAuth |
+| `Event` | Courses planifiées |
+| `GuildConfig` | Configuration Discord (remplie via /setup) |
+| `Player` | Profils joueurs avec stats (XP, Argent, courses) |
+| `Team` | Équipes avec XP cumulé |
+| `RaceSession` | Historique des traitements de résultats |
+| `RaceResult` | Résultat individuel par joueur par session |
+| `TwitchStreamer` | Liste des membres à afficher sur /lives |
+
+**Commandes disponibles :**
 
 | Commande | Description |
 |----------|-------------|
-| `npm run db:push` | Synchronise le schéma → base de données (développement) |
-| `npm run db:generate` | Régénère le client Prisma après modification du schéma |
-| `npm run db:studio` | Ouvre une interface web pour visualiser/éditer les données |
-
-> **Note :** En production, utilisez `npx prisma migrate deploy` à la place de `db:push` pour des migrations versionnées.
+| `npm run db:push` | Synchronise le schéma → base de données |
+| `npm run db:generate` | Régénère le client Prisma |
+| `npm run db:studio` | Interface web pour visualiser/éditer les données |
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production |
+| `npm run start` | Démarrer en production |
 
 ---
 
-## 7. Lancer le projet en développement
+## 9. Configuration initiale via /setup
+
+La page `/setup` permet de connecter votre serveur Discord **en un seul clic**, sans copier-coller d'IDs manuellement.
+
+### Ce qu'elle automatise
+
+| Sans /setup | Avec /setup |
+|-------------|-------------|
+| Copier `GUILD_ID` manuellement | ✅ Récupéré automatiquement |
+| Créer le webhook Discord manuellement | ✅ Créé automatiquement dans le salon choisi |
+| Copier `DISCORD_WEBHOOK_URL` | ✅ Sauvegardé automatiquement en base |
+| Copier `ADMIN_ROLE_ID` | ✅ Sélectionné via une liste déroulante |
+
+### Étapes
+
+1. Démarrez le projet (`npm run dev`)
+2. Rendez-vous sur **http://localhost:3000/setup**
+3. Cliquez **"Connecter au serveur Discord"**
+4. Discord vous demande :
+   - Dans quel serveur ajouter le bot
+   - Dans quel salon créer le webhook d'annonce
+5. Vous êtes redirigé vers **/setup/roles**
+6. Sélectionnez le rôle Discord qui donnera accès au panel admin
+7. Cliquez **"Confirmer"** → configuration terminée
+
+> **Prérequis :** Les URLs `http://localhost:3000/api/auth/callback/discord` et `http://localhost:3000/api/setup/callback` doivent être ajoutées dans les Redirects de votre application Discord avant de lancer /setup.
+
+---
+
+## 10. Lancer le projet en développement
 
 ```bash
 npm run dev
 ```
 
-Le site est accessible sur [http://localhost:3000](http://localhost:3000).
+Accès sur [http://localhost:3000](http://localhost:3000).
 
-**Vérifications à faire au premier lancement :**
+### Checklist de vérification
 
-1. **Page d'accueil** → doit s'afficher avec le hero et la section "Prochaines courses" (vide au départ)
-2. **Connexion Discord** → cliquer sur "Se connecter" → redirection vers Discord → retour sur le site avec votre avatar affiché
-3. **Vérification du rôle** → si votre compte Discord possède le rôle `ADMIN_ROLE_ID` sur le serveur `GUILD_ID`, un bouton "Admin" apparaît dans la navbar
-4. **Panel admin** → accessible sur [http://localhost:3000/admin](http://localhost:3000/admin) uniquement si vous êtes ADMIN
-5. **Création d'événement** → remplir le formulaire sur `/admin/create` → vérifier que l'événement apparaît sur la home et que le webhook Discord a envoyé un message
+- [ ] **Accueil** → le hero et la section "Prochaines courses" s'affichent
+- [ ] **Login Discord** → clic "Se connecter" → OAuth2 → retour avec avatar
+- [ ] **Rôle admin** → si vous avez le bon rôle, le bouton "Admin" apparaît dans la navbar
+- [ ] **Panel admin** → `/admin` accessible, redirection vers `/` sinon
+- [ ] **Créer une course** → formulaire `/admin/create` → événement visible sur l'accueil + notification Discord
+- [ ] **Résultats** → `/admin/results` → upload d'un fichier test → prévisualisation → validation
+- [ ] **Lives** → `/lives` → sidebar de streamers, sélection d'un stream → iframe Twitch
+- [ ] **Streamers** → `/admin/streamers` → ajout d'un pseudo Twitch → apparaît sur `/lives`
+
+### Fichiers de test pour les résultats
+
+**JSON** (`test-results.json`) :
+```json
+[
+  { "position": 1, "username": "joueur1", "isClean": true },
+  { "position": 2, "username": "joueur2", "isClean": true },
+  { "position": 3, "username": "joueur3", "isClean": false }
+]
+```
+
+**CSV** (`test-results.csv`) :
+```
+position,username,isClean
+1,joueur1,true
+2,joueur2,true
+3,joueur3,false
+```
+
+> Les pseudos doivent correspondre exactement aux profils `Player` créés en base (via `npm run db:studio`).
 
 ---
 
-## 8. Déploiement en production
+## 11. Déploiement sur VPS
 
-### Variables d'environnement
+### 11.1 Préparer le serveur (Ubuntu/Debian)
 
-En production, modifiez :
+```bash
+sudo apt update && sudo apt upgrade -y
+
+# Node.js 20 LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs git nginx
+
+# PM2 pour garder le site en ligne
+sudo npm install -g pm2
+```
+
+### 11.2 Déployer le projet
+
+```bash
+git clone https://github.com/romainrssl/pads-website.git /var/www/pads-website
+cd /var/www/pads-website
+
+npm install
+cp .env.example .env.local
+nano .env.local   # remplir toutes les variables de production
+
+npm run db:push
+npm run build
+```
+
+### 11.3 Lancer avec PM2
+
+```bash
+pm2 start npm --name "pads-website" -- start
+pm2 save
+pm2 startup   # copier-coller la commande affichée
+```
+
+### 11.4 Configurer Nginx
+
+```bash
+sudo nano /etc/nginx/sites-available/pads-website
+```
+
+```nginx
+server {
+    listen 80;
+    server_name votre-domaine.com www.votre-domaine.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/pads-website /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 11.5 Certificat HTTPS gratuit
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d votre-domaine.com -d www.votre-domaine.com
+```
+
+### 11.6 Variables de production
+
 ```bash
 NEXTAUTH_URL="https://votre-domaine.com"
+NEXT_PUBLIC_SITE_DOMAIN="votre-domaine.com"  # sans https://
 ```
 
-Ajoutez également l'URL de redirection dans le Discord Developer Portal :
-```
-https://votre-domaine.com/api/auth/callback/discord
-```
-
-### Build
-
-```bash
-npm run build
-npm run start
-```
-
-### Recommandations
-
-- **Base de données** : Pour une mise en production robuste, migrez de SQLite vers PostgreSQL ou MySQL. Remplacez dans `prisma/schema.prisma` : `provider = "postgresql"` et adaptez le `DATABASE_URL`.
-- **Hébergement** : Le projet est compatible avec Vercel (déploiement automatique depuis GitHub), Railway, ou tout serveur Node.js.
-- **Migrations** : Utilisez `npx prisma migrate dev` en développement et `npx prisma migrate deploy` en production pour versionner les évolutions de schéma.
+Et dans le Discord Developer Portal, ajouter les redirects de production :
+- `https://votre-domaine.com/api/auth/callback/discord`
+- `https://votre-domaine.com/api/setup/callback`
 
 ---
 
-## 9. Architecture du projet
+## 12. Architecture du projet
 
 ```
 ├── prisma/
-│   ├── schema.prisma          # Schéma de la base de données
-│   └── dev.db                 # Base SQLite (ignorée par Git)
+│   ├── schema.prisma              # Schéma complet (User, Event, Player, Team, TwitchStreamer…)
+│   └── dev.db                     # Base SQLite locale (ignorée par Git)
 │
 ├── src/
-│   ├── auth.ts                # Configuration NextAuth (cœur de l'auth)
-│   ├── middleware.ts          # Protection des routes /admin
+│   ├── auth.ts                    # NextAuth v5 — Discord OAuth2 + vérification rôle bot
+│   ├── middleware.ts              # Protection Edge des routes /admin (JWT, sans DB)
 │   │
 │   ├── types/
-│   │   └── next-auth.d.ts     # Extension des types de session (role, discordId)
+│   │   └── next-auth.d.ts        # Augmentation de session (role, discordId)
 │   │
 │   ├── lib/
-│   │   ├── prisma.ts          # Singleton PrismaClient (évite les connexions multiples)
-│   │   ├── discord-bot.ts     # Lecture des rôles via l'API Discord REST
-│   │   └── discord-webhook.ts # Construction et envoi des embeds Discord
+│   │   ├── prisma.ts             # Singleton PrismaClient
+│   │   ├── config.ts             # Lecture config Discord (DB + fallback env vars)
+│   │   ├── discord-bot.ts        # REST discord.js — rôles + liste des rôles du serveur
+│   │   ├── discord-webhook.ts    # Embeds Discord — nouvelle course + résultats traités
+│   │   ├── race-parser.ts        # Parser JSON et CSV des fichiers de résultats
+│   │   ├── rewards.ts            # Calcul XP, argent, bonus position et course propre
+│   │   └── twitch.ts             # Twitch Helix API — token, userInfo, liveStreams
 │   │
 │   └── app/
-│       ├── layout.tsx          # Layout racine (Navbar, Footer, SessionProvider)
-│       ├── page.tsx            # Page d'accueil (calendrier des courses)
+│       ├── layout.tsx             # Layout racine (Navbar, Footer, SessionProvider)
+│       ├── page.tsx               # Accueil — calendrier des courses à venir
+│       │
+│       ├── lives/
+│       │   └── page.tsx          # Multiplex Twitch (jusqu'à 10 streams)
+│       │
+│       ├── setup/
+│       │   ├── page.tsx          # Configuration initiale — bouton "Connecter Discord"
+│       │   ├── roles/page.tsx    # Sélecteur de rôle admin
+│       │   └── done/page.tsx     # Confirmation de fin de setup
 │       │
 │       ├── api/
-│       │   ├── auth/[...nextauth]/route.ts  # Handler NextAuth
-│       │   └── events/
-│       │       ├── route.ts               # GET (liste) / POST (création)
-│       │       └── [id]/route.ts          # GET (détail) / DELETE
+│       │   ├── auth/[...nextauth]/route.ts      # Handler NextAuth
+│       │   ├── events/
+│       │   │   ├── route.ts                     # GET (liste publique) / POST (admin)
+│       │   │   └── [id]/route.ts                # DELETE (admin)
+│       │   ├── setup/
+│       │   │   ├── callback/route.ts            # OAuth2 callback — sauvegarde guild + webhook
+│       │   │   └── roles/route.ts               # GET rôles / POST sauvegarde adminRoleId
+│       │   ├── twitch/
+│       │   │   └── live/route.ts                # GET statut live de tous les streamers
+│       │   └── admin/
+│       │       ├── streamers/
+│       │       │   ├── route.ts                 # GET liste / POST ajout streamer
+│       │       │   └── [id]/route.ts            # DELETE streamer
+│       │       └── results/
+│       │           ├── preview/route.ts         # POST parse + calcul (sans écriture DB)
+│       │           └── process/route.ts         # POST transaction DB + notification Discord
 │       │
 │       ├── admin/
-│       │   ├── layout.tsx      # Layout admin (vérification rôle serveur)
-│       │   ├── page.tsx        # Tableau de bord admin
-│       │   └── create/page.tsx # Formulaire de création d'événement
+│       │   ├── layout.tsx         # Garde ADMIN + barre de navigation admin
+│       │   ├── page.tsx           # Dashboard — tableau des événements
+│       │   ├── create/page.tsx    # Formulaire création d'événement
+│       │   ├── results/page.tsx   # Upload + prévisualisation + validation résultats
+│       │   └── streamers/page.tsx # Gestion des streamers Twitch
 │       │
 │       └── components/
-│           ├── SessionProvider.tsx        # Wrapper client pour NextAuth
-│           ├── layout/Navbar.tsx          # Barre de navigation
-│           ├── layout/Footer.tsx
-│           ├── events/EventCard.tsx       # Carte d'un événement
-│           ├── events/EventList.tsx       # Grille d'événements
-│           ├── events/EventBadge.tsx      # Badge coloré (jeu, circuit, voiture)
-│           ├── admin/CreateEventForm.tsx  # Formulaire contrôlé
-│           └── admin/EventTable.tsx       # Tableau admin avec suppression
+│           ├── SessionProvider.tsx
+│           ├── layout/
+│           │   ├── Navbar.tsx     # Nav principale avec lien Lives + bouton Discord
+│           │   └── Footer.tsx
+│           ├── events/
+│           │   ├── EventCard.tsx  # Carte de course avec compte à rebours
+│           │   ├── EventList.tsx  # Grille responsive des courses
+│           │   └── EventBadge.tsx # Badge coloré (jeu / circuit / voiture)
+│           ├── lives/
+│           │   └── LiveMultiplex.tsx  # Sidebar streamers + grille d'iframes Twitch
+│           └── admin/
+│               ├── CreateEventForm.tsx   # Formulaire contrôlé avec feedback
+│               ├── EventTable.tsx        # Tableau admin avec suppression
+│               ├── ResultsUploadForm.tsx # Upload → aperçu → validation (3 étapes)
+│               └── StreamerManager.tsx   # Ajout / suppression de streamers Twitch
 ```
 
 ---
 
-## 10. Fonctionnement technique
+## 13. Fonctionnement technique
 
-### Flux d'authentification et attribution des rôles
-
-```
-1. L'utilisateur clique "Se connecter avec Discord"
-          │
-          ▼
-2. Redirection vers discord.com/oauth2/authorize
-   (scopes : identify + email + guilds)
-          │
-          ▼
-3. Discord redirige vers /api/auth/callback/discord
-   avec un code d'autorisation
-          │
-          ▼
-4. NextAuth échange le code contre un access_token Discord
-          │
-          ▼
-5. Callback jwt() dans src/auth.ts :
-   ┌─ Récupère l'ID Discord de l'utilisateur (profile.id)
-   ├─ Appelle discord-bot.ts → GET /guilds/{GUILD_ID}/members/{userId}
-   │    (requête HTTP avec le Bot Token, pas de WebSocket)
-   ├─ Vérifie si ADMIN_ROLE_ID est dans member.roles[]
-   ├─ token.role = "ADMIN" ou "USER"
-   └─ Met à jour le champ role en base de données
-          │
-          ▼
-6. Le rôle est encodé dans le JWT (cookie httpOnly)
-   Accessible dans toute l'application via auth() ou useSession()
-```
-
-### Protection des routes admin
-
-Le fichier `src/middleware.ts` s'exécute sur chaque requête vers `/admin/*` **avant** que la page ne soit rendue. Il lit le JWT directement (sans appel à la base de données, ce qui est essentiel pour la performance en Edge runtime) et redirige vers `/` si l'utilisateur n'est pas ADMIN.
-
-### Pourquoi JWT et pas sessions en base de données ?
-
-NextAuth supporte deux stratégies de session :
-- **`database`** : la session est stockée en base, le middleware doit faire un appel DB à chaque requête
-- **`jwt`** : la session est un token signé dans un cookie, lisible sans DB
-
-Le middleware Next.js s'exécute dans l'**Edge Runtime** (workers V8 légers), qui ne peut pas utiliser Prisma (qui requiert Node.js complet). Le choix `strategy: "jwt"` est donc obligatoire pour que le middleware puisse vérifier le rôle sans accès base de données.
-
-### Pourquoi discord.js sans gateway ?
-
-discord.js est souvent utilisé pour des bots "temps réel" qui maintiennent une connexion WebSocket persistante avec Discord (le "gateway"). Dans un contexte Next.js serverless, il est impossible de maintenir une telle connexion — les fonctions s'exécutent à la demande et s'éteignent immédiatement après.
-
-Ce projet utilise uniquement la classe `REST` de discord.js, qui fait des appels HTTP ponctuels à l'API Discord :
-```
-GET https://discord.com/api/v10/guilds/{GUILD_ID}/members/{USER_ID}
-Authorization: Bot {DISCORD_BOT_TOKEN}
-```
-Pas de connexion persistante, parfaitement compatible serverless.
-
-### Notifications Discord (Webhook)
-
-À la création d'un événement, un "embed" Discord riche est envoyé via `fetch` sur l'URL du webhook. L'envoi est **fire-and-forget** : si Discord est temporairement indisponible, l'événement est quand même créé en base et l'erreur est simplement loggée côté serveur.
+### Authentification et rôles Discord
 
 ```
-POST {DISCORD_WEBHOOK_URL}
-Content-Type: application/json
-
-{
-  "username": "Spin Bot",
-  "embeds": [{
-    "title": "🏁 Nouvelle course — ...",
-    "color": 15087942,   // Rouge racing #E63946
-    "fields": [Jeu, Voiture, Circuit, Date],
-    "footer": "Par amour du spin — Sim Racing Community"
-  }]
-}
+Clic "Se connecter avec Discord"
+         │
+         ▼
+Discord OAuth2 (scopes : identify + email + guilds)
+         │
+         ▼
+Callback NextAuth → jwt() dans src/auth.ts
+  ├─ Appel REST : GET /guilds/{GUILD_ID}/members/{userId}
+  │   (Bot Token, HTTP uniquement — pas de WebSocket)
+  ├─ ADMIN_ROLE_ID dans member.roles[] → token.role = "ADMIN"
+  ├─ Sinon → token.role = "USER"
+  └─ Mise à jour du champ role en base de données
+         │
+         ▼
+Rôle encodé dans le JWT (cookie httpOnly signé)
+Accessible partout via auth() ou useSession()
 ```
+
+**Pourquoi JWT et pas sessions base de données ?**
+Le middleware Next.js s'exécute dans l'Edge Runtime (pas accès à Prisma). Le JWT permet de lire le rôle sans aucun appel base de données à chaque requête.
+
+### Traitement des résultats de course
+
+```
+Admin uploade un fichier JSON ou CSV
+         │
+         ▼
+POST /api/admin/results/preview
+  ├─ race-parser.ts : détecte le format, parse les entrées
+  ├─ rewards.ts : calcule XP et argent pour chaque joueur
+  └─ Vérifie quels pseudos existent en DB → retourne preview[]
+         │
+         ▼
+Admin valide l'aperçu
+         │
+         ▼
+POST /api/admin/results/process
+  ├─ Re-parse le fichier + recalcule
+  └─ prisma.$transaction() :
+       ├─ Crée RaceSession
+       ├─ Pour chaque joueur trouvé :
+       │   ├─ player.xp += xpGained
+       │   ├─ player.money += moneyGained
+       │   ├─ player.finishedRaces++
+       │   ├─ player.cleanRaces++ (si isClean)
+       │   ├─ Crée RaceResult
+       │   └─ team.xp += xpGained (si teamId)
+       └─ Notification Discord (fire-and-forget)
+```
+
+### Multiplex Twitch
+
+```
+/lives (Server Component) → liste les TwitchStreamer depuis DB
+         │
+         ▼
+LiveMultiplex (Client Component)
+  ├─ Mount → GET /api/twitch/live
+  │   ├─ fetchUserInfos() : Helix /users → avatars, display names
+  │   └─ fetchLiveStreams() : Helix /streams → live status, viewers, titre
+  ├─ Refresh automatique toutes les 60 secondes
+  ├─ Sidebar : streamers triés (live en haut) avec badge LIVE + viewers
+  └─ Grille : jusqu'à 10 iframes Twitch simultanés
+       Grille adaptive :
+         1–2 streams → 2 colonnes
+         3–4 streams → 2 colonnes
+         5–6 streams → 3 colonnes
+         7–10 streams → 4 à 5 colonnes
+```
+
+**Paramètre `parent` Twitch :** les embeds Twitch exigent que `parent` corresponde exactement au domaine servi. C'est le rôle de `NEXT_PUBLIC_SITE_DOMAIN`.
+
+### Configuration via /setup
+
+La page `/setup` évite la configuration manuelle des variables Discord en utilisant OAuth2 avec les scopes `bot + webhook.incoming` :
+
+```
+POST discord.com/oauth2/authorize (scopes: bot + webhook.incoming)
+         │ Discord demande : quel serveur ? quel salon pour le webhook ?
+         ▼
+/api/setup/callback
+  ├─ Échange le code OAuth2 contre un token
+  ├─ Extrait guild.id et webhook.url de la réponse Discord
+  └─ Sauvegarde en DB (table GuildConfig, singleton)
+         │
+         ▼
+/setup/roles
+  ├─ GET /guilds/{guildId}/roles via Bot Token
+  └─ Admin choisit le rôle admin dans la liste → sauvegarde adminRoleId
+```
+
+La config DB est prioritaire sur les variables d'environnement (fallback pour compatibilité).
+
+### Webhooks Discord
+
+Deux fonctions dans `src/lib/discord-webhook.ts` :
+
+| Fonction | Déclenchement | Contenu de l'embed |
+|----------|--------------|-------------------|
+| `sendEventNotification()` | Création d'une course | Titre, jeu, voiture, circuit, date |
+| `sendRaceResultsNotification()` | Validation des résultats | Top 3, plus gros gain XP, résumé |
+
+Les deux sont **fire-and-forget** : une erreur côté Discord ne bloque pas la réponse à l'utilisateur.
