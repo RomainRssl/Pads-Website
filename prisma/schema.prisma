@@ -75,9 +75,53 @@ model Event {
 
 // Singleton row — configuration du serveur Discord (remplie via /setup)
 model GuildConfig {
-  id          String   @id @default("singleton")
-  guildId     String
-  webhookUrl  String
-  adminRoleId String?
+  id           String   @id @default("singleton")
+  guildId      String
+  webhookUrl   String
+  adminRoleId  String?
   configuredAt DateTime @default(now())
+}
+
+// ── Sim Racing stats ──────────────────────────────────────────────────────────
+
+model Team {
+  id      String   @id @default(cuid())
+  name    String   @unique
+  xp      Int      @default(0)
+  players Player[]
+}
+
+model Player {
+  id            String       @id @default(cuid())
+  username      String       @unique
+  discordId     String?      @unique
+  xp            Int          @default(0)
+  money         Int          @default(0)
+  finishedRaces Int          @default(0)
+  cleanRaces    Int          @default(0)
+  teamId        String?
+  team          Team?        @relation(fields: [teamId], references: [id])
+  raceResults   RaceResult[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model RaceSession {
+  id          String       @id @default(cuid())
+  durationMin Int
+  processedAt DateTime     @default(now())
+  processedBy String
+  results     RaceResult[]
+}
+
+model RaceResult {
+  id            String      @id @default(cuid())
+  playerId      String
+  player        Player      @relation(fields: [playerId], references: [id])
+  raceSessionId String
+  raceSession   RaceSession @relation(fields: [raceSessionId], references: [id])
+  position      Int
+  xpGained      Int
+  moneyGained   Int
+  isClean       Boolean     @default(true)
 }

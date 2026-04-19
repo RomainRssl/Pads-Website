@@ -38,6 +38,12 @@ export default async function AdminLayout({
             >
               + Nouvelle course
             </Link>
+            <Link
+              href="/admin/results"
+              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            >
+              🏁 Résultats
+            </Link>
           </nav>
         </div>
       </div>
