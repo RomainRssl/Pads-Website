@@ -37,7 +37,7 @@ export default async function LivesPage() {
           📺 Multiplex Live
         </h1>
         <span className="text-brand-muted text-sm hidden sm:block">
-          Sélectionnez jusqu'à 4 streams à regarder simultanément
+          Sélectionnez jusqu'à 10 streams à regarder simultanément
         </span>
       </div>
 

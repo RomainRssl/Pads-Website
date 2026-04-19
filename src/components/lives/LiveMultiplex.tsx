@@ -21,15 +21,16 @@ interface Props {
   initialUsernames: string[];
 }
 
-const MAX_STREAMS = 4;
+const MAX_STREAMS = 10;
 const REFRESH_INTERVAL = 60_000; // 60 seconds
 const PARENT = process.env.NEXT_PUBLIC_SITE_DOMAIN ?? "localhost";
 
 function gridClass(count: number) {
   if (count <= 1) return "grid-cols-1";
   if (count === 2) return "grid-cols-2";
-  if (count === 3) return "grid-cols-2 lg:grid-cols-3";
-  return "grid-cols-2";
+  if (count <= 4) return "grid-cols-2 lg:grid-cols-2";
+  if (count <= 6) return "grid-cols-2 lg:grid-cols-3";
+  return "grid-cols-2 lg:grid-cols-4 xl:grid-cols-5";
 }
 
 export default function LiveMultiplex({ initialUsernames }: Props) {
