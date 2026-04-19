@@ -1,16 +1,13 @@
-import { REST, Routes } from "discord.js";
 import type { Role } from "@/types/next-auth";
 import { getGuildConfig } from "./config";
 
-let restClient: REST | null = null;
+const DISCORD_API = "https://discord.com/api/v10";
 
-function getRestClient(): REST {
-  if (!restClient) {
-    restClient = new REST({ version: "10" }).setToken(
-      process.env.DISCORD_BOT_TOKEN!
-    );
-  }
-  return restClient;
+function botHeaders() {
+  return {
+    Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+    "Content-Type": "application/json",
+  };
 }
 
 interface GuildMember {
@@ -26,23 +23,25 @@ export interface DiscordRole {
 
 export async function fetchMemberRole(discordUserId: string): Promise<Role> {
   const config = await getGuildConfig();
-  if (!config) return "USER";
+  if (!config?.adminRoleId) return "USER";
 
-  const adminRoleId = config.adminRoleId;
-  if (!adminRoleId) return "USER";
+  const res = await fetch(
+    `${DISCORD_API}/guilds/${config.guildId}/members/${discordUserId}`,
+    { headers: botHeaders() }
+  );
+  if (!res.ok) return "USER";
 
-  const rest = getRestClient();
-
-  const member = (await rest.get(
-    Routes.guildMember(config.guildId, discordUserId)
-  )) as GuildMember;
-
-  return member.roles.includes(adminRoleId) ? "ADMIN" : "USER";
+  const member: GuildMember = await res.json();
+  return member.roles.includes(config.adminRoleId) ? "ADMIN" : "USER";
 }
 
 export async function fetchGuildRoles(guildId: string): Promise<DiscordRole[]> {
-  const rest = getRestClient();
-  const roles = (await rest.get(Routes.guildRoles(guildId))) as DiscordRole[];
+  const res = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
+    headers: botHeaders(),
+  });
+  if (!res.ok) return [];
+
+  const roles: DiscordRole[] = await res.json();
   return roles
     .filter((r) => r.name !== "@everyone")
     .sort((a, b) => b.position - a.position);
