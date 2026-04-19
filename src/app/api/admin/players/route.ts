@@ -31,10 +31,15 @@ export async function POST(req: Request) {
       include: { team: { select: { id: true, name: true } } },
     });
     return NextResponse.json(player, { status: 201 });
-  } catch {
-    return NextResponse.json(
-      { error: `Le pilote "${username.trim()}" existe déjà.` },
-      { status: 409 }
-    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Unique constraint") || msg.includes("P2002")) {
+      return NextResponse.json(
+        { error: `Le pilote "${username.trim()}" existe déjà.` },
+        { status: 409 }
+      );
+    }
+    console.error("[POST /api/admin/players]", err);
+    return NextResponse.json({ error: "Erreur serveur : " + msg }, { status: 500 });
   }
 }
