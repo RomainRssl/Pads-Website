@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["discord.js", "@discordjs/rest", "zlib-sync"],
   images: {
     remotePatterns: [
       {
