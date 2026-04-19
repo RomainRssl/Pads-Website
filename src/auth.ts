@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import { fetchMemberRole } from "@/lib/discord-bot";
 import type { Role } from "@/types/next-auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -23,6 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.discordId = discordProfile.id;
 
         try {
+          const { fetchMemberRole } = await import("@/lib/discord-bot");
           token.role = await fetchMemberRole(discordProfile.id);
         } catch (error) {
           console.error(
