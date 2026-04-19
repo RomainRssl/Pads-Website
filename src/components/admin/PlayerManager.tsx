@@ -39,19 +39,25 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
 
   async function addPlayer(e: React.FormEvent) {
     e.preventDefault();
-    if (!newUsername.trim()) return;
+    const username = newUsername.trim();
+    if (!username) return;
     setLoading(true);
     setError("");
-    const res = await fetch("/api/admin/players", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: newUsername, discordId: newDiscordId || null, teamId: newTeamId || null }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) { setError(data.error); return; }
-    setPlayers((prev) => [...prev, { ...data, categories: [] }].sort((a, b) => a.username.localeCompare(b.username)));
-    setNewUsername(""); setNewDiscordId(""); setNewTeamId("");
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, discordId: newDiscordId || null, teamId: newTeamId || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Erreur serveur."); return; }
+      setPlayers((prev) => [...prev, { ...data, categories: [] }].sort((a, b) => a.username.localeCompare(b.username)));
+      setNewUsername(""); setNewDiscordId(""); setNewTeamId("");
+    } catch {
+      setError("Erreur réseau. Vérifiez votre connexion et réessayez.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function deletePlayer(id: string, username: string) {
