@@ -50,6 +50,18 @@ export default async function AdminLayout({
             >
               📺 Streamers
             </Link>
+            <Link
+              href="/admin/teams"
+              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            >
+              🏎️ Écuries
+            </Link>
+            <Link
+              href="/admin/players"
+              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            >
+              👤 Pilotes
+            </Link>
           </nav>
         </div>
       </div>
