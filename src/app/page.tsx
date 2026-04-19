@@ -45,20 +45,49 @@ export default async function HomePage() {
             </p>
 
             {!session && (
-              <form
-                action={async () => {
-                  "use server";
-                  await signIn("discord");
-                }}
-              >
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-brand-discord hover:bg-brand-discord/80 text-white font-semibold text-lg transition-colors shadow-lg"
-                >
-                  <DiscordIcon />
-                  Rejoindre la communauté
-                </button>
-              </form>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                {/* Buttons */}
+                <div className="flex flex-col gap-3">
+                  <form
+                    action={async () => {
+                      "use server";
+                      await signIn("discord");
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-brand-discord hover:bg-brand-discord/80 text-white font-semibold text-lg transition-colors shadow-lg"
+                    >
+                      <DiscordIcon />
+                      Se connecter avec Discord
+                    </button>
+                  </form>
+
+                  <a
+                    href="https://discord.gg/AmMRGSbaV"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 px-6 py-3 rounded-xl border border-brand-discord/50 hover:border-brand-discord hover:bg-brand-discord/10 text-brand-discord font-semibold text-lg transition-colors"
+                  >
+                    <DiscordIcon />
+                    Rejoindre le serveur Discord
+                  </a>
+                </div>
+
+                {/* QR Code */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="bg-white p-3 rounded-xl shadow-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://discord.gg/AmMRGSbaV&bgcolor=ffffff&color=000000&margin=0`}
+                      alt="QR Code Discord"
+                      width={120}
+                      height={120}
+                    />
+                  </div>
+                  <p className="text-brand-muted text-xs">Scanner pour rejoindre</p>
+                </div>
+              </div>
             )}
           </div>
         </div>
