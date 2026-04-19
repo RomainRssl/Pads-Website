@@ -10,10 +10,10 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-brand-dark/90 backdrop-blur-sm border-b border-brand-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <Link
             href="/"
-            className="font-heading text-xl font-bold text-white tracking-wide hover:text-brand-red transition-colors"
+            className="font-heading text-lg sm:text-xl font-bold text-white tracking-wide hover:text-brand-red transition-colors whitespace-nowrap"
           >
             Par amour du{" "}
             <span className="text-brand-red">spin</span>
@@ -72,13 +72,13 @@ export default function Navbar() {
                     {session.user.name?.[0]?.toUpperCase() ?? "?"}
                   </div>
                 )}
-                <span className="text-brand-text text-sm hidden sm:block">
+                <span className="text-brand-text text-sm hidden md:block">
                   {session.user.name}
                 </span>
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors"
+                className="hidden sm:block px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors"
               >
                 Déconnexion
               </button>

@@ -19,6 +19,15 @@ body {
   font-family: var(--font-inter);
 }
 
+/* Hide scrollbar for nav overflow */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

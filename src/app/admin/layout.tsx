@@ -6,6 +6,17 @@ export const metadata = {
   title: "Admin — Par amour du spin",
 };
 
+const NAV_LINKS = [
+  { href: "/admin", label: "Tableau de bord" },
+  { href: "/admin/create", label: "+ Course" },
+  { href: "/admin/results", label: "🏁 Résultats" },
+  { href: "/admin/streamers", label: "📺 Streamers" },
+  { href: "/admin/teams", label: "🏎️ Écuries" },
+  { href: "/admin/players", label: "👤 Pilotes" },
+  { href: "/admin/categories", label: "🏁 Catégories" },
+  { href: "/admin/licenses", label: "🎖️ Licences" },
+];
+
 export default async function AdminLayout({
   children,
 }: {
@@ -21,64 +32,26 @@ export default async function AdminLayout({
     <div className="min-h-screen">
       {/* Admin top bar */}
       <div className="bg-brand-surface border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
-          <span className="px-2.5 py-0.5 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs font-semibold">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-3">
+          <span className="shrink-0 px-2 py-0.5 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs font-semibold">
             ADMIN
           </span>
-          <nav className="flex items-center gap-1">
-            <Link
-              href="/admin"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              Tableau de bord
-            </Link>
-            <Link
-              href="/admin/create"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              + Nouvelle course
-            </Link>
-            <Link
-              href="/admin/results"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              🏁 Résultats
-            </Link>
-            <Link
-              href="/admin/streamers"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              📺 Streamers
-            </Link>
-            <Link
-              href="/admin/teams"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              🏎️ Écuries
-            </Link>
-            <Link
-              href="/admin/players"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              👤 Pilotes
-            </Link>
-            <Link
-              href="/admin/categories"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              🏁 Catégories
-            </Link>
-            <Link
-              href="/admin/licenses"
-              className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-            >
-              🎖️ Licences
-            </Link>
+          {/* Nav scrollable horizontalement sur mobile */}
+          <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-none -mx-1 px-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors whitespace-nowrap"
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {children}
       </div>
     </div>
