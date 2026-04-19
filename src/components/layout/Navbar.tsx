@@ -78,9 +78,21 @@ export default function Navbar() {
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="hidden sm:block px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors"
+                className="hidden lg:block px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors"
               >
                 Déconnexion
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="lg:hidden p-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors"
+                aria-label="Déconnexion"
+                title="Déconnexion"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
               </button>
             </div>
           )}
