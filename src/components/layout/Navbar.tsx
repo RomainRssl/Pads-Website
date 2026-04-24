@@ -31,6 +31,12 @@ export default function Navbar() {
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             Lives
           </Link>
+          <Link
+            href="/pilotes"
+            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
+          >
+            Classement
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">
