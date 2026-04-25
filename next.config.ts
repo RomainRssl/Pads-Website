@@ -9,7 +9,17 @@ const nextConfig: NextConfig = {
         hostname: "cdn.discordapp.com",
         pathname: "/avatars/**",
       },
+      {
+        protocol: "https",
+        hostname: "static-cdn.jtvnw.net", // Twitch profile images
+        pathname: "/**",
+      },
     ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
   },
 };
 

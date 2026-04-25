@@ -24,10 +24,19 @@ interface Props {
 const MAX_STREAMS = 10;
 const REFRESH_INTERVAL = 60_000; // 60 seconds
 
-/** Résout le domaine Twitch parent dynamiquement — fonctionne en dev et en prod sans config */
+/** Résout le domaine Twitch parent.
+ *  Priorité : NEXT_PUBLIC_SITE_DOMAIN (env) → window.location.hostname → localhost
+ *  Les adresses IP sont rejetées par Twitch : toujours utiliser un nom de domaine. */
 function getTwitchParent(): string {
-  if (typeof window === "undefined") return "localhost";
-  return window.location.hostname;
+  const envDomain = process.env.NEXT_PUBLIC_SITE_DOMAIN;
+  if (envDomain && envDomain !== "localhost") return envDomain;
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    // Twitch n'accepte pas les adresses IP comme parent
+    const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(h);
+    if (!isIp) return h;
+  }
+  return "localhost";
 }
 
 function gridClass(count: number) {
