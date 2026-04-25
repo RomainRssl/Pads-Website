@@ -23,12 +23,8 @@ export async function POST(req: Request) {
   const durationRaw = formData.get("duration") as string | null;
 
   if (!file) return NextResponse.json({ error: "Fichier manquant." }, { status: 400 });
-  if (!durationRaw) return NextResponse.json({ error: "Durée manquante." }, { status: 400 });
 
-  const durationMin = parseInt(durationRaw, 10);
-  if (isNaN(durationMin) || durationMin <= 0) {
-    return NextResponse.json({ error: "Durée invalide." }, { status: 400 });
-  }
+  let durationMin = durationRaw ? parseInt(durationRaw, 10) : NaN;
 
   const text = await file.text();
   let parsed;
