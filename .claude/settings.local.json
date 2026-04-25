@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//f/CLAUDE//**)",
+      "Read(//f/CLAUDE/**)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(base64 -d echo \"---NEXT_CONFIG---\" gh api repos/RomainRssl/Pads-Website/contents/next.config.ts --jq '.content')",
+      "Bash(base64 -d echo \"---PACKAGE---\" gh api repos/RomainRssl/Pads-Website/contents/package.json --jq '.content')",
+      "Bash(base64 -d echo \"---SCHEMA---\" gh api repos/RomainRssl/Pads-Website/contents/prisma/schema.prisma --jq '.content')",
+      "Bash(base64 -d echo \"---PILOTES_LIST---\" gh api repos/RomainRssl/Pads-Website/contents/src/app/pilotes/page.tsx --jq '.content')",
+      "PowerShell(gh api repos/RomainRssl/Pads-Website/contents/src/components/layout/Navbar.tsx --method PUT --input \"C:\\\\Users\\\\Romain\\\\AppData\\\\Local\\\\Temp\\\\navbar_body.json\" --jq '.commit.sha')"
+    ]
+  }
+}

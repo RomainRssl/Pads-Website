@@ -16,16 +16,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { username, discordId, teamId } = await req.json();
+  const { username, discordUsername, discordId, teamId } = await req.json();
   if (!username || typeof username !== "string" || !username.trim()) {
-    return NextResponse.json({ error: "Username requis." }, { status: 400 });
+    return NextResponse.json({ error: "Pseudo LMU requis." }, { status: 400 });
+  }
+  if (!discordId || typeof discordId !== "string" || !discordId.trim()) {
+    return NextResponse.json({ error: "Discord ID requis." }, { status: 400 });
   }
 
   try {
     const player = await prisma.player.create({
       data: {
         username: username.trim(),
-        discordId: discordId?.trim() || null,
+        discordUsername: discordUsername?.trim() || null,
+        discordId: discordId.trim(),
         teamId: teamId || null,
       },
       include: { team: { select: { id: true, name: true } } },

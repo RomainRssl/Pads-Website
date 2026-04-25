@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { computeLicense, DEFAULT_LICENSES } from "@/lib/license";
+import { formatPilotName } from "@/lib/format";
 
 export const metadata = { title: "Pilotes — Par amour du spin" };
 
@@ -40,7 +41,7 @@ export default async function PilotesPage() {
             return (
               <Link
                 key={player.id}
-                href={`/pilotes/${player.username}`}
+                href={`/pilotes/${encodeURIComponent(player.username)}`}
                 className="group bg-brand-surface border border-brand-border rounded-xl p-5 hover:border-brand-red/50 hover:bg-brand-surface/80 transition-all"
               >
                 <div className="flex items-center gap-3 mb-4">
@@ -49,7 +50,7 @@ export default async function PilotesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-heading font-bold text-white truncate group-hover:text-brand-red transition-colors">
-                      {player.username.toUpperCase()}
+                      {formatPilotName(player.username).toUpperCase()}
                     </p>
                     <p className="text-xs text-brand-muted truncate">{player.team?.name ?? "Sans écurie"}</p>
                   </div>

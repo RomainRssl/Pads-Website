@@ -12,11 +12,24 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { discordId, teamId, reputation } = await req.json();
+  const { username, discordUsername, discordId, teamId, reputation } = await req.json();
+
+  if (username !== undefined) {
+    const trimmed = username.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "Le pseudo ne peut pas être vide." }, { status: 400 });
+    }
+    const existing = await prisma.player.findUnique({ where: { username: trimmed } });
+    if (existing && existing.id !== id) {
+      return NextResponse.json({ error: `Le pseudo "${trimmed}" est déjà utilisé.` }, { status: 409 });
+    }
+  }
 
   const player = await prisma.player.update({
     where: { id },
     data: {
+      ...(username !== undefined && { username: username.trim() }),
+      ...(discordUsername !== undefined && { discordUsername: discordUsername?.trim() || null }),
       discordId: discordId?.trim() || null,
       teamId: teamId || null,
       ...(reputation !== undefined && { reputation: Math.max(0, Math.min(100, Number(reputation))) }),

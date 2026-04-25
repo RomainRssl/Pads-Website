@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { computeLicense, DEFAULT_LICENSES } from "@/lib/license";
+import { formatPilotName } from "@/lib/format";
 import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
@@ -52,7 +53,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="font-heading text-3xl font-bold text-white tracking-wide">
-                  {player.username.toUpperCase()}
+                  {formatPilotName(player.username).toUpperCase()}
                 </h1>
                 {rank <= 3 && (
                   <span className="text-2xl">{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}</span>
@@ -138,7 +139,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
           🏆 Classement pilotes
         </Link>
         <span className="flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-border text-sm font-semibold" style={{ color: lic?.current.color, borderColor: lic?.current.color + "50" }}>
-          {lic?.current.icon} Licence {lic?.current.label}
+          Licence {lic?.current.label}
         </span>
       </div>
     </div>

@@ -7,6 +7,7 @@ interface Category { id: string; name: string; }
 interface Player {
   id: string;
   username: string;
+  discordUsername: string | null;
   discordId: string | null;
   xp: number;
   money: number;
@@ -27,32 +28,49 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // — Add form
+  const [newUsername, setNewUsername] = useState("");
+  const [newDiscordUsername, setNewDiscordUsername] = useState("");
+  const [newDiscordId, setNewDiscordId] = useState("");
+  const [newTeamId, setNewTeamId] = useState("");
+
+  // — Edit form
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editDiscordUsername, setEditDiscordUsername] = useState("");
   const [editDiscordId, setEditDiscordId] = useState("");
   const [editTeamId, setEditTeamId] = useState("");
   const [editReputation, setEditReputation] = useState(0);
   const [editCategoryIds, setEditCategoryIds] = useState<string[]>([]);
 
-  const [newUsername, setNewUsername] = useState("");
-  const [newDiscordId, setNewDiscordId] = useState("");
-  const [newTeamId, setNewTeamId] = useState("");
-
   async function addPlayer(e: React.FormEvent) {
     e.preventDefault();
     const username = newUsername.trim();
-    if (!username) return;
+    const discordId = newDiscordId.trim();
+    if (!username) { setError("Le Pseudo LMU est requis."); return; }
+    if (!discordId) { setError("Le Discord ID est requis."); return; }
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/admin/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, discordId: newDiscordId || null, teamId: newTeamId || null }),
+        body: JSON.stringify({
+          username,
+          discordUsername: newDiscordUsername.trim() || null,
+          discordId,
+          teamId: newTeamId || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Erreur serveur."); return; }
-      setPlayers((prev) => [...prev, { ...data, categories: [] }].sort((a, b) => a.username.localeCompare(b.username)));
-      setNewUsername(""); setNewDiscordId(""); setNewTeamId("");
+      setPlayers((prev) =>
+        [...prev, { ...data, categories: [] }].sort((a, b) =>
+          a.username.localeCompare(b.username)
+        )
+      );
+      setNewUsername(""); setNewDiscordUsername(""); setNewDiscordId(""); setNewTeamId("");
     } catch {
       setError("Erreur réseau. Vérifiez votre connexion et réessayez.");
     } finally {
@@ -67,11 +85,20 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
   }
 
   async function saveEdit(id: string) {
+    const username = editUsername.trim();
+    if (!username) { setError("Le Pseudo LMU ne peut pas être vide."); return; }
+    setError("");
     const [patchRes, catRes] = await Promise.all([
       fetch(`/api/admin/players/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ discordId: editDiscordId || null, teamId: editTeamId || null, reputation: editReputation }),
+        body: JSON.stringify({
+          username,
+          discordUsername: editDiscordUsername.trim() || null,
+          discordId: editDiscordId || null,
+          teamId: editTeamId || null,
+          reputation: editReputation,
+        }),
       }),
       fetch(`/api/admin/players/${id}/categories`, {
         method: "PUT",
@@ -79,17 +106,25 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
         body: JSON.stringify({ categoryIds: editCategoryIds }),
       }),
     ]);
-    if (!patchRes.ok) return;
+    if (!patchRes.ok) {
+      const data = await patchRes.json();
+      setError(data.error ?? "Erreur lors de la sauvegarde.");
+      return;
+    }
     const updated = await patchRes.json();
     const newCategories = categories
       .filter((c) => editCategoryIds.includes(c.id))
       .map((c) => ({ category: c }));
-    setPlayers((prev) => prev.map((p) => p.id === id ? { ...updated, categories: newCategories } : p));
+    setPlayers((prev) =>
+      prev.map((p) => (p.id === id ? { ...updated, categories: newCategories } : p))
+    );
     setEditingId(null);
   }
 
   function startEdit(player: Player) {
     setEditingId(player.id);
+    setEditUsername(player.username);
+    setEditDiscordUsername(player.discordUsername ?? "");
     setEditDiscordId(player.discordId ?? "");
     setEditTeamId(player.team?.id ?? "");
     setEditReputation(player.reputation);
@@ -97,31 +132,60 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
     setError("");
   }
 
+  const inputCls = "w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red";
+  const addInputCls = "bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red text-sm";
+
   return (
     <div className="space-y-6">
-      {/* Add form */}
-      <form onSubmit={addPlayer} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
-          placeholder="Pseudo (unique)"
-          className="bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red text-sm"
-        />
-        <input type="text" value={newDiscordId} onChange={(e) => setNewDiscordId(e.target.value)}
-          placeholder="Discord ID (optionnel)"
-          className="bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red text-sm"
-        />
-        <select value={newTeamId} onChange={(e) => setNewTeamId(e.target.value)}
-          className="bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:outline-none focus:border-brand-red text-sm"
-        >
-          <option value="">Sans écurie</option>
-          {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-        <button type="submit" disabled={loading || !newUsername.trim()}
-          className="px-5 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
-          + Ajouter
-        </button>
+      {/* ── Add form ── */}
+      <form onSubmit={addPlayer} className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Pseudo LMU <span className="text-brand-red">*</span></label>
+            <input
+              type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="ex: Romain Roussel"
+              className={addInputCls + " w-full"}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Pseudo Discord</label>
+            <input
+              type="text" value={newDiscordUsername} onChange={(e) => setNewDiscordUsername(e.target.value)}
+              placeholder="ex: douze_"
+              className={addInputCls + " w-full"}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Discord ID <span className="text-brand-red">*</span></label>
+            <input
+              type="text" value={newDiscordId} onChange={(e) => setNewDiscordId(e.target.value)}
+              placeholder="ex: 123456789012345678"
+              className={addInputCls + " w-full"}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Écurie</label>
+            <select value={newTeamId} onChange={(e) => setNewTeamId(e.target.value)}
+              className={addInputCls + " w-full"}
+            >
+              <option value="">Sans écurie</option>
+              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={loading || !newUsername.trim() || !newDiscordId.trim()}
+            className="px-5 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
+            + Ajouter le pilote
+          </button>
+          <p className="text-xs text-brand-muted">* champs obligatoires</p>
+        </div>
       </form>
+
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
+      {/* ── Player list ── */}
       {players.length === 0 ? (
         <p className="text-brand-muted text-sm">Aucun pilote pour le moment.</p>
       ) : (
@@ -130,31 +194,45 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
             <div key={player.id} className="bg-brand-dark border border-brand-border rounded-xl p-4">
               {editingId === player.id ? (
                 <div className="space-y-4">
-                  <p className="font-heading font-bold text-white text-lg">{player.username.toUpperCase()}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Edit grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs text-brand-muted block mb-1">Pseudo LMU ✏️</label>
+                      <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)}
+                        placeholder="Pseudo LMU"
+                        className="w-full bg-brand-surface border border-brand-red/50 rounded-lg px-3 py-2 text-white font-heading font-bold text-sm focus:outline-none focus:border-brand-red"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-brand-muted block mb-1">Pseudo Discord</label>
+                      <input type="text" value={editDiscordUsername} onChange={(e) => setEditDiscordUsername(e.target.value)}
+                        placeholder="ex: douze_"
+                        className={inputCls}
+                      />
+                    </div>
                     <div>
                       <label className="text-xs text-brand-muted block mb-1">Discord ID</label>
                       <input type="text" value={editDiscordId} onChange={(e) => setEditDiscordId(e.target.value)}
                         placeholder="Discord ID"
-                        className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red"
+                        className={inputCls}
                       />
-                    </div>
-                    <div>
-                      <label className="text-xs text-brand-muted block mb-1">Écurie</label>
-                      <select value={editTeamId} onChange={(e) => setEditTeamId(e.target.value)}
-                        className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red"
-                      >
-                        <option value="">Sans écurie</option>
-                        {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
                     </div>
                     <div>
                       <label className="text-xs text-brand-muted block mb-1">Réputation (0–100)</label>
                       <input type="number" min={0} max={100} value={editReputation}
                         onChange={(e) => setEditReputation(Number(e.target.value))}
-                        className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red"
+                        className={inputCls}
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-brand-muted block mb-1">Écurie</label>
+                    <select value={editTeamId} onChange={(e) => setEditTeamId(e.target.value)}
+                      className={inputCls + " max-w-xs"}
+                    >
+                      <option value="">Sans écurie</option>
+                      {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
                   </div>
 
                   {categories.length > 0 && (
@@ -167,9 +245,11 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                             <button
                               key={cat.id}
                               type="button"
-                              onClick={() => setEditCategoryIds((prev) =>
-                                checked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
-                              )}
+                              onClick={() =>
+                                setEditCategoryIds((prev) =>
+                                  checked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                                )
+                              }
                               className={`px-3 py-1 rounded-lg text-sm font-bold border transition-colors ${
                                 checked
                                   ? "bg-brand-red/10 border-brand-red text-brand-red"
@@ -186,9 +266,13 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
 
                   <div className="flex gap-2">
                     <button onClick={() => saveEdit(player.id)}
-                      className="px-4 py-1.5 rounded-lg bg-brand-red text-white text-sm font-semibold">Enregistrer</button>
-                    <button onClick={() => setEditingId(null)}
-                      className="px-4 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm">Annuler</button>
+                      className="px-4 py-1.5 rounded-lg bg-brand-red text-white text-sm font-semibold">
+                      Enregistrer
+                    </button>
+                    <button onClick={() => { setEditingId(null); setError(""); }}
+                      className="px-4 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm">
+                      Annuler
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -196,6 +280,9 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-heading font-bold text-white">{player.username.toUpperCase()}</span>
+                      {player.discordUsername && (
+                        <span className="text-xs text-brand-muted">@{player.discordUsername}</span>
+                      )}
                       {player.team && <span className="text-xs text-brand-muted">· {player.team.name}</span>}
                       {player.categories.map((pc) => (
                         <span key={pc.category.id} className="text-xs px-1.5 py-0.5 rounded bg-brand-red/10 text-brand-red border border-brand-red/30 font-bold">
@@ -208,6 +295,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                       <span>{player.money.toLocaleString("fr-FR")} crédits</span>
                       <span>Réputation : {player.reputation}/100</span>
                       <span>{player.finishedRaces} courses</span>
+                      {player.discordId && <span>ID: {player.discordId}</span>}
                     </div>
                   </div>
                   <button onClick={() => startEdit(player)} className="text-xs text-brand-muted hover:text-white transition-colors shrink-0">Modifier</button>
