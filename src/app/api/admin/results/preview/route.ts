@@ -21,12 +21,6 @@ export async function POST(req: Request) {
   const durationRaw = formData.get("duration") as string | null;
 
   if (!file) return NextResponse.json({ error: "Fichier manquant." }, { status: 400 });
-  if (!durationRaw) return NextResponse.json({ error: "Durée manquante." }, { status: 400 });
-
-  const durationMin = parseInt(durationRaw, 10);
-  if (isNaN(durationMin) || durationMin <= 0) {
-    return NextResponse.json({ error: "Durée invalide." }, { status: 400 });
-  }
 
   let text: string;
   try {
@@ -35,9 +29,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Impossible de lire le fichier." }, { status: 400 });
   }
 
-  let entries;
+  let parsed;
   try {
-    entries = parseFile(file.name, text);
+    parsed = parseFile(file.name, text);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Erreur de parsing." },
@@ -45,13 +39,28 @@ export async function POST(req: Request) {
     );
   }
 
-  if (entries.length === 0) {
+  // Duration: use provided value or auto-detect from XML metadata
+  let durationMin = durationRaw ? parseInt(durationRaw, 10) : NaN;
+  const durationAutoDetected = isNaN(durationMin) || durationMin <= 0;
+
+  if (durationAutoDetected) {
+    if (parsed.meta.raceTimeMin && parsed.meta.raceTimeMin > 0) {
+      durationMin = parsed.meta.raceTimeMin;
+    } else {
+      return NextResponse.json(
+        { error: "Durée manquante. Saisissez-la manuellement ou utilisez un fichier XML LMU." },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (parsed.entries.length === 0) {
     return NextResponse.json({ error: "Le fichier ne contient aucune entrée." }, { status: 400 });
   }
 
-  const calculated = calculateAll(entries, durationMin);
+  const calculated = calculateAll(parsed.entries, durationMin);
 
-  // Look up players in DB — fetch candidates then compare case-insensitively in JS
+  // Look up players case-insensitively
   const lowerUsernames = calculated.map((e) => e.username.toLowerCase());
   const players = await prisma.player.findMany({
     select: { id: true, username: true },
@@ -62,10 +71,23 @@ export async function POST(req: Request) {
       .map((p) => p.username.toLowerCase())
   );
 
-  const preview = calculated.map((entry) => ({
+  // Merge calculated rewards + extended XML data
+  const preview = calculated.map((entry, idx) => ({
     ...entry,
     foundInDb: foundSet.has(entry.username.toLowerCase()),
+    // Extended fields (present for XML, undefined for JSON/CSV)
+    carClass: parsed.extended[idx]?.carClass,
+    carNumber: parsed.extended[idx]?.carNumber,
+    teamName: parsed.extended[idx]?.teamName,
+    laps: parsed.extended[idx]?.laps,
+    bestLapTimeSec: parsed.extended[idx]?.bestLapTimeSec,
+    finishStatus: parsed.extended[idx]?.finishStatus,
   }));
 
-  return NextResponse.json({ preview, durationMin });
+  return NextResponse.json({
+    preview,
+    durationMin,
+    durationAutoDetected,
+    meta: parsed.meta,
+  });
 }

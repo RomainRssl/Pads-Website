@@ -1,21 +1,58 @@
+// ── Core types ────────────────────────────────────────────────────────────────
+
 export interface RawEntry {
   username: string;
   position: number;
   isClean: boolean;
 }
 
+/** Per-driver data for the preview UI (XML only fills extra fields) */
+export interface ExtendedEntry extends RawEntry {
+  carClass?: string;
+  carNumber?: string;
+  teamName?: string;
+  laps?: number;
+  bestLapTimeSec?: number | null; // null = no valid best lap
+  finishStatus?: string;
+}
+
+/** Race-level metadata extracted from XML header */
+export interface RaceMeta {
+  trackVenue?: string;
+  trackEvent?: string;
+  trackLengthM?: number;
+  raceTimeMin?: number;
+  dateString?: string;
+  sessionType?: "Race" | "Qualification" | "Practice" | "Unknown";
+}
+
+/** Full parser result — entries drive reward calc; extended + meta drive the preview */
+export interface ParseResult {
+  entries: RawEntry[];
+  extended: ExtendedEntry[];
+  meta: RaceMeta;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function normalizeBoolean(val: unknown): boolean {
   if (typeof val === "boolean") return val;
   if (typeof val === "string") return val.toLowerCase() === "true" || val === "1";
   if (typeof val === "number") return val === 1;
-  return true; // default: clean race
+  return true;
 }
 
-export function parseJSON(text: string): RawEntry[] {
+function emptyMeta(): RaceMeta {
+  return {};
+}
+
+// ── JSON parser ───────────────────────────────────────────────────────────────
+
+export function parseJSON(text: string): ParseResult {
   const raw = JSON.parse(text);
   if (!Array.isArray(raw)) throw new Error("Le fichier JSON doit contenir un tableau.");
 
-  return raw.map((entry, i) => {
+  const entries: RawEntry[] = raw.map((entry, i) => {
     if (typeof entry.username !== "string" || !entry.username.trim()) {
       throw new Error(`Entrée #${i + 1} : champ "username" manquant ou invalide.`);
     }
@@ -29,9 +66,13 @@ export function parseJSON(text: string): RawEntry[] {
       isClean: normalizeBoolean(entry.isClean),
     };
   });
+
+  return { entries, extended: entries.map((e) => ({ ...e })), meta: emptyMeta() };
 }
 
-export function parseCSV(text: string): RawEntry[] {
+// ── CSV parser ────────────────────────────────────────────────────────────────
+
+export function parseCSV(text: string): ParseResult {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
@@ -48,7 +89,7 @@ export function parseCSV(text: string): RawEntry[] {
     throw new Error('Le CSV doit avoir les colonnes "position" et "username".');
   }
 
-  return lines.slice(1).map((line, i) => {
+  const entries: RawEntry[] = lines.slice(1).map((line, i) => {
     const cols = line.split(",").map((c) => c.trim());
     const pos = parseInt(cols[posIdx], 10);
     if (isNaN(pos) || pos < 1) throw new Error(`Ligne ${i + 2} : position invalide.`);
@@ -60,53 +101,117 @@ export function parseCSV(text: string): RawEntry[] {
       isClean: cleanIdx !== -1 ? normalizeBoolean(cols[cleanIdx]) : true,
     };
   });
+
+  return { entries, extended: entries.map((e) => ({ ...e })), meta: emptyMeta() };
 }
 
 // ── LMU XML parser ────────────────────────────────────────────────────────────
 // Parses rFactor2 / Le Mans Ultimate result XML files.
-// Each <Driver> block after </Stream> contains <Name>, <Position>, <FinishStatus>, etc.
+// Header tags supply race metadata; <Driver> blocks supply per-driver stats.
 
 function extractTag(block: string, tag: string): string | null {
   const m = block.match(new RegExp(`<${tag}>([^<]*)<\\/${tag}>`));
   return m ? m[1].trim() : null;
 }
 
-export function parseXML(text: string): RawEntry[] {
+function detectSessionType(text: string): RaceMeta["sessionType"] {
+  if (/<RaceResults[\s>]/i.test(text)) return "Race";
+  if (/<QualifyResults[\s>]/i.test(text)) return "Qualification";
+  if (/<PracticeResults[\s>]/i.test(text)) return "Practice";
+  return "Unknown";
+}
+
+export function parseXML(text: string): ParseResult {
+  // ── Metadata from header ──
+  const trackVenue   = extractTag(text, "TrackVenue") ?? undefined;
+  const trackEvent   = extractTag(text, "TrackEvent") ?? undefined;
+  const trackLengthRaw = extractTag(text, "TrackLength");
+  const raceTimeRaw  = extractTag(text, "RaceTime");    // top-level configured time
+  const minutesRaw   = extractTag(text, "Minutes");     // inside <Race> or <Qualify>
+  const dateString   = extractTag(text, "TimeString") ?? undefined;
+  const sessionType  = detectSessionType(text);
+
+  const trackLengthM = trackLengthRaw ? parseFloat(trackLengthRaw) : undefined;
+  const raceTimeMin  = raceTimeRaw
+    ? parseInt(raceTimeRaw, 10)
+    : minutesRaw
+    ? parseInt(minutesRaw, 10)
+    : undefined;
+
+  const meta: RaceMeta = {
+    trackVenue,
+    trackEvent,
+    trackLengthM: trackLengthM && !isNaN(trackLengthM) ? trackLengthM : undefined,
+    raceTimeMin: raceTimeMin && !isNaN(raceTimeMin) ? raceTimeMin : undefined,
+    dateString,
+    sessionType,
+  };
+
+  // ── Per-driver entries ──
   const entries: RawEntry[] = [];
+  const extended: ExtendedEntry[] = [];
   const driverRegex = /<Driver>([\s\S]*?)<\/Driver>/g;
   let match: RegExpExecArray | null;
 
   while ((match = driverRegex.exec(text)) !== null) {
     const block = match[1];
 
-    const name = extractTag(block, "Name");
+    const name   = extractTag(block, "Name");
     const posStr = extractTag(block, "Position");
-
-    // Skip incomplete entries
     if (!name || !posStr) continue;
 
     const pos = parseInt(posStr, 10);
     if (isNaN(pos) || pos < 1) continue;
 
-    // isClean defaults to true — no direct XML field; admin reviews in preview
-    entries.push({
-      username: name,
-      position: pos,
-      isClean: true,
-    });
+    const carClass     = extractTag(block, "CarClass") ?? undefined;
+    const carNumber    = extractTag(block, "CarNumber") ?? undefined;
+    const rawTeamName  = extractTag(block, "TeamName");
+    const teamName     = rawTeamName ? rawTeamName.replace(/\+/g, " ") : undefined;
+    const lapsRaw      = extractTag(block, "Laps");
+    const bestLapRaw   = extractTag(block, "BestLapTime");
+    const finishStatus = extractTag(block, "FinishStatus") ?? undefined;
+
+    const laps = lapsRaw ? parseInt(lapsRaw, 10) : undefined;
+    const bestLapTimeSec = bestLapRaw
+      ? (parseFloat(bestLapRaw) > 0 ? parseFloat(bestLapRaw) : null)
+      : null;
+
+    const raw: RawEntry = { username: name, position: pos, isClean: true };
+    const ext: ExtendedEntry = {
+      ...raw,
+      carClass,
+      carNumber,
+      teamName,
+      laps: laps && !isNaN(laps) ? laps : undefined,
+      bestLapTimeSec,
+      finishStatus,
+    };
+
+    entries.push(raw);
+    extended.push(ext);
   }
 
   if (entries.length === 0) {
-    throw new Error("Aucun pilote trouvé dans le fichier XML. Vérifiez que c'est bien un fichier de résultats LMU.");
+    throw new Error(
+      "Aucun pilote trouvé dans le fichier XML. Vérifiez que c'est bien un fichier de résultats LMU."
+    );
   }
 
   // Sort by position ascending (XML order isn't guaranteed)
-  entries.sort((a, b) => a.position - b.position);
+  const sorted = entries
+    .map((e, i) => ({ e, x: extended[i] }))
+    .sort((a, b) => a.e.position - b.e.position);
 
-  return entries;
+  return {
+    entries: sorted.map((s) => s.e),
+    extended: sorted.map((s) => s.x),
+    meta,
+  };
 }
 
-export function parseFile(filename: string, text: string): RawEntry[] {
+// ── Public entry point ────────────────────────────────────────────────────────
+
+export function parseFile(filename: string, text: string): ParseResult {
   const ext = filename.split(".").pop()?.toLowerCase();
   if (ext === "json") return parseJSON(text);
   if (ext === "csv") return parseCSV(text);

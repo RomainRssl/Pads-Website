@@ -31,9 +31,9 @@ export async function POST(req: Request) {
   }
 
   const text = await file.text();
-  let entries;
+  let parsed;
   try {
-    entries = parseFile(file.name, text);
+    parsed = parseFile(file.name, text);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Erreur de parsing." },
@@ -41,7 +41,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const calculated = calculateAll(entries, durationMin);
+  // Auto-detect duration from XML if not provided
+  if (isNaN(durationMin) || durationMin <= 0) {
+    if (parsed.meta.raceTimeMin && parsed.meta.raceTimeMin > 0) {
+      durationMin = parsed.meta.raceTimeMin;
+    } else {
+      return NextResponse.json({ error: "Durée invalide." }, { status: 400 });
+    }
+  }
+
+  const calculated = calculateAll(parsed.entries, durationMin);
 
   // Fetch all players, filter case-insensitively in JS (SQLite has no ILIKE)
   const lowerUsernames = new Set(calculated.map((e) => e.username.toLowerCase()));
