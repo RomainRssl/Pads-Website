@@ -7,6 +7,7 @@ import { sendRaceResultsNotification } from "@/lib/discord-webhook";
 import type { RaceResultSummary } from "@/lib/discord-webhook";
 
 export async function POST(req: Request) {
+  try {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -137,4 +138,11 @@ export async function POST(req: Request) {
     totalPlayers: calculated.length,
     skipped: calculated.length - updatedPlayers,
   });
+  } catch (err) {
+    console.error("[process] Unhandled error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erreur interne du serveur." },
+      { status: 500 }
+    );
+  }
 }

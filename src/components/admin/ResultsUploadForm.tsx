@@ -110,12 +110,17 @@ export default function ResultsUploadForm() {
 
     try {
       const res = await fetch("/api/admin/results/preview", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur serveur.");
-      setPreview(data.preview);
-      setMeta(data.meta ?? {});
-      setDurationUsed(data.durationMin);
-      setDurationAutoDetected(data.durationAutoDetected ?? false);
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Erreur serveur (${res.status}). Vérifiez les logs du serveur.`);
+      }
+      if (!res.ok) throw new Error((data.error as string) ?? "Erreur serveur.");
+      setPreview(data.preview as typeof preview);
+      setMeta((data.meta ?? {}) as typeof meta);
+      setDurationUsed(data.durationMin as number);
+      setDurationAutoDetected((data.durationAutoDetected ?? false) as boolean);
       setStep("preview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -135,9 +140,14 @@ export default function ResultsUploadForm() {
 
     try {
       const res = await fetch("/api/admin/results/process", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur serveur.");
-      setResult(data);
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Erreur serveur (${res.status}). Vérifiez les logs du serveur.`);
+      }
+      if (!res.ok) throw new Error((data.error as string) ?? "Erreur serveur.");
+      setResult(data as unknown as ProcessResult);
       setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");

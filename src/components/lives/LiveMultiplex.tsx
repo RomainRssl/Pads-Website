@@ -23,7 +23,12 @@ interface Props {
 
 const MAX_STREAMS = 10;
 const REFRESH_INTERVAL = 60_000; // 60 seconds
-const PARENT = process.env.NEXT_PUBLIC_SITE_DOMAIN ?? "localhost";
+
+/** Résout le domaine Twitch parent dynamiquement — fonctionne en dev et en prod sans config */
+function getTwitchParent(): string {
+  if (typeof window === "undefined") return "localhost";
+  return window.location.hostname;
+}
 
 function gridClass(count: number) {
   if (count <= 1) return "grid-cols-1";
@@ -261,7 +266,7 @@ interface EmbedProps {
 }
 
 function StreamEmbed({ login, displayName, isLive, title, viewerCount, onClose }: EmbedProps) {
-  const src = `https://player.twitch.tv/?channel=${login}&parent=${PARENT}&autoplay=false`;
+  const src = `https://player.twitch.tv/?channel=${login}&parent=${getTwitchParent()}&autoplay=false`;
 
   return (
     <div className="relative flex flex-col bg-black rounded-lg overflow-hidden border border-brand-border min-h-0">
