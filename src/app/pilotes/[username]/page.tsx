@@ -4,12 +4,14 @@ import { computeLicense, DEFAULT_LICENSES } from "@/lib/license";
 import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  const username = decodeURIComponent(rawUsername);
   return { title: `${username.toUpperCase()} — Par amour du spin` };
 }
 
 export default async function PilotePage({ params }: { params: Promise<{ username: string }> }) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  const username = decodeURIComponent(rawUsername);
 
   const [player, licenseConfigs, allPlayers] = await Promise.all([
     prisma.player.findUnique({
@@ -78,7 +80,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
                 <StatBlock label="EXPÉRIENCE" value={player.xp.toLocaleString("fr-FR")} unit="XP" color="text-brand-red" />
                 <StatBlock label="ARGENT" value={player.money.toLocaleString("fr-FR")} unit="Crédits" color="text-yellow-400" />
                 <StatBlock label="RÉPUTATION" value={`${player.reputation}`} unit="/ 100" color="text-purple-400" />
-                <StatBlock label="COURSES TERMINÉES" value={`${player.finishedRaces}`} unit="" color="text-white" />
+                <StatBlock label="PARTICIPATIONS" value={`${player.finishedRaces}`} unit={`/ ${player.finishedRaces} terminées`} color="text-white" />
                 <StatBlock label="COURSES CLEAN" value={`${player.cleanRaces}`} unit={`(${cleanRate}%)`} color="text-green-400" />
                 {player.team && (
                   <StatBlock label="XP ÉCURIE" value={player.team.xp.toLocaleString("fr-FR")} unit="XP" color="text-blue-400" />
@@ -128,6 +130,16 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
             )}
           </div>
         </div>
+      </div>
+
+      {/* Bottom links */}
+      <div className="mt-6 flex gap-3">
+        <Link href="/pilotes" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors">
+          🏆 Classement pilotes
+        </Link>
+        <span className="flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-border text-sm font-semibold" style={{ color: lic?.current.color, borderColor: lic?.current.color + "50" }}>
+          {lic?.current.icon} Licence {lic?.current.label}
+        </span>
       </div>
     </div>
   );
