@@ -12,6 +12,8 @@ interface Player {
   xp: number;
   money: number;
   reputation: number;
+  licensePoints: number;
+  totalRaces: number;
   finishedRaces: number;
   cleanRaces: number;
   team: Team | null;
@@ -42,6 +44,12 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
   const [editDiscordId, setEditDiscordId] = useState("");
   const [editTeamId, setEditTeamId] = useState("");
   const [editReputation, setEditReputation] = useState(0);
+  const [editXp, setEditXp] = useState(0);
+  const [editMoney, setEditMoney] = useState(0);
+  const [editLicensePoints, setEditLicensePoints] = useState(0);
+  const [editTotalRaces, setEditTotalRaces] = useState(0);
+  const [editFinishedRaces, setEditFinishedRaces] = useState(0);
+  const [editCleanRaces, setEditCleanRaces] = useState(0);
   const [editCategoryIds, setEditCategoryIds] = useState<string[]>([]);
 
   async function addPlayer(e: React.FormEvent) {
@@ -98,6 +106,12 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
           discordId: editDiscordId || null,
           teamId: editTeamId || null,
           reputation: editReputation,
+          xp: editXp,
+          money: editMoney,
+          licensePoints: editLicensePoints,
+          totalRaces: editTotalRaces,
+          finishedRaces: editFinishedRaces,
+          cleanRaces: editCleanRaces,
         }),
       }),
       fetch(`/api/admin/players/${id}/categories`, {
@@ -112,6 +126,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
       return;
     }
     const updated = await patchRes.json();
+    void catRes;
     const newCategories = categories
       .filter((c) => editCategoryIds.includes(c.id))
       .map((c) => ({ category: c }));
@@ -128,11 +143,18 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
     setEditDiscordId(player.discordId ?? "");
     setEditTeamId(player.team?.id ?? "");
     setEditReputation(player.reputation);
+    setEditXp(player.xp);
+    setEditMoney(player.money);
+    setEditLicensePoints(player.licensePoints ?? 0);
+    setEditTotalRaces(player.totalRaces ?? 0);
+    setEditFinishedRaces(player.finishedRaces);
+    setEditCleanRaces(player.cleanRaces);
     setEditCategoryIds(player.categories.map((pc) => pc.category.id));
     setError("");
   }
 
   const inputCls = "w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red";
+  const numInputCls = inputCls + " font-mono";
   const addInputCls = "bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red text-sm";
 
   return (
@@ -142,33 +164,22 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label className="text-xs text-brand-muted block mb-1">Pseudo LMU <span className="text-brand-red">*</span></label>
-            <input
-              type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="ex: Romain Roussel"
-              className={addInputCls + " w-full"}
-            />
+            <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="ex: Romain Roussel" className={addInputCls + " w-full"} />
           </div>
           <div>
             <label className="text-xs text-brand-muted block mb-1">Pseudo Discord</label>
-            <input
-              type="text" value={newDiscordUsername} onChange={(e) => setNewDiscordUsername(e.target.value)}
-              placeholder="ex: douze_"
-              className={addInputCls + " w-full"}
-            />
+            <input type="text" value={newDiscordUsername} onChange={(e) => setNewDiscordUsername(e.target.value)}
+              placeholder="ex: douze_" className={addInputCls + " w-full"} />
           </div>
           <div>
             <label className="text-xs text-brand-muted block mb-1">Discord ID <span className="text-brand-red">*</span></label>
-            <input
-              type="text" value={newDiscordId} onChange={(e) => setNewDiscordId(e.target.value)}
-              placeholder="ex: 123456789012345678"
-              className={addInputCls + " w-full"}
-            />
+            <input type="text" value={newDiscordId} onChange={(e) => setNewDiscordId(e.target.value)}
+              placeholder="ex: 123456789012345678" className={addInputCls + " w-full"} />
           </div>
           <div>
             <label className="text-xs text-brand-muted block mb-1">Écurie</label>
-            <select value={newTeamId} onChange={(e) => setNewTeamId(e.target.value)}
-              className={addInputCls + " w-full"}
-            >
+            <select value={newTeamId} onChange={(e) => setNewTeamId(e.target.value)} className={addInputCls + " w-full"}>
               <option value="">Sans écurie</option>
               {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -193,58 +204,111 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
           {players.map((player) => (
             <div key={player.id} className="bg-brand-dark border border-brand-border rounded-xl p-4">
               {editingId === player.id ? (
-                <div className="space-y-4">
-                  {/* Edit grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div>
-                      <label className="text-xs text-brand-muted block mb-1">Pseudo LMU ✏️</label>
-                      <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)}
-                        placeholder="Pseudo LMU"
-                        className="w-full bg-brand-surface border border-brand-red/50 rounded-lg px-3 py-2 text-white font-heading font-bold text-sm focus:outline-none focus:border-brand-red"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-brand-muted block mb-1">Pseudo Discord</label>
-                      <input type="text" value={editDiscordUsername} onChange={(e) => setEditDiscordUsername(e.target.value)}
-                        placeholder="ex: douze_"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-brand-muted block mb-1">Discord ID</label>
-                      <input type="text" value={editDiscordId} onChange={(e) => setEditDiscordId(e.target.value)}
-                        placeholder="Discord ID"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-brand-muted block mb-1">Réputation (0–100)</label>
-                      <input type="number" min={0} max={100} value={editReputation}
-                        onChange={(e) => setEditReputation(Number(e.target.value))}
-                        className={inputCls}
-                      />
-                    </div>
-                  </div>
+                <div className="space-y-5">
+
+                  {/* ── Section identité ── */}
                   <div>
-                    <label className="text-xs text-brand-muted block mb-1">Écurie</label>
-                    <select value={editTeamId} onChange={(e) => setEditTeamId(e.target.value)}
-                      className={inputCls + " max-w-xs"}
-                    >
-                      <option value="">Sans écurie</option>
-                      {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
+                    <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-3">Identité</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Pseudo LMU ✏️</label>
+                        <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)}
+                          className="w-full bg-brand-surface border border-brand-red/50 rounded-lg px-3 py-2 text-white font-heading font-bold text-sm focus:outline-none focus:border-brand-red" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Pseudo Discord</label>
+                        <input type="text" value={editDiscordUsername} onChange={(e) => setEditDiscordUsername(e.target.value)}
+                          placeholder="ex: douze_" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Discord ID</label>
+                        <input type="text" value={editDiscordId} onChange={(e) => setEditDiscordId(e.target.value)}
+                          className={inputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Écurie</label>
+                        <select value={editTeamId} onChange={(e) => setEditTeamId(e.target.value)} className={inputCls}>
+                          <option value="">Sans écurie</option>
+                          {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
+                  {/* ── Section stats ── */}
+                  <div>
+                    <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-3">Statistiques</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">XP <span className="text-brand-red">🏆</span></label>
+                        <input type="number" min={0} value={editXp}
+                          onChange={(e) => setEditXp(Math.max(0, Number(e.target.value)))}
+                          className={numInputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Argent 💰</label>
+                        <input type="number" min={0} value={editMoney}
+                          onChange={(e) => setEditMoney(Math.max(0, Number(e.target.value)))}
+                          className={numInputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Réputation (0–100)</label>
+                        <input type="number" min={0} max={100} value={editReputation}
+                          onChange={(e) => setEditReputation(Math.max(0, Math.min(100, Number(e.target.value))))}
+                          className={numInputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Points licence</label>
+                        <input type="number" min={0} value={editLicensePoints}
+                          onChange={(e) => setEditLicensePoints(Math.max(0, Number(e.target.value)))}
+                          className={numInputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Total courses</label>
+                        <input type="number" min={0} value={editTotalRaces}
+                          onChange={(e) => setEditTotalRaces(Math.max(0, Number(e.target.value)))}
+                          className={numInputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Courses terminées</label>
+                        <input type="number" min={0} value={editFinishedRaces}
+                          onChange={(e) => setEditFinishedRaces(Math.max(0, Number(e.target.value)))}
+                          className={numInputCls} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-brand-muted block mb-1">Courses clean ✨</label>
+                        <input type="number" min={0} value={editCleanRaces}
+                          onChange={(e) => setEditCleanRaces(Math.max(0, Number(e.target.value)))}
+                          className={numInputCls} />
+                      </div>
+                    </div>
+
+                    {/* Clean rate preview */}
+                    {editFinishedRaces > 0 && (
+                      <p className="text-xs text-brand-muted mt-2">
+                        Taux propre calculé :{" "}
+                        <span className={`font-semibold ${
+                          Math.round((editCleanRaces / editFinishedRaces) * 100) >= 80
+                            ? "text-green-400"
+                            : Math.round((editCleanRaces / editFinishedRaces) * 100) >= 50
+                            ? "text-yellow-400"
+                            : "text-red-400"
+                        }`}>
+                          {Math.round(Math.min(editCleanRaces, editFinishedRaces) / editFinishedRaces * 100)}%
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ── Section catégories ── */}
                   {categories.length > 0 && (
                     <div>
-                      <label className="text-xs text-brand-muted block mb-2">Catégories</label>
+                      <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-3">Catégories</p>
                       <div className="flex flex-wrap gap-2">
                         {categories.map((cat) => {
                           const checked = editCategoryIds.includes(cat.id);
                           return (
-                            <button
-                              key={cat.id}
-                              type="button"
+                            <button key={cat.id} type="button"
                               onClick={() =>
                                 setEditCategoryIds((prev) =>
                                   checked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
@@ -254,8 +318,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                                 checked
                                   ? "bg-brand-red/10 border-brand-red text-brand-red"
                                   : "bg-transparent border-brand-border text-brand-muted hover:border-brand-text"
-                              }`}
-                            >
+                              }`}>
                               {checked ? "✓ " : ""}{cat.name}
                             </button>
                           );
@@ -264,7 +327,8 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-1 border-t border-brand-border">
                     <button onClick={() => saveEdit(player.id)}
                       className="px-4 py-1.5 rounded-lg bg-brand-red text-white text-sm font-semibold">
                       Enregistrer
@@ -276,7 +340,8 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-4">
+                /* ── Read view ── */
+                <div className="flex items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-heading font-bold text-white">{player.username.toUpperCase()}</span>
@@ -290,16 +355,32 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-brand-muted">
-                      <span>{player.xp.toLocaleString("fr-FR")} XP</span>
-                      <span>{player.money.toLocaleString("fr-FR")} crédits</span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-brand-muted">
+                      <span className="text-brand-red font-semibold">{player.xp.toLocaleString("fr-FR")} XP</span>
+                      <span>{player.money.toLocaleString("fr-FR")} 💰</span>
                       <span>Réputation : {player.reputation}/100</span>
                       <span>{player.finishedRaces} courses</span>
-                      {player.discordId && <span>ID: {player.discordId}</span>}
+                      <span>
+                        Clean :{" "}
+                        <span className={
+                          player.finishedRaces > 0 && Math.round((player.cleanRaces / player.finishedRaces) * 100) >= 80
+                            ? "text-green-400"
+                            : player.finishedRaces > 0 && Math.round((player.cleanRaces / player.finishedRaces) * 100) >= 50
+                            ? "text-yellow-400"
+                            : "text-red-400"
+                        }>
+                          {player.finishedRaces > 0
+                            ? `${Math.round((player.cleanRaces / player.finishedRaces) * 100)}%`
+                            : "—"}
+                        </span>
+                      </span>
+                      {player.discordId && <span className="opacity-60">ID: {player.discordId}</span>}
                     </div>
                   </div>
-                  <button onClick={() => startEdit(player)} className="text-xs text-brand-muted hover:text-white transition-colors shrink-0">Modifier</button>
-                  <button onClick={() => deletePlayer(player.id, player.username)} className="text-xs text-red-400 hover:text-red-300 transition-colors shrink-0">Supprimer</button>
+                  <div className="flex gap-3 shrink-0">
+                    <button onClick={() => startEdit(player)} className="text-xs text-brand-muted hover:text-white transition-colors">Modifier</button>
+                    <button onClick={() => deletePlayer(player.id, player.username)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Supprimer</button>
+                  </div>
                 </div>
               )}
             </div>

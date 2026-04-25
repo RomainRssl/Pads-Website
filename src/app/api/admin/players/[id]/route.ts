@@ -12,8 +12,22 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { username, discordUsername, discordId, teamId, reputation } = await req.json();
+  const body = await req.json();
+  const {
+    username,
+    discordUsername,
+    discordId,
+    teamId,
+    reputation,
+    xp,
+    money,
+    licensePoints,
+    totalRaces,
+    finishedRaces,
+    cleanRaces,
+  } = body;
 
+  // Username uniqueness check
   if (username !== undefined) {
     const trimmed = username.trim();
     if (!trimmed) {
@@ -25,14 +39,28 @@ export async function PATCH(
     }
   }
 
+  // Validate numeric stats
+  const safeInt = (val: unknown, min = 0, max = Infinity): number | undefined => {
+    if (val === undefined || val === null) return undefined;
+    const n = Math.round(Number(val));
+    if (isNaN(n)) return undefined;
+    return Math.max(min, Math.min(max, n));
+  };
+
   const player = await prisma.player.update({
     where: { id },
     data: {
-      ...(username !== undefined && { username: username.trim() }),
+      ...(username !== undefined        && { username: username.trim() }),
       ...(discordUsername !== undefined && { discordUsername: discordUsername?.trim() || null }),
       discordId: discordId?.trim() || null,
       teamId: teamId || null,
-      ...(reputation !== undefined && { reputation: Math.max(0, Math.min(100, Number(reputation))) }),
+      ...(reputation   !== undefined && { reputation:   safeInt(reputation,   0, 100) }),
+      ...(xp           !== undefined && { xp:           safeInt(xp,           0) }),
+      ...(money        !== undefined && { money:        safeInt(money,        0) }),
+      ...(licensePoints !== undefined && { licensePoints: safeInt(licensePoints, 0) }),
+      ...(totalRaces   !== undefined && { totalRaces:   safeInt(totalRaces,   0) }),
+      ...(finishedRaces !== undefined && { finishedRaces: safeInt(finishedRaces, 0) }),
+      ...(cleanRaces   !== undefined && { cleanRaces:   safeInt(cleanRaces,   0) }),
     },
     include: { team: { select: { id: true, name: true } } },
   });
