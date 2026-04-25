@@ -95,7 +95,7 @@ export default function ResultsUploadForm() {
         <div>
           <label className="block text-sm font-medium text-brand-text mb-1.5">
             Fichier de résultats <span className="text-brand-red">*</span>
-            <span className="ml-2 text-brand-muted font-normal">.json ou .csv</span>
+            <span className="ml-2 text-brand-muted font-normal">.xml (LMU), .json ou .csv</span>
           </label>
           <div
             className="border-2 border-dashed border-brand-border rounded-xl p-8 text-center cursor-pointer hover:border-brand-red/50 transition-colors"
@@ -120,13 +120,13 @@ export default function ResultsUploadForm() {
               <div className="text-brand-muted">
                 <UploadIcon />
                 <p className="mt-2 font-medium">Glissez un fichier ou cliquez pour parcourir</p>
-                <p className="text-sm mt-1">JSON ou CSV uniquement</p>
+                <p className="text-sm mt-1">XML (LMU), JSON ou CSV</p>
               </div>
             )}
             <input
               ref={fileRef}
               type="file"
-              accept=".json,.csv"
+              accept=".xml,.json,.csv"
               className="hidden"
               onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(null); }}
             />
@@ -156,8 +156,10 @@ export default function ResultsUploadForm() {
 
         <div className="bg-brand-surface border border-brand-border rounded-xl p-4 text-sm text-brand-muted space-y-1">
           <p className="font-medium text-brand-text mb-2">Formats acceptés</p>
+          <p><span className="text-brand-text">XML :</span> Fichier de résultats Le Mans Ultimate (dossier Results/)</p>
           <p><span className="text-brand-text">JSON :</span> {`[{"position":1,"username":"Player1","isClean":true}, ...]`}</p>
           <p><span className="text-brand-text">CSV :</span> {`position,username,isClean`} (en-tête obligatoire)</p>
+          <p className="text-xs mt-2 text-brand-muted/70">ℹ️ Pour les fichiers XML, le statut &quot;course propre&quot; est activé par défaut — ajustez-le via le panel joueurs si besoin.</p>
         </div>
 
         <button

@@ -10,7 +10,7 @@ export default function ResultsPage() {
           Traitement des résultats
         </h1>
         <p className="text-brand-muted mt-1">
-          Importez un fichier JSON ou CSV pour calculer et sauvegarder les récompenses.
+          Importez un fichier XML (LMU), JSON ou CSV pour calculer et sauvegarder les récompenses.
         </p>
       </div>
 

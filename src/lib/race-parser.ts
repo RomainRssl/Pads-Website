@@ -62,9 +62,54 @@ export function parseCSV(text: string): RawEntry[] {
   });
 }
 
+// ── LMU XML parser ────────────────────────────────────────────────────────────
+// Parses rFactor2 / Le Mans Ultimate result XML files.
+// Each <Driver> block after </Stream> contains <Name>, <Position>, <FinishStatus>, etc.
+
+function extractTag(block: string, tag: string): string | null {
+  const m = block.match(new RegExp(`<${tag}>([^<]*)<\\/${tag}>`));
+  return m ? m[1].trim() : null;
+}
+
+export function parseXML(text: string): RawEntry[] {
+  const entries: RawEntry[] = [];
+  const driverRegex = /<Driver>([\s\S]*?)<\/Driver>/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = driverRegex.exec(text)) !== null) {
+    const block = match[1];
+
+    const name = extractTag(block, "Name");
+    const posStr = extractTag(block, "Position");
+
+    // Skip incomplete entries
+    if (!name || !posStr) continue;
+
+    const pos = parseInt(posStr, 10);
+    if (isNaN(pos) || pos < 1) continue;
+
+    // isClean defaults to true — no direct XML field; admin reviews in preview
+    entries.push({
+      username: name,
+      position: pos,
+      isClean: true,
+    });
+  }
+
+  if (entries.length === 0) {
+    throw new Error("Aucun pilote trouvé dans le fichier XML. Vérifiez que c'est bien un fichier de résultats LMU.");
+  }
+
+  // Sort by position ascending (XML order isn't guaranteed)
+  entries.sort((a, b) => a.position - b.position);
+
+  return entries;
+}
+
 export function parseFile(filename: string, text: string): RawEntry[] {
   const ext = filename.split(".").pop()?.toLowerCase();
   if (ext === "json") return parseJSON(text);
   if (ext === "csv") return parseCSV(text);
-  throw new Error("Format non supporté. Utilisez .json ou .csv.");
+  if (ext === "xml") return parseXML(text);
+  throw new Error("Format non supporté. Utilisez .xml (LMU), .json ou .csv.");
 }
