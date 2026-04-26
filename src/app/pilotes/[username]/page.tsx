@@ -35,14 +35,18 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
     : 0;
   const categories = player.categories.map((pc) => pc.category);
 
-  // Compute per-class tiers
-  const classStatsWithTiers = player.classStats.map((stat) => ({
-    ...stat,
-    xpTier:     getClassXpTier(stat.classXp),
-    ladderTier: getLadderTier(stat.ladderPoints),
-    nextTier:   getNextClassXpTier(stat.classXp),
-    xpProgress: getClassXpProgress(stat.classXp),
-  }));
+  // Compute per-class tiers (clamp ladderPoints ≥ 0 for display)
+  const classStatsWithTiers = player.classStats.map((stat) => {
+    const ladderPts = Math.max(0, stat.ladderPoints);
+    return {
+      ...stat,
+      ladderPoints: ladderPts,
+      xpTier:     getClassXpTier(stat.classXp),
+      ladderTier: getLadderTier(ladderPts),
+      nextTier:   getNextClassXpTier(stat.classXp),
+      xpProgress: getClassXpProgress(stat.classXp),
+    };
+  });
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">

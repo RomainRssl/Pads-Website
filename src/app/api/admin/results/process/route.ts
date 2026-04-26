@@ -69,11 +69,11 @@ export async function POST(req: Request) {
       include: { player: { select: { username: true } } },
     });
     const classXpLookup = new Map<string, number>(); // "username::carClass" → classXp
+    const ladderPointsLookup = new Map<string, number>(); // "username::carClass" → ladderPoints
     for (const stat of classStats) {
-      classXpLookup.set(
-        `${stat.player.username.toLowerCase()}::${stat.carClass}`,
-        stat.classXp
-      );
+      const key = `${stat.player.username.toLowerCase()}::${stat.carClass}`;
+      classXpLookup.set(key, stat.classXp);
+      ladderPointsLookup.set(key, stat.ladderPoints);
     }
 
     const perEntryClassXpMap = new Map<string, number>();
@@ -138,9 +138,10 @@ export async function POST(req: Request) {
 
         // Update class-specific stats (upsert PlayerClassStats)
         if (entry.carClass) {
-          const currentClassXp = classXpLookup.get(
-            `${entry.username.toLowerCase()}::${entry.carClass}`
-          ) ?? 0;
+          const statKey = `${entry.username.toLowerCase()}::${entry.carClass}`;
+          const currentClassXp     = classXpLookup.get(statKey) ?? 0;
+          const currentLadderPoints = ladderPointsLookup.get(statKey) ?? 0;
+          const newLadderPoints    = Math.max(0, currentLadderPoints + entry.ladderDelta);
 
           await tx.playerClassStats.upsert({
             where: {
@@ -151,7 +152,7 @@ export async function POST(req: Request) {
             },
             update: {
               classXp:      { increment: entry.xpGained },
-              ladderPoints: { increment: entry.ladderDelta },
+              ladderPoints: newLadderPoints,
             },
             create: {
               playerId:     player.id,
