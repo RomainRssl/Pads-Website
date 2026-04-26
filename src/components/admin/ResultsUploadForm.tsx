@@ -32,8 +32,15 @@ interface PreviewEntry {
 }
 
 interface Formula {
-  xpPerMin: number;
-  cleanBonusPct: number;
+  // XP
+  finishBonus: number;
+  positionBase: number;
+  positionMultiplier: number;
+  podiumP1: number;
+  podiumP2: number;
+  podiumP3: number;
+  incidentMalusPct: number;
+  incidentMalusCap: number;
   // Argent (pool)
   moneyBasePerMin: number;
   coeffCourse: number;
@@ -53,8 +60,14 @@ interface Formula {
 }
 
 const DEFAULT_FORMULA: Formula = {
-  xpPerMin: 10,
-  cleanBonusPct: 10,
+  finishBonus: 10,
+  positionBase: 10,
+  positionMultiplier: 1.5,
+  podiumP1: 10,
+  podiumP2: 7,
+  podiumP3: 5,
+  incidentMalusPct: 2,
+  incidentMalusCap: 20,
   moneyBasePerMin: 50,
   coeffCourse: 1.0,
   organizerSharePct: 25,
@@ -129,8 +142,14 @@ export default function ResultsUploadForm() {
     if (file) fd.append("file", file);
     if (duration) fd.append("duration", duration);
     // XP
-    fd.append("xpPerMin",       String(formula.xpPerMin));
-    fd.append("cleanBonusPct",  String(formula.cleanBonusPct));
+    fd.append("finishBonus",        String(formula.finishBonus));
+    fd.append("positionBase",       String(formula.positionBase));
+    fd.append("positionMultiplier", String(formula.positionMultiplier));
+    fd.append("podiumP1",           String(formula.podiumP1));
+    fd.append("podiumP2",           String(formula.podiumP2));
+    fd.append("podiumP3",           String(formula.podiumP3));
+    fd.append("incidentMalusPct",   String(formula.incidentMalusPct));
+    fd.append("incidentMalusCap",   String(formula.incidentMalusCap));
     // Argent (pool)
     fd.append("moneyBasePerMin",   String(formula.moneyBasePerMin));
     fd.append("coeffCourse",       String(formula.coeffCourse));
@@ -217,32 +236,97 @@ export default function ResultsUploadForm() {
 
   // ── Upload step ─────────────────────────────────────────────────────────────
   if (step === "upload") {
-    const baseXpPreview = duration ? parseInt(duration) * formula.xpPerMin : null;
+    const dur = duration ? parseInt(duration) : null;
+    const xpP1Preview   = dur != null ? dur + formula.finishBonus + formula.positionBase + formula.podiumP1 : null;
+    const xpLastPreview = dur != null ? dur + formula.finishBonus + formula.positionBase : null;
 
     return (
       <form onSubmit={handlePreview} className="space-y-8">
         {error && <ErrorBanner message={error} />}
 
-        {/* ── XP ── */}
+        {/* ── XP de classe ── */}
         <div>
           <h3 className="font-heading text-base font-semibold text-white mb-1">XP de classe</h3>
-          <p className="text-brand-muted text-xs mb-4">Bonus de position : XP base × (N − pos) / N par classe · L'XP est reversé à l'écurie.</p>
-          <div className="grid grid-cols-2 gap-4">
+          <p className="text-brand-muted text-xs mb-4">
+            XP = durée + finish + [posBase + (N−pos) × mult] + podium · XP final = XP × (1 − malus incidents)
+          </p>
+
+          {/* Bonus de base */}
+          <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mb-2">Bonus de base</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
             <FormulaField
-              label="XP par minute"
-              value={formula.xpPerMin}
-              onChange={(v) => setF("xpPerMin", v)}
-              min={1} max={1000} step={1}
-              hint={baseXpPreview != null ? `Base : ${baseXpPreview} XP` : "XP de base = durée × valeur"}
+              label="Bonus finish"
+              value={formula.finishBonus}
+              onChange={(v) => setF("finishBonus", v)}
+              min={0} max={100} step={1} prefix="+"
+              hint="XP plat pour avoir terminé"
             />
             <FormulaField
-              label="Bonus course propre"
-              value={formula.cleanBonusPct}
-              onChange={(v) => setF("cleanBonusPct", v)}
-              min={0} max={100} step={1} suffix="%"
-              hint={`+${formula.cleanBonusPct}% XP si propre`}
+              label="Base position"
+              value={formula.positionBase}
+              onChange={(v) => setF("positionBase", v)}
+              min={0} max={100} step={1} prefix="+"
+              hint="Minimum de bonus de position"
+            />
+            <FormulaField
+              label="Multiplicateur position"
+              value={formula.positionMultiplier}
+              onChange={(v) => setF("positionMultiplier", v)}
+              min={0} max={10} step={0.1} prefix="×"
+              hint="× (N − pos) rangs gagnés"
             />
           </div>
+
+          {/* Bonus podium */}
+          <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mb-2">Bonus podium 🏆</p>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <FormulaField
+              label="P1 🥇"
+              value={formula.podiumP1}
+              onChange={(v) => setF("podiumP1", v)}
+              min={0} max={200} step={1} prefix="+"
+              hint={xpP1Preview != null ? `P1 ≈ ${xpP1Preview} XP (0 incident)` : "bonus pour le 1er"}
+            />
+            <FormulaField
+              label="P2 🥈"
+              value={formula.podiumP2}
+              onChange={(v) => setF("podiumP2", v)}
+              min={0} max={200} step={1} prefix="+"
+              hint="bonus pour le 2e"
+            />
+            <FormulaField
+              label="P3 🥉"
+              value={formula.podiumP3}
+              onChange={(v) => setF("podiumP3", v)}
+              min={0} max={200} step={1} prefix="+"
+              hint="bonus pour le 3e"
+            />
+          </div>
+
+          {/* Malus incidents */}
+          <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mb-2">Malus incidents ⚠️</p>
+          <div className="grid grid-cols-2 gap-4">
+            <FormulaField
+              label="Malus par incident"
+              value={formula.incidentMalusPct}
+              onChange={(v) => setF("incidentMalusPct", v)}
+              min={0} max={20} step={0.5} suffix="%" danger
+              hint={`−${formula.incidentMalusPct}% XP par incident`}
+            />
+            <FormulaField
+              label="Cap malus total"
+              value={formula.incidentMalusCap}
+              onChange={(v) => setF("incidentMalusCap", v)}
+              min={0} max={100} step={1} suffix="%" danger
+              hint={`Maximum −${formula.incidentMalusCap}% de malus`}
+            />
+          </div>
+          {xpLastPreview != null && (
+            <p className="text-xs text-brand-muted mt-3">
+              Exemple : dernier sans incident ≈ <span className="text-white font-semibold">{xpLastPreview} XP</span>
+              {" · "}cap −{formula.incidentMalusCap}% → min <span className="text-white font-semibold">{Math.round(xpLastPreview * (1 - formula.incidentMalusCap / 100))} XP</span>
+            </p>
+          )}
         </div>
 
         <div className="border-t border-brand-border" />

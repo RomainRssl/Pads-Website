@@ -8,10 +8,11 @@ export interface Tier {
 }
 
 export const CLASS_XP_TIERS: Tier[] = [
-  { name: "Bronze",  min: 0,    color: "#CD7F32" },
-  { name: "Silver",  min: 500,  color: "#C0C0C0" },
-  { name: "Gold",    min: 2000, color: "#FFD700" },
-  { name: "Platine", min: 5000, color: "#E5E4E2" },
+  { name: "Bronze",  min: 0,     color: "#CD7F32" },
+  { name: "Silver",  min: 500,   color: "#C0C0C0" },
+  { name: "Gold",    min: 2000,  color: "#FFD700" },
+  { name: "Platine", min: 5000,  color: "#E5E4E2" },
+  { name: "Diamant", min: 10000, color: "#88EEFF" },
 ];
 
 // ── Tiers Ladder (classement compétitif) ─────────────────────────────────────

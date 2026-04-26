@@ -4,9 +4,17 @@ import { CLASS_XP_TIERS, getTier } from "./class-tiers";
 // ── Formula config ────────────────────────────────────────────────────────────
 
 export interface RewardFormula {
-  // XP
-  xpPerMin:      number;  // XP de base par minute de course
-  cleanBonusPct: number;  // % bonus XP si course propre (ex: 10 = +10%)
+  // XP (nouvelle formule)
+  // XP = durée + finishBonus + [positionBase + (N-pos) × positionMultiplier] + podium
+  // XP final = XP × (1 - min(incidentMalusCap, incidents × incidentMalusPct) / 100)
+  finishBonus:        number; // bonus plat pour avoir terminé la course (défaut 10)
+  positionBase:       number; // base du bonus de position (défaut 10)
+  positionMultiplier: number; // ×coefficient par rang gagné (défaut 1.5)
+  podiumP1:           number; // bonus XP supplémentaire P1 (défaut 10)
+  podiumP2:           number; // bonus XP supplémentaire P2 (défaut 7)
+  podiumP3:           number; // bonus XP supplémentaire P3 (défaut 5)
+  incidentMalusPct:   number; // % XP perdu par incident (défaut 2)
+  incidentMalusCap:   number; // % max de malus total (défaut 20)
 
   // Argent PADS (système pool)
   moneyBasePerMin:   number; // PADS de base par minute (défaut 50)
@@ -29,8 +37,14 @@ export interface RewardFormula {
 }
 
 export const DEFAULT_FORMULA: RewardFormula = {
-  xpPerMin:      10,
-  cleanBonusPct: 10,
+  finishBonus:        10,
+  positionBase:       10,
+  positionMultiplier: 1.5,
+  podiumP1:           10,
+  podiumP2:           7,
+  podiumP3:           5,
+  incidentMalusPct:   2,
+  incidentMalusCap:   20,
 
   moneyBasePerMin:   50,
   coeffCourse:       1.0,
@@ -177,16 +191,25 @@ export function calculateAll(
     sorted.forEach((entry, idx) => {
       const positionInClass = idx + 1;
 
-      // XP de classe
-      const baseXP = durationMin * formula.xpPerMin;
-      const positionBonus = Math.round(
-        baseXP * Math.max(0, totalInClass - positionInClass) / totalInClass
+      // XP de classe (nouvelle formule)
+      const finished = !entry.finishStatus || (
+        entry.finishStatus.toLowerCase() !== "dnf" &&
+        entry.finishStatus.toLowerCase() !== "dsq" &&
+        entry.finishStatus.toLowerCase() !== "dq"
       );
-      const rawXP = baseXP + positionBonus;
-      const cleanBonus = entry.isClean
-        ? Math.round(rawXP * (formula.cleanBonusPct / 100))
-        : 0;
-      const xpGained = rawXP + cleanBonus;
+      const durationXP      = durationMin;
+      const finishBonusXP   = finished ? formula.finishBonus : 0;
+      const positionBonusXP = formula.positionBase +
+        Math.round((totalInClass - positionInClass) * formula.positionMultiplier);
+      const podiumBonusXP   = positionInClass === 1 ? formula.podiumP1
+                            : positionInClass === 2 ? formula.podiumP2
+                            : positionInClass === 3 ? formula.podiumP3
+                            : 0;
+      const rawXP = durationXP + finishBonusXP + positionBonusXP + podiumBonusXP;
+
+      // Malus incidents (-incidentMalusPct% par incident, cap incidentMalusCap%)
+      const malusPct = Math.min(formula.incidentMalusCap, entry.incidents * formula.incidentMalusPct);
+      const xpGained = Math.round(rawXP * (1 - malusPct / 100));
 
       // Argent : base + prime dégressif P1 → Plast
       const positionPrize = totalInClass === 1
@@ -236,8 +259,14 @@ export function parseFormulaFromForm(fd: FormData): RewardFormula {
     return isNaN(v) ? fallback : v;
   };
   return {
-    xpPerMin:       n("xpPerMin",       DEFAULT_FORMULA.xpPerMin),
-    cleanBonusPct:  n("cleanBonusPct",  DEFAULT_FORMULA.cleanBonusPct),
+    finishBonus:        n("finishBonus",        DEFAULT_FORMULA.finishBonus),
+    positionBase:       n("positionBase",       DEFAULT_FORMULA.positionBase),
+    positionMultiplier: n("positionMultiplier", DEFAULT_FORMULA.positionMultiplier),
+    podiumP1:           n("podiumP1",           DEFAULT_FORMULA.podiumP1),
+    podiumP2:           n("podiumP2",           DEFAULT_FORMULA.podiumP2),
+    podiumP3:           n("podiumP3",           DEFAULT_FORMULA.podiumP3),
+    incidentMalusPct:   n("incidentMalusPct",   DEFAULT_FORMULA.incidentMalusPct),
+    incidentMalusCap:   n("incidentMalusCap",   DEFAULT_FORMULA.incidentMalusCap),
 
     moneyBasePerMin:   n("moneyBasePerMin",   DEFAULT_FORMULA.moneyBasePerMin),
     coeffCourse:       n("coeffCourse",       DEFAULT_FORMULA.coeffCourse),
