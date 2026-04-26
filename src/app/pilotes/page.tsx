@@ -1,15 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { getClassXpTier } from "@/lib/class-tiers";
+import { getClassXpTier, tiersFromDb } from "@/lib/class-tiers";
 import { formatPilotName } from "@/lib/format";
 
 export const metadata = { title: "Pilotes — Par amour du spin" };
 
 export default async function PilotesPage() {
-  const players = await prisma.player.findMany({
-    orderBy: { xp: "desc" },
-    include: { team: { select: { name: true } }, categories: { include: { category: true } } },
-  });
+  const [players, licenseConfigs] = await Promise.all([
+    prisma.player.findMany({
+      orderBy: { xp: "desc" },
+      include: { team: { select: { name: true } }, categories: { include: { category: true } } },
+    }),
+    prisma.licenseConfig.findMany({ orderBy: { order: "asc" } }),
+  ]);
+  const classXpTiers = tiersFromDb(licenseConfigs);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -28,7 +32,7 @@ export default async function PilotesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {players.map((player, idx) => {
-            const tier = getClassXpTier(player.xp);
+            const tier = getClassXpTier(player.xp, classXpTiers);
             const cleanRate = player.finishedRaces > 0
               ? Math.round((player.cleanRaces / player.finishedRaces) * 100)
               : 0;

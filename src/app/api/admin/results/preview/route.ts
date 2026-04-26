@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { parseFile } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
+import { tiersFromDb } from "@/lib/class-tiers";
 import type { ExtendedRawEntry } from "@/lib/rewards";
 
 export async function POST(req: Request) {
@@ -70,6 +71,10 @@ export async function POST(req: Request) {
       finishStatus: parsed.extended[idx]?.finishStatus,
     }));
 
+    // Fetch XP tiers from DB (admin-configurable)
+    const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
+    const classXpTiers = tiersFromDb(licenseConfigs);
+
     // Look up players case-insensitively
     const lowerUsernames = parsed.entries.map((e) => e.username.toLowerCase());
     const allPlayers = await prisma.player.findMany({
@@ -102,7 +107,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap);
+    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap, classXpTiers);
 
     const preview = calculated.map((entry, idx) => ({
       ...entry,

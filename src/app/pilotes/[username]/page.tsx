@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { formatPilotName } from "@/lib/format";
-import { getClassXpTier, getLadderTier, getNextClassXpTier, getClassXpProgress } from "@/lib/class-tiers";
+import { getClassXpTier, getLadderTier, getNextClassXpTier, getClassXpProgress, tiersFromDb } from "@/lib/class-tiers";
 import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
@@ -14,7 +14,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
   const { username: rawUsername } = await params;
   const username = decodeURIComponent(rawUsername);
 
-  const [player, allPlayerIds] = await Promise.all([
+  const [player, allPlayerIds, licenseConfigs] = await Promise.all([
     prisma.player.findUnique({
       where: { username },
       include: {
@@ -23,9 +23,11 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
         classStats: { orderBy: { classXp: "desc" } },
       },
     }),
-    // Global rank based on sum of all XP (player.xp)
     prisma.player.findMany({ orderBy: { xp: "desc" }, select: { id: true } }),
+    prisma.licenseConfig.findMany({ orderBy: { order: "asc" } }),
   ]);
+
+  const classXpTiers = tiersFromDb(licenseConfigs);
 
   if (!player) notFound();
 
@@ -41,10 +43,10 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
     return {
       ...stat,
       ladderPoints: ladderPts,
-      xpTier:     getClassXpTier(stat.classXp),
+      xpTier:     getClassXpTier(stat.classXp, classXpTiers),
       ladderTier: getLadderTier(ladderPts),
-      nextTier:   getNextClassXpTier(stat.classXp),
-      xpProgress: getClassXpProgress(stat.classXp),
+      nextTier:   getNextClassXpTier(stat.classXp, classXpTiers),
+      xpProgress: getClassXpProgress(stat.classXp, classXpTiers),
     };
   });
 

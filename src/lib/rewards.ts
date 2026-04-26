@@ -1,5 +1,5 @@
 import type { RawEntry } from "./race-parser";
-import { CLASS_XP_TIERS, getTier } from "./class-tiers";
+import { CLASS_XP_TIERS, getTier, type Tier } from "./class-tiers";
 
 // ── Formula config ────────────────────────────────────────────────────────────
 
@@ -141,7 +141,8 @@ export function calculateAll(
   entries: ExtendedRawEntry[],
   durationMin: number,
   formula: RewardFormula = DEFAULT_FORMULA,
-  classXpMap: Map<string, number> = new Map()
+  classXpMap: Map<string, number> = new Map(),
+  classXpTiers: Tier[] = CLASS_XP_TIERS
 ): CalculatedEntry[] {
   // Grouper par classe
   const byClass = new Map<string, ExtendedRawEntry[]>();
@@ -163,7 +164,7 @@ export function calculateAll(
     const tierGroups = new Map<string, ExtendedRawEntry[]>();
     for (const entry of sorted) {
       const currentXp = classXpMap.get(entry.username.toLowerCase()) ?? 0;
-      const tierName = getTier(currentXp, CLASS_XP_TIERS).name;
+      const tierName = getTier(currentXp, classXpTiers).name;
       if (!tierGroups.has(tierName)) tierGroups.set(tierName, []);
       tierGroups.get(tierName)!.push(entry);
     }

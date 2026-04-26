@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { parseFile } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
+import { tiersFromDb } from "@/lib/class-tiers";
 import { sendRaceResultsNotification } from "@/lib/discord-webhook";
 import type { RaceResultSummary } from "@/lib/discord-webhook";
 import type { ExtendedRawEntry } from "@/lib/rewards";
@@ -57,6 +58,10 @@ export async function POST(req: Request) {
       finishStatus: parsed.extended[idx]?.finishStatus,
     }));
 
+    // Fetch XP tiers from DB (admin-configurable)
+    const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
+    const classXpTiers = tiersFromDb(licenseConfigs);
+
     // Fetch all players
     const lowerUsernames = new Set(parsed.entries.map((e) => e.username.toLowerCase()));
     const allPlayers = await prisma.player.findMany({ include: { team: true } });
@@ -84,7 +89,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap);
+    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap, classXpTiers);
 
     const enriched = calculated.map((entry) => ({
       ...entry,

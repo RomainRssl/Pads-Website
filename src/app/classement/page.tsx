@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatPilotName } from "@/lib/format";
-import { getClassXpTier, getLadderTier, CAR_CLASSES } from "@/lib/class-tiers";
+import { getClassXpTier, getLadderTier, CAR_CLASSES, tiersFromDb } from "@/lib/class-tiers";
 import type { CarClass } from "@/lib/class-tiers";
 import Link from "next/link";
 
@@ -15,6 +15,10 @@ export default async function ClassementPage({
   const activeClass = (CAR_CLASSES as readonly string[]).includes(classeRaw ?? "")
     ? (classeRaw as CarClass)
     : CAR_CLASSES[0];
+
+  // Fetch XP tiers from DB
+  const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
+  const classXpTiers = tiersFromDb(licenseConfigs);
 
   // Fetch all PlayerClassStats for the active class, ordered by ladderPoints desc
   const classStats = await prisma.playerClassStats.findMany({
@@ -35,7 +39,7 @@ export default async function ClassementPage({
   const classesSet = new Set(classesWithData.map((c) => c.carClass));
 
   const standings = classStats.map((stat, idx) => {
-    const xpTier    = getClassXpTier(stat.classXp);
+    const xpTier    = getClassXpTier(stat.classXp, classXpTiers);
     const ladderTier = getLadderTier(stat.ladderPoints);
     const cleanRate =
       stat.player.finishedRaces > 0
