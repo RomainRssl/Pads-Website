@@ -92,23 +92,24 @@ model Team {
 }
 
 model Player {
-  id              String           @id @default(cuid())
-  username        String           @unique
+  id              String              @id @default(cuid())
+  username        String              @unique
   discordUsername String?
-  discordId       String?          @unique
-  xp              Int              @default(0)
-  money           Int              @default(0)
-  reputation      Int              @default(0)
-  licensePoints   Int              @default(0)
-  totalRaces      Int              @default(0)
-  finishedRaces   Int              @default(0)
-  cleanRaces      Int              @default(0)
+  discordId       String?             @unique
+  xp              Int                 @default(0)
+  money           Int                 @default(0)
+  reputation      Int                 @default(50)
+  licensePoints   Int                 @default(0)
+  totalRaces      Int                 @default(0)
+  finishedRaces   Int                 @default(0)
+  cleanRaces      Int                 @default(0)
   teamId          String?
-  team          Team?            @relation(fields: [teamId], references: [id])
-  raceResults   RaceResult[]
-  categories    PlayerCategory[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  team            Team?               @relation(fields: [teamId], references: [id])
+  raceResults     RaceResult[]
+  categories      PlayerCategory[]
+  classStats      PlayerClassStats[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }
 
 model LicenseConfig {
@@ -144,15 +145,30 @@ model RaceSession {
 }
 
 model RaceResult {
-  id            String      @id @default(cuid())
-  playerId      String
-  player        Player      @relation(fields: [playerId], references: [id])
-  raceSessionId String
-  raceSession   RaceSession @relation(fields: [raceSessionId], references: [id])
-  position      Int
-  xpGained      Int
-  moneyGained   Int
-  isClean       Boolean     @default(true)
+  id              String      @id @default(cuid())
+  playerId        String
+  player          Player      @relation(fields: [playerId], references: [id])
+  raceSessionId   String
+  raceSession     RaceSession @relation(fields: [raceSessionId], references: [id])
+  position        Int
+  xpGained        Int
+  moneyGained     Int
+  isClean         Boolean     @default(true)
+  carClass        String?
+  incidents       Int         @default(0)
+  reputationDelta Int         @default(0)
+  ladderDelta     Int         @default(0)
+}
+
+model PlayerClassStats {
+  id           String   @id @default(cuid())
+  playerId     String
+  player       Player   @relation(fields: [playerId], references: [id])
+  carClass     String
+  classXp      Int      @default(0)
+  ladderPoints Int      @default(0)
+
+  @@unique([playerId, carClass])
 }
 
 // ── Twitch multiplex ──────────────────────────────────────────────────────────

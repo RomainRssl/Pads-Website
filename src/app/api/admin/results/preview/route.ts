@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { parseFile } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
+import type { ExtendedRawEntry } from "@/lib/rewards";
 
 export async function POST(req: Request) {
   try {
@@ -61,22 +62,51 @@ export async function POST(req: Request) {
 
     // Read formula from form data
     const formula = parseFormulaFromForm(formData);
-    const calculated = calculateAll(parsed.entries, durationMin, formula);
+
+    // Build extended entries (RawEntry + carClass + finishStatus)
+    const extendedEntries: ExtendedRawEntry[] = parsed.entries.map((e, idx) => ({
+      ...e,
+      carClass:     parsed.extended[idx]?.carClass,
+      finishStatus: parsed.extended[idx]?.finishStatus,
+    }));
 
     // Look up players case-insensitively
-    const lowerUsernames = calculated.map((e) => e.username.toLowerCase());
-    const players = await prisma.player.findMany({
+    const lowerUsernames = parsed.entries.map((e) => e.username.toLowerCase());
+    const allPlayers = await prisma.player.findMany({
       select: { id: true, username: true },
     });
     const foundSet = new Set(
-      players
+      allPlayers
         .filter((p) => lowerUsernames.includes(p.username.toLowerCase()))
         .map((p) => p.username.toLowerCase())
     );
 
+    // Fetch current class XP per player (for ladder tier calculation)
+    // Build perEntryClassXpMap: username (lowercase) → classXp for this car class
+    const classStats = await prisma.playerClassStats.findMany({
+      include: { player: { select: { username: true } } },
+    });
+    const classXpLookup = new Map<string, number>(); // "username::carClass" → classXp
+    for (const stat of classStats) {
+      classXpLookup.set(
+        `${stat.player.username.toLowerCase()}::${stat.carClass}`,
+        stat.classXp
+      );
+    }
+
+    const perEntryClassXpMap = new Map<string, number>();
+    for (const e of extendedEntries) {
+      if (e.carClass) {
+        const key = `${e.username.toLowerCase()}::${e.carClass}`;
+        perEntryClassXpMap.set(e.username.toLowerCase(), classXpLookup.get(key) ?? 0);
+      }
+    }
+
+    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap);
+
     const preview = calculated.map((entry, idx) => ({
       ...entry,
-      foundInDb: foundSet.has(entry.username.toLowerCase()),
+      foundInDb:      foundSet.has(entry.username.toLowerCase()),
       carClass:       parsed.extended[idx]?.carClass,
       carNumber:      parsed.extended[idx]?.carNumber,
       teamName:       parsed.extended[idx]?.teamName,

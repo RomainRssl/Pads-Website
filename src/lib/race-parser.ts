@@ -4,6 +4,7 @@ export interface RawEntry {
   username: string;
   position: number;
   isClean: boolean;
+  incidents: number; // nombre d'incidents extraits du XML (défaut 0)
 }
 
 /** Per-driver data for the preview UI (XML only fills extra fields) */
@@ -64,6 +65,7 @@ export function parseJSON(text: string): ParseResult {
       username: entry.username.trim(),
       position: pos,
       isClean: normalizeBoolean(entry.isClean),
+      incidents: typeof entry.incidents === "number" ? entry.incidents : 0,
     };
   });
 
@@ -99,6 +101,7 @@ export function parseCSV(text: string): ParseResult {
       username,
       position: pos,
       isClean: cleanIdx !== -1 ? normalizeBoolean(cols[cleanIdx]) : true,
+      incidents: 0,
     };
   });
 
@@ -176,7 +179,10 @@ export function parseXML(text: string): ParseResult {
       ? (parseFloat(bestLapRaw) > 0 ? parseFloat(bestLapRaw) : null)
       : null;
 
-    const raw: RawEntry = { username: name, position: pos, isClean: true };
+    const incidentsRaw = extractTag(block, "Incidents");
+    const incidents = incidentsRaw ? (parseInt(incidentsRaw, 10) || 0) : 0;
+
+    const raw: RawEntry = { username: name, position: pos, isClean: true, incidents };
     const ext: ExtendedEntry = {
       ...raw,
       carClass,

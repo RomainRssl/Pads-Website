@@ -17,9 +17,11 @@ interface PreviewEntry {
   username: string;
   position: number;
   isClean: boolean;
+  incidents: number;
   xpGained: number;
   moneyGained: number;
   reputationDelta: number;
+  ladderDelta: number;
   foundInDb: boolean;
   carClass?: string;
   carNumber?: string;
@@ -33,16 +35,30 @@ interface Formula {
   xpPerMin: number;
   cleanBonusPct: number;
   moneyRatio: number;
-  reputationClean: number;
-  reputationDirty: number;
+  // Réputation (incidents)
+  repDelta_01: number;
+  repDelta_2: number;
+  repDelta_3: number;
+  repDelta_4plus: number;
+  repFinishBonus: number;
+  // Ladder coefficients
+  ladderCoeff_sm: number;
+  ladderCoeff_md: number;
+  ladderCoeff_lg: number;
 }
 
 const DEFAULT_FORMULA: Formula = {
   xpPerMin: 10,
   cleanBonusPct: 10,
   moneyRatio: 0.5,
-  reputationClean: 0,
-  reputationDirty: 0,
+  repDelta_01: 3,
+  repDelta_2: 1,
+  repDelta_3: -1,
+  repDelta_4plus: -3,
+  repFinishBonus: 1,
+  ladderCoeff_sm: 4,
+  ladderCoeff_md: 3,
+  ladderCoeff_lg: 2,
 };
 
 interface ProcessResult {
@@ -103,11 +119,20 @@ export default function ResultsUploadForm() {
     const fd = new FormData();
     if (file) fd.append("file", file);
     if (duration) fd.append("duration", duration);
-    fd.append("xpPerMin",        String(formula.xpPerMin));
-    fd.append("cleanBonusPct",   String(formula.cleanBonusPct));
-    fd.append("moneyRatio",       String(formula.moneyRatio));
-    fd.append("reputationClean",  String(formula.reputationClean));
-    fd.append("reputationDirty",  String(formula.reputationDirty));
+    // XP & argent
+    fd.append("xpPerMin",       String(formula.xpPerMin));
+    fd.append("cleanBonusPct",  String(formula.cleanBonusPct));
+    fd.append("moneyRatio",      String(formula.moneyRatio));
+    // Réputation
+    fd.append("repDelta_01",    String(formula.repDelta_01));
+    fd.append("repDelta_2",     String(formula.repDelta_2));
+    fd.append("repDelta_3",     String(formula.repDelta_3));
+    fd.append("repDelta_4plus", String(formula.repDelta_4plus));
+    fd.append("repFinishBonus", String(formula.repFinishBonus));
+    // Ladder
+    fd.append("ladderCoeff_sm", String(formula.ladderCoeff_sm));
+    fd.append("ladderCoeff_md", String(formula.ladderCoeff_md));
+    fd.append("ladderCoeff_lg", String(formula.ladderCoeff_lg));
     return fd;
   }
 
@@ -184,12 +209,13 @@ export default function ResultsUploadForm() {
       <form onSubmit={handlePreview} className="space-y-8">
         {error && <ErrorBanner message={error} />}
 
-        {/* ── Formule de récompenses (éditable) ── */}
+        {/* ── XP & Argent ── */}
         <div>
-          <h3 className="font-heading text-base font-semibold text-white mb-4">
-            Formule de récompenses
+          <h3 className="font-heading text-base font-semibold text-white mb-1">
+            XP &amp; Argent
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <p className="text-brand-muted text-xs mb-4">Bonus de position : XP base × (N − pos) / N par classe · L'XP est reversé à l'écurie.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <FormulaField
               label="XP par minute"
               value={formula.xpPerMin}
@@ -211,31 +237,96 @@ export default function ResultsUploadForm() {
               min={0} max={10} step={0.1}
               hint={`Argent = XP × ${formula.moneyRatio}`}
             />
+          </div>
+        </div>
+
+        <div className="border-t border-brand-border" />
+
+        {/* ── Réputation ── */}
+        <div>
+          <h3 className="font-heading text-base font-semibold text-white mb-1">
+            Réputation <span className="text-brand-muted text-sm font-normal">(basée sur incidents XML — départ 50, cap 200)</span>
+          </h3>
+          <p className="text-brand-muted text-xs mb-4">Incidents extraits automatiquement du fichier XML LMU.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <FormulaField
-              label="Réputation clean"
-              value={formula.reputationClean}
-              onChange={(v) => setF("reputationClean", v)}
-              min={0} max={100} step={1} prefix="+"
-              hint="pts si course propre"
+              label="0–1 incident"
+              value={formula.repDelta_01}
+              onChange={(v) => setF("repDelta_01", v)}
+              min={-20} max={20} step={1}
+              hint="gain réputation" prefix={formula.repDelta_01 >= 0 ? "+" : undefined}
             />
             <FormulaField
-              label="Réputation sale"
-              value={formula.reputationDirty}
-              onChange={(v) => setF("reputationDirty", v)}
-              min={0} max={100} step={1} prefix="-"
-              hint="pts si course sale"
-              danger
+              label="2 incidents"
+              value={formula.repDelta_2}
+              onChange={(v) => setF("repDelta_2", v)}
+              min={-20} max={20} step={1}
+              hint="gain réputation" prefix={formula.repDelta_2 >= 0 ? "+" : undefined}
+            />
+            <FormulaField
+              label="3 incidents"
+              value={formula.repDelta_3}
+              onChange={(v) => setF("repDelta_3", v)}
+              min={-20} max={20} step={1}
+              hint="perte réputation" danger={formula.repDelta_3 < 0}
+            />
+            <FormulaField
+              label="4+ incidents"
+              value={formula.repDelta_4plus}
+              onChange={(v) => setF("repDelta_4plus", v)}
+              min={-20} max={20} step={1}
+              hint="perte réputation" danger={formula.repDelta_4plus < 0}
+            />
+            <FormulaField
+              label="Bonus finish"
+              value={formula.repFinishBonus}
+              onChange={(v) => setF("repFinishBonus", v)}
+              min={0} max={10} step={1}
+              hint="+pts si non-DNF" prefix="+"
             />
           </div>
-          <p className="text-brand-muted text-xs mt-3">
-            Bonus de position : XP base × (N − pos) / N · L'XP est reversé à l'écurie du pilote.
-          </p>
+        </div>
+
+        <div className="border-t border-brand-border" />
+
+        {/* ── Ladder ── */}
+        <div>
+          <h3 className="font-heading text-base font-semibold text-white mb-1">
+            Ladder <span className="text-brand-muted text-sm font-normal">(Score = ((N+1)/2) − pos · Points = Score × coeff)</span>
+          </h3>
+          <p className="text-brand-muted text-xs mb-4">Coefficient selon nombre de pilotes dans la même classe. Seuils : Silver 100, Gold 250, Platine 400 pts.</p>
+          <div className="grid grid-cols-3 gap-4">
+            <FormulaField
+              label="Coeff 6–10 pilotes"
+              value={formula.ladderCoeff_sm}
+              onChange={(v) => setF("ladderCoeff_sm", v)}
+              min={1} max={20} step={1}
+              hint="×4 par défaut"
+              prefix="×"
+            />
+            <FormulaField
+              label="Coeff 11–15 pilotes"
+              value={formula.ladderCoeff_md}
+              onChange={(v) => setF("ladderCoeff_md", v)}
+              min={1} max={20} step={1}
+              hint="×3 par défaut"
+              prefix="×"
+            />
+            <FormulaField
+              label="Coeff 16–20 pilotes"
+              value={formula.ladderCoeff_lg}
+              onChange={(v) => setF("ladderCoeff_lg", v)}
+              min={1} max={20} step={1}
+              hint="×2 par défaut"
+              prefix="×"
+            />
+          </div>
           <button
             type="button"
             onClick={() => setFormula(DEFAULT_FORMULA)}
-            className="mt-2 text-xs text-brand-muted hover:text-white transition-colors underline underline-offset-2"
+            className="mt-3 text-xs text-brand-muted hover:text-white transition-colors underline underline-offset-2"
           >
-            Réinitialiser les valeurs par défaut
+            Réinitialiser toutes les valeurs par défaut
           </button>
         </div>
 
@@ -306,10 +397,11 @@ export default function ResultsUploadForm() {
     const found   = preview.filter((e) => e.foundInDb).length;
     const skipped = preview.length - found;
     const hasExtended = preview.some((e) => e.carClass !== undefined);
-    const hasReputation = preview.some((e) => (e.reputationDelta ?? 0) !== 0);
+    const hasLadder   = preview.some((e) => (e.ladderDelta ?? 0) !== 0);
     const classes = [...new Set(preview.map((e) => e.carClass).filter(Boolean))];
     const totalXp = preview.filter((e) => e.foundInDb).reduce((s, e) => s + e.xpGained, 0);
     const leader  = [...preview].sort((a, b) => a.position - b.position)[0];
+    const hasIncidents = preview.some((e) => (e.incidents ?? 0) > 0);
 
     return (
       <div className="space-y-6">
@@ -360,10 +452,11 @@ export default function ResultsUploadForm() {
                 {hasExtended && <Th>Tours</Th>}
                 {hasExtended && <Th>Meilleur temps</Th>}
                 {hasExtended && <Th>Arrivée</Th>}
-                <Th>XP gagné</Th>
+                {hasIncidents && <Th>Incidents</Th>}
+                <Th>XP classe</Th>
                 <Th>Argent</Th>
-                {hasReputation && <Th>Réputation</Th>}
-                <Th>Propre</Th>
+                {hasLadder && <Th>Ladder Δ</Th>}
+                <Th>Réputation Δ</Th>
                 <Th>Statut</Th>
               </tr>
             </thead>
@@ -400,25 +493,40 @@ export default function ResultsUploadForm() {
                         ) : null}
                       </td>
                     )}
+                    {hasIncidents && (
+                      <td className="px-4 py-3 text-center">
+                        {(entry.incidents ?? 0) > 0 ? (
+                          <span className="text-orange-400 font-bold">{entry.incidents}</span>
+                        ) : (
+                          <span className="text-green-400 text-xs">✓</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 font-semibold text-brand-red whitespace-nowrap">
                       +{entry.xpGained.toLocaleString("fr-FR")} XP
                     </td>
                     <td className="px-4 py-3 text-brand-muted whitespace-nowrap">
                       +{entry.moneyGained.toLocaleString("fr-FR")} 💰
                     </td>
-                    {hasReputation && (
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {entry.reputationDelta > 0 ? (
-                          <span className="text-green-400 font-semibold">+{entry.reputationDelta}</span>
-                        ) : entry.reputationDelta < 0 ? (
-                          <span className="text-red-400 font-semibold">{entry.reputationDelta}</span>
+                    {hasLadder && (
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-center">
+                        {(entry.ladderDelta ?? 0) > 0 ? (
+                          <span className="text-blue-400 font-bold">+{entry.ladderDelta}</span>
+                        ) : (entry.ladderDelta ?? 0) < 0 ? (
+                          <span className="text-red-400 font-bold">{entry.ladderDelta}</span>
                         ) : (
-                          <span className="text-brand-muted">—</span>
+                          <span className="text-brand-muted">0</span>
                         )}
                       </td>
                     )}
-                    <td className="px-4 py-3">
-                      {entry.isClean ? <span className="text-green-400 text-xs">✨ Oui</span> : <span className="text-brand-muted text-xs">—</span>}
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      {(entry.reputationDelta ?? 0) > 0 ? (
+                        <span className="text-green-400 font-semibold">+{entry.reputationDelta}</span>
+                      ) : (entry.reputationDelta ?? 0) < 0 ? (
+                        <span className="text-red-400 font-semibold">{entry.reputationDelta}</span>
+                      ) : (
+                        <span className="text-brand-muted">0</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {entry.foundInDb
