@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { parseFile } from "@/lib/race-parser";
-import { calculateAll } from "@/lib/rewards";
+import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -59,7 +59,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Le fichier ne contient aucune entrée." }, { status: 400 });
     }
 
-    const calculated = calculateAll(parsed.entries, durationMin);
+    // Read formula from form data
+    const formula = parseFormulaFromForm(formData);
+    const calculated = calculateAll(parsed.entries, durationMin, formula);
 
     // Look up players case-insensitively
     const lowerUsernames = calculated.map((e) => e.username.toLowerCase());
@@ -72,16 +74,15 @@ export async function POST(req: Request) {
         .map((p) => p.username.toLowerCase())
     );
 
-    // Merge calculated rewards + extended XML data
     const preview = calculated.map((entry, idx) => ({
       ...entry,
       foundInDb: foundSet.has(entry.username.toLowerCase()),
-      carClass:      parsed.extended[idx]?.carClass,
-      carNumber:     parsed.extended[idx]?.carNumber,
-      teamName:      parsed.extended[idx]?.teamName,
-      laps:          parsed.extended[idx]?.laps,
+      carClass:       parsed.extended[idx]?.carClass,
+      carNumber:      parsed.extended[idx]?.carNumber,
+      teamName:       parsed.extended[idx]?.teamName,
+      laps:           parsed.extended[idx]?.laps,
       bestLapTimeSec: parsed.extended[idx]?.bestLapTimeSec,
-      finishStatus:  parsed.extended[idx]?.finishStatus,
+      finishStatus:   parsed.extended[idx]?.finishStatus,
     }));
 
     return NextResponse.json({
@@ -89,9 +90,9 @@ export async function POST(req: Request) {
       durationMin,
       durationAutoDetected,
       meta: parsed.meta,
+      formula,
     });
   } catch (err) {
-    // Catch-all: toujours retourner du JSON, jamais du HTML
     console.error("[preview] Unhandled error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Erreur interne du serveur." },

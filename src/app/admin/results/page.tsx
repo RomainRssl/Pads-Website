@@ -14,28 +14,6 @@ export default function ResultsPage() {
         </p>
       </div>
 
-      {/* Formula info card */}
-      <div className="bg-brand-card border border-brand-border rounded-xl p-5 mb-8 max-w-2xl">
-        <h2 className="font-heading text-base font-semibold text-white mb-3">Formule de récompenses</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <div>
-            <p className="text-brand-muted mb-1">XP de base</p>
-            <p className="font-mono text-brand-text">durée × 10</p>
-          </div>
-          <div>
-            <p className="text-brand-muted mb-1">Bonus position</p>
-            <p className="font-mono text-brand-text">base × (N−pos) / N</p>
-          </div>
-          <div>
-            <p className="text-brand-muted mb-1">Bonus course propre</p>
-            <p className="font-mono text-brand-text">+10% XP</p>
-          </div>
-        </div>
-        <p className="text-brand-muted text-xs mt-3">
-          Argent = XP total × 0,5 · L'XP est également reversé à la Team du joueur.
-        </p>
-      </div>
-
       <div className="bg-brand-card border border-brand-border rounded-xl p-6 sm:p-8">
         <ResultsUploadForm />
       </div>
