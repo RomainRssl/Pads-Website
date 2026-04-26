@@ -117,6 +117,20 @@ function extractTag(block: string, tag: string): string | null {
   return m ? m[1].trim() : null;
 }
 
+/** Normalise les noms de classe LMU vers les valeurs attendues par CAR_CLASSES */
+function normalizeCarClass(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const map: Record<string, string> = {
+    "HYPER":    "HYPERCAR",
+    "HYPERCAR": "HYPERCAR",
+    "GT3":      "GT3",
+    "GTE":      "GTE",
+    "LMP2":     "LMP2",
+    "LMP3":     "LMP3",
+  };
+  return map[raw.toUpperCase()] ?? raw;
+}
+
 function detectSessionType(text: string): RaceMeta["sessionType"] {
   if (/<RaceResults[\s>]/i.test(text)) return "Race";
   if (/<QualifyResults[\s>]/i.test(text)) return "Qualification";
@@ -166,7 +180,7 @@ export function parseXML(text: string): ParseResult {
     const pos = parseInt(posStr, 10);
     if (isNaN(pos) || pos < 1) continue;
 
-    const carClass     = extractTag(block, "CarClass") ?? undefined;
+    const carClass     = normalizeCarClass(extractTag(block, "CarClass") ?? undefined);
     const carNumber    = extractTag(block, "CarNumber") ?? undefined;
     const rawTeamName  = extractTag(block, "TeamName");
     const teamName     = rawTeamName ? rawTeamName.replace(/\+/g, " ") : undefined;
