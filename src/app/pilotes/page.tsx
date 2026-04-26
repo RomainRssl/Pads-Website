@@ -1,20 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { computeLicense, DEFAULT_LICENSES } from "@/lib/license";
+import { getClassXpTier } from "@/lib/class-tiers";
 import { formatPilotName } from "@/lib/format";
 
 export const metadata = { title: "Pilotes — Par amour du spin" };
 
 export default async function PilotesPage() {
-  const [players, licenseConfigs] = await Promise.all([
-    prisma.player.findMany({
-      orderBy: { xp: "desc" },
-      include: { team: { select: { name: true } }, categories: { include: { category: true } } },
-    }),
-    prisma.licenseConfig.findMany({ orderBy: { order: "asc" } }),
-  ]);
-
-  const configs = licenseConfigs.length > 0 ? licenseConfigs : DEFAULT_LICENSES;
+  const players = await prisma.player.findMany({
+    orderBy: { xp: "desc" },
+    include: { team: { select: { name: true } }, categories: { include: { category: true } } },
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -33,7 +28,7 @@ export default async function PilotesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {players.map((player, idx) => {
-            const lic = computeLicense(player.xp, configs);
+            const tier = getClassXpTier(player.xp);
             const cleanRate = player.finishedRaces > 0
               ? Math.round((player.cleanRaces / player.finishedRaces) * 100)
               : 0;
@@ -54,14 +49,12 @@ export default async function PilotesPage() {
                     </p>
                     <p className="text-xs text-brand-muted truncate">{player.team?.name ?? "Sans écurie"}</p>
                   </div>
-                  {lic && (
-                    <span
-                      className="shrink-0 text-xs font-bold px-2 py-0.5 rounded"
-                      style={{ color: lic.current.color, border: `1px solid ${lic.current.color}40`, background: `${lic.current.color}15` }}
-                    >
-                      {lic.current.label}
-                    </span>
-                  )}
+                  <span
+                    className="shrink-0 text-xs font-bold px-2 py-0.5 rounded"
+                    style={{ color: tier.color, border: `1px solid ${tier.color}40`, background: `${tier.color}15` }}
+                  >
+                    {tier.name.toUpperCase()}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">

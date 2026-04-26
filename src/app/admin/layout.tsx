@@ -14,7 +14,6 @@ const NAV_LINKS = [
   { href: "/admin/teams", label: "🏎️ Écuries" },
   { href: "/admin/players", label: "👤 Pilotes" },
   { href: "/admin/categories", label: "🏁 Catégories" },
-  { href: "/admin/licenses", label: "🎖️ Licences" },
 ];
 
 export default async function AdminLayout({
