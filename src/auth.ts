@@ -7,10 +7,8 @@ import type { Role } from "@/types/next-auth";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  // Force l'URL de callback même derrière un proxy / IP — évite "redirect_uri OAuth2 non valide"
-  ...(process.env.NEXTAUTH_URL
-    ? { redirectProxyUrl: `${process.env.NEXTAUTH_URL}/api/auth` }
-    : {}),
+  // Obligatoire derrière nginx : Auth.js utilise le header Host transmis par le proxy
+  trustHost: true,
   providers: [
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
