@@ -34,7 +34,12 @@ interface PreviewEntry {
 interface Formula {
   xpPerMin: number;
   cleanBonusPct: number;
-  moneyRatio: number;
+  // Argent (pool)
+  moneyBasePerMin: number;
+  coeffCourse: number;
+  organizerSharePct: number;
+  p1PrizePct: number;
+  pLastMinPct: number;
   // Réputation (incidents)
   repDelta_01: number;
   repDelta_2: number;
@@ -50,7 +55,11 @@ interface Formula {
 const DEFAULT_FORMULA: Formula = {
   xpPerMin: 10,
   cleanBonusPct: 10,
-  moneyRatio: 0.5,
+  moneyBasePerMin: 50,
+  coeffCourse: 1.0,
+  organizerSharePct: 25,
+  p1PrizePct: 10,
+  pLastMinPct: 25,
   repDelta_01: 3,
   repDelta_2: 1,
   repDelta_3: -1,
@@ -119,10 +128,15 @@ export default function ResultsUploadForm() {
     const fd = new FormData();
     if (file) fd.append("file", file);
     if (duration) fd.append("duration", duration);
-    // XP & argent
+    // XP
     fd.append("xpPerMin",       String(formula.xpPerMin));
     fd.append("cleanBonusPct",  String(formula.cleanBonusPct));
-    fd.append("moneyRatio",      String(formula.moneyRatio));
+    // Argent (pool)
+    fd.append("moneyBasePerMin",   String(formula.moneyBasePerMin));
+    fd.append("coeffCourse",       String(formula.coeffCourse));
+    fd.append("organizerSharePct", String(formula.organizerSharePct));
+    fd.append("p1PrizePct",        String(formula.p1PrizePct));
+    fd.append("pLastMinPct",       String(formula.pLastMinPct));
     // Réputation
     fd.append("repDelta_01",    String(formula.repDelta_01));
     fd.append("repDelta_2",     String(formula.repDelta_2));
@@ -209,13 +223,11 @@ export default function ResultsUploadForm() {
       <form onSubmit={handlePreview} className="space-y-8">
         {error && <ErrorBanner message={error} />}
 
-        {/* ── XP & Argent ── */}
+        {/* ── XP ── */}
         <div>
-          <h3 className="font-heading text-base font-semibold text-white mb-1">
-            XP &amp; Argent
-          </h3>
+          <h3 className="font-heading text-base font-semibold text-white mb-1">XP de classe</h3>
           <p className="text-brand-muted text-xs mb-4">Bonus de position : XP base × (N − pos) / N par classe · L'XP est reversé à l'écurie.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <FormulaField
               label="XP par minute"
               value={formula.xpPerMin}
@@ -230,12 +242,56 @@ export default function ResultsUploadForm() {
               min={0} max={100} step={1} suffix="%"
               hint={`+${formula.cleanBonusPct}% XP si propre`}
             />
+          </div>
+        </div>
+
+        <div className="border-t border-brand-border" />
+
+        {/* ── Argent PADS (pool) ── */}
+        <div>
+          <h3 className="font-heading text-base font-semibold text-white mb-1">
+            Argent 💰 <span className="text-brand-muted text-sm font-normal">(système pool par classe)</span>
+          </h3>
+          <p className="text-brand-muted text-xs mb-4">
+            Base = durée × base/min × coeff · Pool = Base × N · Prize pool = Pool × (1 − org%) · P1 = Prize pool × p1% · Dernier = Base × min%
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <FormulaField
-              label="Ratio argent"
-              value={formula.moneyRatio}
-              onChange={(v) => setF("moneyRatio", v)}
-              min={0} max={10} step={0.1}
-              hint={`Argent = XP × ${formula.moneyRatio}`}
+              label="Base / minute"
+              value={formula.moneyBasePerMin}
+              onChange={(v) => setF("moneyBasePerMin", v)}
+              min={1} max={10000} step={1} suffix=" 💰"
+              hint={baseXpPreview != null
+                ? `Base : ${Math.round(parseInt(duration) * formula.moneyBasePerMin * formula.coeffCourse).toLocaleString("fr-FR")} 💰`
+                : "durée × valeur × coeff"}
+            />
+            <FormulaField
+              label="Coeff course"
+              value={formula.coeffCourse}
+              onChange={(v) => setF("coeffCourse", v)}
+              min={0.5} max={3} step={0.1} prefix="×"
+              hint="Normal=1.0 · Tech=1.2 · Diff=1.5"
+            />
+            <FormulaField
+              label="Part organisateur"
+              value={formula.organizerSharePct}
+              onChange={(v) => setF("organizerSharePct", v)}
+              min={0} max={80} step={1} suffix="%"
+              hint={`Pool org = Pool × ${formula.organizerSharePct}%`}
+            />
+            <FormulaField
+              label="Prime P1 (% pool)"
+              value={formula.p1PrizePct}
+              onChange={(v) => setF("p1PrizePct", v)}
+              min={1} max={100} step={1} suffix="%"
+              hint="% du prize pool pour le 1er"
+            />
+            <FormulaField
+              label="Min dernier (% base)"
+              value={formula.pLastMinPct}
+              onChange={(v) => setF("pLastMinPct", v)}
+              min={0} max={100} step={1} suffix="%"
+              hint="Prime minimale pour le dernier"
             />
           </div>
         </div>

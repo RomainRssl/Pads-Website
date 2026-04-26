@@ -4,10 +4,16 @@ import { CLASS_XP_TIERS, getTier } from "./class-tiers";
 // ── Formula config ────────────────────────────────────────────────────────────
 
 export interface RewardFormula {
-  // XP & argent
+  // XP
   xpPerMin:      number;  // XP de base par minute de course
   cleanBonusPct: number;  // % bonus XP si course propre (ex: 10 = +10%)
-  moneyRatio:    number;  // Argent = XP gagné × ratio
+
+  // Argent PADS (système pool)
+  moneyBasePerMin:   number; // PADS de base par minute (défaut 50)
+  coeffCourse:       number; // coefficient difficulté (défaut 1.0)
+  organizerSharePct: number; // % pool réservé à l'org (défaut 25)
+  p1PrizePct:        number; // % du prize_pool pour P1 (défaut 10)
+  pLastMinPct:       number; // % de la base pour le dernier (défaut 25)
 
   // Réputation (basée sur incidents XML)
   repDelta_01:    number; // gain si 0–1 incident  (défaut +3)
@@ -25,7 +31,12 @@ export interface RewardFormula {
 export const DEFAULT_FORMULA: RewardFormula = {
   xpPerMin:      10,
   cleanBonusPct: 10,
-  moneyRatio:    0.5,
+
+  moneyBasePerMin:   50,
+  coeffCourse:       1.0,
+  organizerSharePct: 25,
+  p1PrizePct:        10,
+  pLastMinPct:       25,
 
   repDelta_01:    3,
   repDelta_2:     1,
@@ -155,11 +166,18 @@ export function calculateAll(
       });
     }
 
+    // ── Argent : calcul du pool par classe ───────────────────────────────────
+    const moneyBase  = Math.round(durationMin * formula.moneyBasePerMin * formula.coeffCourse);
+    const pool       = moneyBase * totalInClass;
+    const prizePool  = pool * (1 - formula.organizerSharePct / 100);
+    const p1Prize    = prizePool * (formula.p1PrizePct / 100);
+    const pLastPrize = moneyBase * (formula.pLastMinPct / 100);
+
     // Calcul des récompenses
     sorted.forEach((entry, idx) => {
       const positionInClass = idx + 1;
 
-      // XP de classe (formule identique à avant, mais positionnement intra-classe)
+      // XP de classe
       const baseXP = durationMin * formula.xpPerMin;
       const positionBonus = Math.round(
         baseXP * Math.max(0, totalInClass - positionInClass) / totalInClass
@@ -169,7 +187,12 @@ export function calculateAll(
         ? Math.round(rawXP * (formula.cleanBonusPct / 100))
         : 0;
       const xpGained = rawXP + cleanBonus;
-      const moneyGained = Math.round(xpGained * formula.moneyRatio);
+
+      // Argent : base + prime dégressif P1 → Plast
+      const positionPrize = totalInClass === 1
+        ? p1Prize
+        : p1Prize + (pLastPrize - p1Prize) * (positionInClass - 1) / (totalInClass - 1);
+      const moneyGained = Math.round(moneyBase + positionPrize);
 
       // Réputation (incidents-based)
       const reputationDelta = calculateReputation(
@@ -215,7 +238,12 @@ export function parseFormulaFromForm(fd: FormData): RewardFormula {
   return {
     xpPerMin:       n("xpPerMin",       DEFAULT_FORMULA.xpPerMin),
     cleanBonusPct:  n("cleanBonusPct",  DEFAULT_FORMULA.cleanBonusPct),
-    moneyRatio:     n("moneyRatio",      DEFAULT_FORMULA.moneyRatio),
+
+    moneyBasePerMin:   n("moneyBasePerMin",   DEFAULT_FORMULA.moneyBasePerMin),
+    coeffCourse:       n("coeffCourse",       DEFAULT_FORMULA.coeffCourse),
+    organizerSharePct: n("organizerSharePct", DEFAULT_FORMULA.organizerSharePct),
+    p1PrizePct:        n("p1PrizePct",        DEFAULT_FORMULA.p1PrizePct),
+    pLastMinPct:       n("pLastMinPct",       DEFAULT_FORMULA.pLastMinPct),
 
     repDelta_01:    n("repDelta_01",    DEFAULT_FORMULA.repDelta_01),
     repDelta_2:     n("repDelta_2",     DEFAULT_FORMULA.repDelta_2),
