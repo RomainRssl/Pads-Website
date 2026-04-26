@@ -345,8 +345,8 @@ export default function ResultsUploadForm() {
               value={formula.moneyBasePerMin}
               onChange={(v) => setF("moneyBasePerMin", v)}
               min={1} max={10000} step={1} suffix=" 💰"
-              hint={baseXpPreview != null
-                ? `Base : ${Math.round(parseInt(duration) * formula.moneyBasePerMin * formula.coeffCourse).toLocaleString("fr-FR")} 💰`
+              hint={dur != null
+                ? `Base : ${Math.round(dur * formula.moneyBasePerMin * formula.coeffCourse).toLocaleString("fr-FR")} 💰`
                 : "durée × valeur × coeff"}
             />
             <FormulaField
