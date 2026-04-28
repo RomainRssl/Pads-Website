@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { parseFile } from "@/lib/race-parser";
+import { parseFile, classifyIncidentBreakdown } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
 import { tiersFromDb } from "@/lib/class-tiers";
@@ -109,6 +109,16 @@ export async function POST(req: Request) {
 
     const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap, classXpTiers);
 
+    // Classify XML incident breakdown using formula thresholds
+    const incidentCounts = parsed.incidentBreakdown
+      ? classifyIncidentBreakdown(parsed.incidentBreakdown, {
+          avertRatioMin:    formula.avertRatioMin,
+          sanctionRatioMin: formula.sanctionRatioMin,
+          forceThreshold:   formula.forceThreshold,
+          forceRatioMin:    formula.forceRatioMin,
+        })
+      : undefined;
+
     const preview = calculated.map((entry, idx) => ({
       ...entry,
       foundInDb:      foundSet.has(entry.username.toLowerCase()),
@@ -127,6 +137,7 @@ export async function POST(req: Request) {
       durationAutoDetected,
       meta: parsed.meta,
       formula,
+      incidentCounts,
     });
   } catch (err) {
     console.error("[preview] Unhandled error:", err);

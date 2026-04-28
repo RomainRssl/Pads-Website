@@ -7,6 +7,72 @@ export interface RawEntry {
   incidents: number; // nombre d'incidents extraits du XML (défaut 0)
 }
 
+// ── Incident breakdown types ──────────────────────────────────────────────────
+
+export type IncidentCounts = { offtrack: number; contact: number; avert: number; sanction: number };
+
+/** One side of a player-vs-player contact, already paired with opponent force */
+export interface RawPlayerContact {
+  opponent: string;
+  myForce: number;
+  opponentForce: number;
+}
+
+export interface RawDriverIncidentData {
+  offtrackWarnings: number;           // TrackLimits with WarningPoints > 0
+  immovableContacts: number;          // Incidents "with Immovable"
+  playerContacts: RawPlayerContact[]; // Paired: both forces known
+}
+
+export type IncidentBreakdown = Record<string, RawDriverIncidentData>;
+
+/**
+ * Applies formula thresholds to raw XML incident data to produce per-driver counts.
+ * Normal case: lower force = at fault. High-force (> forceThreshold): higher force = at fault.
+ */
+export function classifyIncidentBreakdown(
+  breakdown: IncidentBreakdown,
+  thresholds: { avertRatioMin: number; sanctionRatioMin: number; forceThreshold: number; forceRatioMin: number }
+): Record<string, IncidentCounts> {
+  const result: Record<string, IncidentCounts> = {};
+  const ensure = (name: string) => {
+    if (!result[name]) result[name] = { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
+    return result[name];
+  };
+
+  for (const [driver, data] of Object.entries(breakdown)) {
+    ensure(driver).offtrack = data.offtrackWarnings;
+    ensure(driver).contact  = data.immovableContacts;
+
+    for (const c of data.playerContacts) {
+      const maxForce = Math.max(c.myForce, c.opponentForce);
+      const minForce = Math.min(c.myForce, c.opponentForce);
+      const ratio = minForce > 0 ? maxForce / minForce : 1;
+
+      let severity: "avert" | "sanction" | "none" = "none";
+
+      if (maxForce > thresholds.forceThreshold) {
+        // High-force contact: higher force = at fault
+        if (c.myForce >= c.opponentForce) {
+          if (ratio >= thresholds.sanctionRatioMin) severity = "sanction";
+          else if (ratio >= thresholds.forceRatioMin) severity = "avert";
+        }
+      } else {
+        // Normal contact: lower force = at fault
+        if (c.myForce <= c.opponentForce && ratio >= thresholds.avertRatioMin) {
+          if (ratio >= thresholds.sanctionRatioMin) severity = "sanction";
+          else severity = "avert";
+        }
+      }
+
+      if (severity === "sanction") ensure(driver).sanction++;
+      else if (severity === "avert") ensure(driver).avert++;
+    }
+  }
+
+  return result;
+}
+
 /** Per-driver data for the preview UI (XML only fills extra fields) */
 export interface ExtendedEntry extends RawEntry {
   carClass?: string;
@@ -32,6 +98,7 @@ export interface ParseResult {
   entries: RawEntry[];
   extended: ExtendedEntry[];
   meta: RaceMeta;
+  incidentBreakdown?: IncidentBreakdown; // Only populated for XML files
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -222,10 +289,66 @@ export function parseXML(text: string): ParseResult {
     .map((e, i) => ({ e, x: extended[i] }))
     .sort((a, b) => a.e.position - b.e.position);
 
+  // ── Incident breakdown from TrackLimits + Incident tags ──────────────────────
+  const incidentBreakdown: IncidentBreakdown = {};
+  const ensureDriver = (name: string) => {
+    if (!incidentBreakdown[name]) {
+      incidentBreakdown[name] = { offtrackWarnings: 0, immovableContacts: 0, playerContacts: [] };
+    }
+    return incidentBreakdown[name];
+  };
+
+  // TrackLimits: WarningPoints > 0 → offtrack warning for that driver
+  const tlRegex = /<TrackLimits\s([^>]*)>/g;
+  let tlMatch: RegExpExecArray | null;
+  while ((tlMatch = tlRegex.exec(text)) !== null) {
+    const attrs = tlMatch[1];
+    const driverAttr = attrs.match(/\bDriver="([^"]*)"/);
+    const wpAttr     = attrs.match(/\bWarningPoints="([^"]*)"/);
+    if (driverAttr && wpAttr) {
+      const wp = parseFloat(wpAttr[1]);
+      if (wp > 0) ensureDriver(driverAttr[1]).offtrackWarnings++;
+    }
+  }
+
+  // Incidents: first pass — build et::driver::opponent → force map for pairing
+  const contactForceMap = new Map<string, number>();
+  const incRegex = /<Incident\s+et="([^"]*)">(.*?)<\/Incident>/g;
+  let incMatch: RegExpExecArray | null;
+  while ((incMatch = incRegex.exec(text)) !== null) {
+    const pm = incMatch[2].match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with another vehicle\s+(.+?)\(\d+\)/i);
+    if (pm) {
+      contactForceMap.set(`${incMatch[1]}::${pm[1].trim()}::${pm[3].trim()}`, parseFloat(pm[2]));
+    }
+  }
+
+  // Second pass — classify each incident
+  incRegex.lastIndex = 0;
+  while ((incMatch = incRegex.exec(text)) !== null) {
+    const et = incMatch[1];
+    const content = incMatch[2];
+
+    const immovable = content.match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with Immovable/i);
+    if (immovable) {
+      ensureDriver(immovable[1].trim()).immovableContacts++;
+      continue;
+    }
+
+    const pm = content.match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with another vehicle\s+(.+?)\(\d+\)/i);
+    if (pm) {
+      const driver   = pm[1].trim();
+      const myForce  = parseFloat(pm[2]);
+      const opponent = pm[3].trim();
+      const opponentForce = contactForceMap.get(`${et}::${opponent}::${driver}`) ?? myForce;
+      ensureDriver(driver).playerContacts.push({ opponent, myForce, opponentForce });
+    }
+  }
+
   return {
     entries: sorted.map((s) => s.e),
     extended: sorted.map((s) => s.x),
     meta,
+    incidentBreakdown,
   };
 }
 

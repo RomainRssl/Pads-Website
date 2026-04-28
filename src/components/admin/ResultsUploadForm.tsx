@@ -274,8 +274,12 @@ export default function ResultsUploadForm() {
       setMeta((data.meta ?? {}) as RaceMeta);
       setDurationUsed(data.durationMin as number);
       setDurationAutoDetected((data.durationAutoDetected ?? false) as boolean);
+      const serverCounts = (data.incidentCounts ?? {}) as Record<string, IncidentCounts>;
       const init: Record<string, IncidentCounts> = {};
-      for (const e of entries) init[e.username] = classifyIncidents(e.incidents ?? 0, formula);
+      for (const e of entries) {
+        init[e.username] = serverCounts[e.username]
+          ?? classifyIncidents(e.incidents ?? 0, formula);
+      }
       setIncidentTypes(init);
       setStep("preview");
     } catch (err) {
