@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageUpload from "./ImageUpload";
 
 interface FormState {
   title: string;
@@ -24,6 +25,7 @@ const initialState: FormState = {
 export default function CreateEventForm() {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialState);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -41,6 +43,27 @@ export default function CreateEventForm() {
     setError(null);
 
     try {
+      let imagePath: string | undefined;
+
+      // Upload image if selected
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+
+        const uploadRes = await fetch("/api/admin/upload/image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json();
+          throw new Error(data.error ?? "Erreur lors de l'upload de l'image");
+        }
+
+        const uploadData = await uploadRes.json();
+        imagePath = uploadData.filePath;
+      }
+
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -48,6 +71,7 @@ export default function CreateEventForm() {
           ...form,
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
+          image: imagePath,
         }),
       });
 
@@ -58,6 +82,7 @@ export default function CreateEventForm() {
 
       setSuccess(true);
       setForm(initialState);
+      setImageFile(null);
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -159,6 +184,15 @@ export default function CreateEventForm() {
             className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
           />
         </div>
+      </div>
+
+      {/* Image Upload */}
+      <div>
+        <label className="block text-sm font-medium text-brand-text mb-1.5">
+          Image de la course{" "}
+          <span className="text-brand-muted font-normal">(optionnel, max 20MB)</span>
+        </label>
+        <ImageUpload onImageSelect={setImageFile} />
       </div>
 
       {/* Description */}

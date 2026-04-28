@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  track: string;
+}
 
 interface RaceMeta {
   trackVenue?: string;
@@ -130,6 +137,27 @@ export default function ResultsUploadForm() {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const res = await fetch("/api/events");
+        if (res.ok) {
+          const data = await res.json();
+          setEvents(data);
+          if (data.length > 0) setSelectedEventId(data[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to load events:", err);
+      } finally {
+        setLoadingEvents(false);
+      }
+    }
+    fetchEvents();
+  }, []);
 
   const isXml = file?.name.toLowerCase().endsWith(".xml") ?? false;
 
@@ -141,6 +169,7 @@ export default function ResultsUploadForm() {
     const fd = new FormData();
     if (file) fd.append("file", file);
     if (duration) fd.append("duration", duration);
+    if (selectedEventId) fd.append("eventId", selectedEventId);
     // XP
     fd.append("finishBonus",        String(formula.finishBonus));
     fd.append("positionBase",       String(formula.positionBase));
@@ -186,6 +215,7 @@ export default function ResultsUploadForm() {
   async function handlePreview(e: React.FormEvent) {
     e.preventDefault();
     if (!file) { setError("Sélectionnez un fichier."); return; }
+    if (!selectedEventId) { setError("Sélectionnez un événement."); return; }
     if (!isXml && (!duration || parseInt(duration) <= 0)) {
       setError("Entrez une durée valide."); return;
     }
@@ -243,6 +273,35 @@ export default function ResultsUploadForm() {
     return (
       <form onSubmit={handlePreview} className="space-y-8">
         {error && <ErrorBanner message={error} />}
+
+        {/* ── Sélection de l'événement ── */}
+        <div>
+          <label htmlFor="event" className="block text-sm font-medium text-brand-text mb-1.5">
+            Événement <span className="text-brand-red">*</span>
+          </label>
+          <select
+            id="event"
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+            disabled={loadingEvents || events.length === 0}
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors disabled:opacity-50"
+          >
+            {loadingEvents ? (
+              <option>Chargement des événements...</option>
+            ) : events.length === 0 ? (
+              <option>Aucun événement disponible</option>
+            ) : (
+              events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title} • {new Date(event.date).toLocaleDateString("fr-FR")} • {event.track}
+                </option>
+              ))
+            )}
+          </select>
+          {events.length === 0 && !loadingEvents && (
+            <p className="text-xs text-brand-muted mt-2">⚠️ Créez un événement d'abord dans la page Ajouter une course.</p>
+          )}
+        </div>
 
         {/* ── XP de classe ── */}
         <div>

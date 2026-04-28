@@ -24,8 +24,10 @@ export async function POST(req: Request) {
 
     const file = formData.get("file") as File | null;
     const durationRaw = formData.get("duration") as string | null;
+    const eventId = formData.get("eventId") as string | null;
 
     if (!file) return NextResponse.json({ error: "Fichier manquant." }, { status: 400 });
+    if (!eventId) return NextResponse.json({ error: "Événement manquant." }, { status: 400 });
 
     let durationMin = durationRaw ? parseInt(durationRaw, 10) : NaN;
 
@@ -175,6 +177,41 @@ export async function POST(req: Request) {
             data: { xp: { increment: entry.xpGained } },
           });
         }
+      }
+
+      // ── Create RaceHistory entry ──────────────────────────────────────────
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { title: true, date: true, track: true },
+      });
+
+      if (event) {
+        await tx.raceHistory.create({
+          data: {
+            eventId,
+            title: event.title,
+            date: event.date,
+            track: event.track,
+            rawResults: JSON.stringify(
+              enriched.map((e, idx) => {
+                const extEntry = parsed.extended[idx];
+                return {
+                  position: e.position,
+                  username: e.username,
+                  carClass: e.carClass,
+                  carNumber: extEntry?.carNumber,
+                  teamName: extEntry?.teamName,
+                  laps: extEntry?.laps,
+                  bestLapTime: extEntry?.bestLapTimeSec,
+                  incidents: e.incidents,
+                  finishStatus: extEntry?.finishStatus,
+                  isClean: e.isClean,
+                };
+              })
+            ),
+            createdBy: session.user.discordId ?? session.user.id,
+          },
+        });
       }
     });
 

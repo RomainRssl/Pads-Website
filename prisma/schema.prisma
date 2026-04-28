@@ -61,16 +61,31 @@ model VerificationToken {
 // Role is stored as String ("USER" | "ADMIN") — SQLite does not support enums
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   title       String
   date        DateTime
   game        String
   track       String
   car         String
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  image       String?
+  raceHistory RaceHistory[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   createdById String
+}
+
+model RaceHistory {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  title      String
+  date       DateTime
+  track      String
+  image      String?
+  rawResults String
+  createdAt  DateTime @default(now())
+  createdBy  String
 }
 
 // Singleton row — configuration du serveur Discord (remplie via /setup)
