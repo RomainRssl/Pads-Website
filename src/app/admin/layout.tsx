@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/create", label: "+ Course" },
   { href: "/admin/results", label: "🏁 Résultats" },
+  { href: "/race-history", label: "📚 Historique" },
   { href: "/admin/streamers", label: "📺 Streamers" },
   { href: "/admin/teams", label: "🏎️ Écuries" },
   { href: "/admin/players", label: "👤 Pilotes" },
