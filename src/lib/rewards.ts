@@ -100,9 +100,10 @@ export function classifyIncidents(incidents: number, formula: RewardFormula): {
 export function calculateReputation(
   incidents: number,
   finishStatus: string | undefined,
-  formula: RewardFormula
+  formula: RewardFormula,
+  overrideCounts?: { offtrack: number; contact: number; avert: number; sanction: number }
 ): number {
-  const { offtrack, contact, avert, sanction } = classifyIncidents(incidents, formula);
+  const { offtrack, contact, avert, sanction } = overrideCounts ?? classifyIncidents(incidents, formula);
   const finished = !finishStatus || (
     finishStatus.toLowerCase() !== "dnf" &&
     finishStatus.toLowerCase() !== "dsq" &&
@@ -150,6 +151,11 @@ export function calculateLadderDelta(
 export interface ExtendedRawEntry extends RawEntry {
   carClass?:     string;
   finishStatus?: string;
+  // Per-pilot incident type counts (admin-adjusted in preview)
+  offtrackCount?:  number;
+  contactCount?:   number;
+  avertCount?:     number;
+  sanctionCount?:  number;
 }
 
 // ── calculateAll ──────────────────────────────────────────────────────────────
@@ -239,11 +245,23 @@ export function calculateAll(
         : p1Prize + (pLastPrize - p1Prize) * (positionInClass - 1) / (totalInClass - 1);
       const moneyGained = Math.round(moneyBase + positionPrize);
 
-      // Réputation (classification automatique depuis incidents XML)
+      // Réputation — utilise les compteurs admin-ajustés si fournis, sinon classifyIncidents
+      const overrideCounts = (
+        entry.offtrackCount != null ||
+        entry.contactCount  != null ||
+        entry.avertCount    != null ||
+        entry.sanctionCount != null
+      ) ? {
+        offtrack: entry.offtrackCount  ?? 0,
+        contact:  entry.contactCount   ?? 0,
+        avert:    entry.avertCount     ?? 0,
+        sanction: entry.sanctionCount  ?? 0,
+      } : undefined;
       const reputationDelta = calculateReputation(
         entry.incidents,
         entry.finishStatus,
-        formula
+        formula,
+        overrideCounts
       );
 
       // Ladder

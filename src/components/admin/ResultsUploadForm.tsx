@@ -135,8 +135,8 @@ function classifyIncidents(incidents: number, f: Formula): IncidentCounts {
   return { offtrack: incidents, contact: 0, avert: 0, sanction: 0 };
 }
 
-function calcRepDelta(incidents: number, finishStatus: string | undefined, f: Formula): number {
-  const { offtrack, contact, avert, sanction } = classifyIncidents(incidents, f);
+function calcRepDelta(counts: IncidentCounts, finishStatus: string | undefined, f: Formula): number {
+  const { offtrack, contact, avert, sanction } = counts;
   const finished = !finishStatus || (
     finishStatus.toLowerCase() !== "dnf" &&
     finishStatus.toLowerCase() !== "dsq" &&
@@ -167,6 +167,7 @@ export default function ResultsUploadForm() {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [incidentTypes, setIncidentTypes] = useState<Record<string, IncidentCounts>>({});
 
   // Load saved formula defaults on mount
   useEffect(() => {
@@ -218,6 +219,13 @@ export default function ResultsUploadForm() {
     fd.append("ladderCoeff_sm", String(formula.ladderCoeff_sm));
     fd.append("ladderCoeff_md", String(formula.ladderCoeff_md));
     fd.append("ladderCoeff_lg", String(formula.ladderCoeff_lg));
+    // Compteurs par pilote (saisis dans l'aperçu)
+    for (const [username, counts] of Object.entries(incidentTypes)) {
+      fd.append(`offtrack_${username}`, String(counts.offtrack));
+      fd.append(`contact_${username}`,  String(counts.contact));
+      fd.append(`avert_${username}`,    String(counts.avert));
+      fd.append(`sanction_${username}`, String(counts.sanction));
+    }
     return fd;
   }
 
@@ -241,6 +249,7 @@ export default function ResultsUploadForm() {
     setDuration("");
     setDurationUsed(0);
     setDurationAutoDetected(false);
+    setIncidentTypes({});
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -260,10 +269,14 @@ export default function ResultsUploadForm() {
       try { data = await res.json(); }
       catch { throw new Error(`Erreur serveur (${res.status}). Vérifiez les logs du serveur.`); }
       if (!res.ok) throw new Error((data.error as string) ?? "Erreur serveur.");
-      setPreview(data.preview as PreviewEntry[]);
+      const entries = data.preview as PreviewEntry[];
+      setPreview(entries);
       setMeta((data.meta ?? {}) as RaceMeta);
       setDurationUsed(data.durationMin as number);
       setDurationAutoDetected((data.durationAutoDetected ?? false) as boolean);
+      const init: Record<string, IncidentCounts> = {};
+      for (const e of entries) init[e.username] = classifyIncidents(e.incidents ?? 0, formula);
+      setIncidentTypes(init);
       setStep("preview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -710,17 +723,28 @@ export default function ResultsUploadForm() {
                         )}
                       </td>
                     )}
-                    {(() => {
-                      const counts = classifyIncidents(entry.incidents ?? 0, formula);
-                      return (["offtrack", "contact", "avert", "sanction"] as const).map((field) => {
-                        const val = counts[field];
-                        return (
-                          <td key={field} className="px-2 py-3 text-center font-mono text-sm">
-                            {val > 0 ? <span className="text-orange-400 font-bold">{val}</span> : <span className="text-brand-muted">0</span>}
-                          </td>
-                        );
-                      });
-                    })()}
+                    {(["offtrack", "contact", "avert", "sanction"] as const).map((field) => {
+                      const val = incidentTypes[entry.username]?.[field] ?? 0;
+                      return (
+                        <td key={field} className="px-2 py-3 text-center">
+                          <input
+                            type="number" min={0} max={99} step={1}
+                            value={val}
+                            onChange={(e) => {
+                              const n = Math.max(0, parseInt(e.target.value) || 0);
+                              setIncidentTypes((prev) => ({
+                                ...prev,
+                                [entry.username]: {
+                                  ...(prev[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 }),
+                                  [field]: n,
+                                },
+                              }));
+                            }}
+                            className={`w-12 rounded px-1 py-1 font-mono text-xs text-center focus:outline-none focus:border-brand-red border ${val > 0 ? "bg-orange-500/10 border-orange-500/40 text-orange-300" : "bg-brand-dark border-brand-border text-brand-muted"}`}
+                          />
+                        </td>
+                      );
+                    })}
                     <td className="px-4 py-3 font-semibold text-brand-red whitespace-nowrap">
                       +{entry.xpGained.toLocaleString("fr-FR")} XP
                     </td>
@@ -740,7 +764,8 @@ export default function ResultsUploadForm() {
                     )}
                     <td className="px-4 py-3 whitespace-nowrap text-center">
                       {(() => {
-                        const rep = calcRepDelta(entry.incidents ?? 0, entry.finishStatus, formula);
+                        const counts = incidentTypes[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
+                        const rep = calcRepDelta(counts, entry.finishStatus, formula);
                         return rep > 0
                           ? <span className="text-green-400 font-semibold">+{rep}</span>
                           : rep < 0
