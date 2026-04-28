@@ -717,22 +717,14 @@ export default function ResultsUploadForm() {
                         )}
                       </td>
                     )}
-                    {(["offtrack", "contact", "avert", "sanction"] as const).map((field) => (
-                      <td key={field} className="px-2 py-3 text-center">
-                        <input
-                          type="number" min={0} max={99} step={1}
-                          value={incidentTypes[entry.username]?.[field] ?? 0}
-                          onChange={(e) => {
-                            const val = Math.max(0, parseInt(e.target.value) || 0);
-                            setIncidentTypes((prev) => ({
-                              ...prev,
-                              [entry.username]: { ...(prev[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 }), [field]: val },
-                            }));
-                          }}
-                          className="w-12 bg-brand-dark border border-brand-border rounded px-1 py-1 text-white font-mono text-xs text-center focus:outline-none focus:border-brand-red"
-                        />
-                      </td>
-                    ))}
+                    {(["offtrack", "contact", "avert", "sanction"] as const).map((field) => {
+                      const val = incidentTypes[entry.username]?.[field] ?? 0;
+                      return (
+                        <td key={field} className="px-2 py-3 text-center font-mono text-sm">
+                          {val > 0 ? <span className="text-orange-400 font-bold">{val}</span> : <span className="text-brand-muted">0</span>}
+                        </td>
+                      );
+                    })}
                     <td className="px-4 py-3 font-semibold text-brand-red whitespace-nowrap">
                       +{entry.xpGained.toLocaleString("fr-FR")} XP
                     </td>
