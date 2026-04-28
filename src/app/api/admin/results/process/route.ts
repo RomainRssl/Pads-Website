@@ -70,6 +70,22 @@ export async function POST(req: Request) {
     const players = allPlayers.filter((p) => lowerUsernames.has(p.username.toLowerCase()));
     const playerMap = new Map(players.map((p) => [p.username.toLowerCase(), p]));
 
+    // Create missing players automatically
+    const missingUsernames = Array.from(lowerUsernames).filter((u) => !playerMap.has(u));
+    if (missingUsernames.length > 0) {
+      const createdPlayers = await Promise.all(
+        missingUsernames.map((username) =>
+          prisma.player.create({
+            data: {
+              username: parsed.entries.find((e) => e.username.toLowerCase() === username)!.username,
+            },
+            include: { team: true },
+          })
+        )
+      );
+      createdPlayers.forEach((p) => playerMap.set(p.username.toLowerCase(), p));
+    }
+
     // Fetch current class XP per player (for ladder tier calculation)
     const classStats = await prisma.playerClassStats.findMany({
       where: { playerId: { in: players.map((p) => p.id) } },
