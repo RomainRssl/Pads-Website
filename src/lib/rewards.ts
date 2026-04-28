@@ -23,12 +23,17 @@ export interface RewardFormula {
   p1PrizePct:        number; // % du prize_pool pour P1 (défaut 10)
   pLastMinPct:       number; // % de la base pour le dernier (défaut 25)
 
-  // Réputation (basée sur incidents XML)
-  repDelta_01:    number; // gain si 0–1 incident  (défaut +3)
-  repDelta_2:     number; // gain si 2 incidents   (défaut +1)
-  repDelta_3:     number; // perte si 3 incidents  (défaut −1)
-  repDelta_4plus: number; // perte si 4+ incidents (défaut −3)
-  repFinishBonus: number; // bonus si terminé / non-DNF (défaut +1)
+  // Réputation (basée sur types d'incidents)
+  repBase:         number; // gain de base par course (défaut +3)
+  repFinishBonus:  number; // bonus si terminé / non-DNF (défaut +1)
+  offtrackPenalty: number; // malus par offtrack (défaut 0.25)
+  contactPenalty:  number; // malus par contact immobile (défaut 1)
+  avertPenalty:    number; // malus par avertissement (défaut 1)
+  sanctionPenalty: number; // malus par sanction (défaut 2)
+  avertRatioMin:   number; // ratio min. pour avertissement (défaut 2)
+  sanctionRatioMin:number; // ratio min. pour sanction (défaut 4)
+  forceThreshold:  number; // seuil force élevée en N (défaut 800)
+  forceRatioMin:   number; // ratio min. pour haute force (défaut 1.05)
 
   // Ladder — coefficients selon taille de grille dans la classe
   ladderCoeff_sm: number; // 6–10 pilotes dans la classe (défaut 4)
@@ -52,11 +57,16 @@ export const DEFAULT_FORMULA: RewardFormula = {
   p1PrizePct:        10,
   pLastMinPct:       25,
 
-  repDelta_01:    3,
-  repDelta_2:     1,
-  repDelta_3:    -1,
-  repDelta_4plus:-3,
-  repFinishBonus: 1,
+  repBase:         3,
+  repFinishBonus:  1,
+  offtrackPenalty: 0.25,
+  contactPenalty:  1,
+  avertPenalty:    1,
+  sanctionPenalty: 2,
+  avertRatioMin:   2,
+  sanctionRatioMin:4,
+  forceThreshold:  800,
+  forceRatioMin:   1.05,
 
   ladderCoeff_sm: 4,
   ladderCoeff_md: 3,
@@ -76,25 +86,25 @@ export interface CalculatedEntry extends RawEntry {
 // ── Reputation ────────────────────────────────────────────────────────────────
 
 export function calculateReputation(
-  incidents: number,
+  offtrack: number,
+  contact: number,
+  avert: number,
+  sanction: number,
   finishStatus: string | undefined,
   formula: RewardFormula
 ): number {
-  let delta: number;
-  if (incidents <= 1)       delta = formula.repDelta_01;
-  else if (incidents === 2) delta = formula.repDelta_2;
-  else if (incidents === 3) delta = formula.repDelta_3;
-  else                      delta = formula.repDelta_4plus;
-
-  // Bonus si course terminée (non DNF/DSQ/DQ)
   const finished = !finishStatus || (
     finishStatus.toLowerCase() !== "dnf" &&
     finishStatus.toLowerCase() !== "dsq" &&
     finishStatus.toLowerCase() !== "dq"
   );
-  if (finished) delta += formula.repFinishBonus;
-
-  return delta;
+  const delta = formula.repBase
+    + (finished ? formula.repFinishBonus : 0)
+    - offtrack * formula.offtrackPenalty
+    - contact  * formula.contactPenalty
+    - avert    * formula.avertPenalty
+    - sanction * formula.sanctionPenalty;
+  return Math.round(delta);
 }
 
 // ── Ladder coefficient ────────────────────────────────────────────────────────
@@ -127,8 +137,12 @@ export function calculateLadderDelta(
 // ── Entry étendue (union RawEntry + champs XML optionnels) ────────────────────
 
 export interface ExtendedRawEntry extends RawEntry {
-  carClass?:    string;
+  carClass?:     string;
   finishStatus?: string;
+  offtrack?:     number;
+  contact?:      number;
+  avert?:        number;
+  sanction?:     number;
 }
 
 // ── calculateAll ──────────────────────────────────────────────────────────────
@@ -154,7 +168,7 @@ export function calculateAll(
 
   const results: CalculatedEntry[] = [];
 
-  for (const [cls, group] of byClass.entries()) {
+  for (const [cls, group] of Array.from(byClass.entries())) {
     const totalInClass = group.length;
 
     // Trier par position globale
@@ -171,7 +185,7 @@ export function calculateAll(
 
     // position_dans_le_rang pour chaque pilote (parmi son tier XP, trié par position)
     const ladderPosMap = new Map<string, { posInTier: number; nInTier: number }>();
-    for (const [, tierEntries] of tierGroups.entries()) {
+    for (const [, tierEntries] of Array.from(tierGroups.entries())) {
       const tierSorted = [...tierEntries].sort((a, b) => a.position - b.position);
       tierSorted.forEach((e, idx) => {
         ladderPosMap.set(e.username.toLowerCase(), {
@@ -218,9 +232,12 @@ export function calculateAll(
         : p1Prize + (pLastPrize - p1Prize) * (positionInClass - 1) / (totalInClass - 1);
       const moneyGained = Math.round(moneyBase + positionPrize);
 
-      // Réputation (incidents-based)
+      // Réputation (type-based)
       const reputationDelta = calculateReputation(
-        entry.incidents,
+        entry.offtrack  ?? 0,
+        entry.contact   ?? 0,
+        entry.avert     ?? 0,
+        entry.sanction  ?? 0,
         entry.finishStatus,
         formula
       );
@@ -275,11 +292,16 @@ export function parseFormulaFromForm(fd: FormData): RewardFormula {
     p1PrizePct:        n("p1PrizePct",        DEFAULT_FORMULA.p1PrizePct),
     pLastMinPct:       n("pLastMinPct",       DEFAULT_FORMULA.pLastMinPct),
 
-    repDelta_01:    n("repDelta_01",    DEFAULT_FORMULA.repDelta_01),
-    repDelta_2:     n("repDelta_2",     DEFAULT_FORMULA.repDelta_2),
-    repDelta_3:     n("repDelta_3",     DEFAULT_FORMULA.repDelta_3),
-    repDelta_4plus: n("repDelta_4plus", DEFAULT_FORMULA.repDelta_4plus),
-    repFinishBonus: n("repFinishBonus", DEFAULT_FORMULA.repFinishBonus),
+    repBase:         n("repBase",         DEFAULT_FORMULA.repBase),
+    repFinishBonus:  n("repFinishBonus",  DEFAULT_FORMULA.repFinishBonus),
+    offtrackPenalty: n("offtrackPenalty", DEFAULT_FORMULA.offtrackPenalty),
+    contactPenalty:  n("contactPenalty",  DEFAULT_FORMULA.contactPenalty),
+    avertPenalty:    n("avertPenalty",    DEFAULT_FORMULA.avertPenalty),
+    sanctionPenalty: n("sanctionPenalty", DEFAULT_FORMULA.sanctionPenalty),
+    avertRatioMin:   n("avertRatioMin",   DEFAULT_FORMULA.avertRatioMin),
+    sanctionRatioMin:n("sanctionRatioMin",DEFAULT_FORMULA.sanctionRatioMin),
+    forceThreshold:  n("forceThreshold",  DEFAULT_FORMULA.forceThreshold),
+    forceRatioMin:   n("forceRatioMin",   DEFAULT_FORMULA.forceRatioMin),
 
     ladderCoeff_sm: n("ladderCoeff_sm", DEFAULT_FORMULA.ladderCoeff_sm),
     ladderCoeff_md: n("ladderCoeff_md", DEFAULT_FORMULA.ladderCoeff_md),

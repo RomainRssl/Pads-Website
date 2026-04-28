@@ -50,15 +50,22 @@ export async function POST(req: Request) {
     }
 
     const formula = parseFormulaFromForm(formData);
-    const warningThreshold  = parseInt(formData.get("warningIncidentThresh") as string ?? "4", 10) || 4;
-    const sanctionThreshold = parseInt(formData.get("sanctionIncidentThresh") as string ?? "8", 10) || 8;
+    const warningThreshold  = 4;
+    const sanctionThreshold = 8;
 
-    // Build extended entries
-    const extendedEntries: ExtendedRawEntry[] = parsed.entries.map((e, idx) => ({
-      ...e,
-      carClass:     parsed.extended[idx]?.carClass,
-      finishStatus: parsed.extended[idx]?.finishStatus,
-    }));
+    // Build extended entries with per-pilot incident type counts
+    const extendedEntries: ExtendedRawEntry[] = parsed.entries.map((e, idx) => {
+      const u = e.username;
+      return {
+        ...e,
+        carClass:     parsed.extended[idx]?.carClass,
+        finishStatus: parsed.extended[idx]?.finishStatus,
+        offtrack: parseInt(formData.get(`offtrack_${u}`) as string ?? "0", 10) || 0,
+        contact:  parseInt(formData.get(`contact_${u}`)  as string ?? "0", 10) || 0,
+        avert:    parseInt(formData.get(`avert_${u}`)    as string ?? "0", 10) || 0,
+        sanction: parseInt(formData.get(`sanction_${u}`) as string ?? "0", 10) || 0,
+      };
+    });
 
     // Fetch XP tiers from DB (admin-configurable)
     const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });

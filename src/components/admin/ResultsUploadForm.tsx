@@ -48,20 +48,21 @@ interface Formula {
   organizerSharePct: number;
   p1PrizePct: number;
   pLastMinPct: number;
-  // Réputation (incidents)
-  repDelta_01: number;
-  repDelta_2: number;
-  repDelta_3: number;
-  repDelta_4plus: number;
+  // Réputation (types d'incidents)
+  repBase: number;
   repFinishBonus: number;
+  offtrackPenalty: number;
+  contactPenalty: number;
+  avertPenalty: number;
+  sanctionPenalty: number;
+  avertRatioMin: number;
+  sanctionRatioMin: number;
+  forceThreshold: number;
+  forceRatioMin: number;
   // Ladder coefficients
   ladderCoeff_sm: number;
   ladderCoeff_md: number;
   ladderCoeff_lg: number;
-  // Avertissements & Sanctions
-  warningIncidentThresh: number;
-  sanctionIncidentThresh: number;
-  forceThreshold: number;
 }
 
 const DEFAULT_FORMULA: Formula = {
@@ -78,17 +79,19 @@ const DEFAULT_FORMULA: Formula = {
   organizerSharePct: 25,
   p1PrizePct: 10,
   pLastMinPct: 25,
-  repDelta_01: 3,
-  repDelta_2: 1,
-  repDelta_3: -1,
-  repDelta_4plus: -3,
+  repBase: 3,
   repFinishBonus: 1,
+  offtrackPenalty: 0.25,
+  contactPenalty: 1,
+  avertPenalty: 1,
+  sanctionPenalty: 2,
+  avertRatioMin: 2,
+  sanctionRatioMin: 4,
+  forceThreshold: 800,
+  forceRatioMin: 1.05,
   ladderCoeff_sm: 4,
   ladderCoeff_md: 3,
   ladderCoeff_lg: 2,
-  warningIncidentThresh: 4,
-  sanctionIncidentThresh: 8,
-  forceThreshold: 1500,
 };
 
 interface ProcessResult {
@@ -124,14 +127,22 @@ function sessionLabel(type: RaceMeta["sessionType"]): string {
   return "Session";
 }
 
-function incidentBadge(incidents: number, warnThresh: number, sanctionThresh: number) {
-  if (incidents >= sanctionThresh) {
-    return <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-red-500/20 border border-red-500/40 text-red-400 font-bold">🚫</span>;
-  }
-  if (incidents >= warnThresh) {
-    return <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-orange-500/20 border border-orange-500/40 text-orange-400 font-bold">⚠️</span>;
-  }
-  return null;
+type IncidentCounts = { offtrack: number; contact: number; avert: number; sanction: number };
+
+function calcRepDelta(finishStatus: string | undefined, counts: IncidentCounts, f: Formula): number {
+  const finished = !finishStatus || (
+    finishStatus.toLowerCase() !== "dnf" &&
+    finishStatus.toLowerCase() !== "dsq" &&
+    finishStatus.toLowerCase() !== "dq"
+  );
+  return Math.round(
+    f.repBase
+    + (finished ? f.repFinishBonus : 0)
+    - counts.offtrack * f.offtrackPenalty
+    - counts.contact  * f.contactPenalty
+    - counts.avert    * f.avertPenalty
+    - counts.sanction * f.sanctionPenalty
+  );
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -149,6 +160,7 @@ export default function ResultsUploadForm() {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [incidentTypes, setIncidentTypes] = useState<Record<string, IncidentCounts>>({});
 
   // Load saved formula defaults on mount
   useEffect(() => {
@@ -185,20 +197,28 @@ export default function ResultsUploadForm() {
     fd.append("organizerSharePct", String(formula.organizerSharePct));
     fd.append("p1PrizePct",        String(formula.p1PrizePct));
     fd.append("pLastMinPct",       String(formula.pLastMinPct));
-    // Réputation
-    fd.append("repDelta_01",    String(formula.repDelta_01));
-    fd.append("repDelta_2",     String(formula.repDelta_2));
-    fd.append("repDelta_3",     String(formula.repDelta_3));
-    fd.append("repDelta_4plus", String(formula.repDelta_4plus));
-    fd.append("repFinishBonus", String(formula.repFinishBonus));
+    // Réputation (types d'incidents)
+    fd.append("repBase",         String(formula.repBase));
+    fd.append("repFinishBonus",  String(formula.repFinishBonus));
+    fd.append("offtrackPenalty", String(formula.offtrackPenalty));
+    fd.append("contactPenalty",  String(formula.contactPenalty));
+    fd.append("avertPenalty",    String(formula.avertPenalty));
+    fd.append("sanctionPenalty", String(formula.sanctionPenalty));
+    fd.append("avertRatioMin",   String(formula.avertRatioMin));
+    fd.append("sanctionRatioMin",String(formula.sanctionRatioMin));
+    fd.append("forceThreshold",  String(formula.forceThreshold));
+    fd.append("forceRatioMin",   String(formula.forceRatioMin));
     // Ladder
     fd.append("ladderCoeff_sm", String(formula.ladderCoeff_sm));
     fd.append("ladderCoeff_md", String(formula.ladderCoeff_md));
     fd.append("ladderCoeff_lg", String(formula.ladderCoeff_lg));
-    // Avertissements & Sanctions
-    fd.append("warningIncidentThresh",  String(formula.warningIncidentThresh));
-    fd.append("sanctionIncidentThresh", String(formula.sanctionIncidentThresh));
-    fd.append("forceThreshold",         String(formula.forceThreshold));
+    // Compteurs par pilote (ajustés dans l'aperçu)
+    for (const [username, counts] of Object.entries(incidentTypes)) {
+      fd.append(`offtrack_${username}`, String(counts.offtrack));
+      fd.append(`contact_${username}`,  String(counts.contact));
+      fd.append(`avert_${username}`,    String(counts.avert));
+      fd.append(`sanction_${username}`, String(counts.sanction));
+    }
     return fd;
   }
 
@@ -222,6 +242,7 @@ export default function ResultsUploadForm() {
     setDuration("");
     setDurationUsed(0);
     setDurationAutoDetected(false);
+    setIncidentTypes({});
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -241,10 +262,15 @@ export default function ResultsUploadForm() {
       try { data = await res.json(); }
       catch { throw new Error(`Erreur serveur (${res.status}). Vérifiez les logs du serveur.`); }
       if (!res.ok) throw new Error((data.error as string) ?? "Erreur serveur.");
-      setPreview(data.preview as PreviewEntry[]);
+      const entries = data.preview as PreviewEntry[];
+      setPreview(entries);
       setMeta((data.meta ?? {}) as RaceMeta);
       setDurationUsed(data.durationMin as number);
       setDurationAutoDetected((data.durationAutoDetected ?? false) as boolean);
+      // Initialise les compteurs d'incidents par pilote à 0
+      const init: Record<string, IncidentCounts> = {};
+      for (const e of entries) init[e.username] = { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
+      setIncidentTypes(init);
       setStep("preview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -426,45 +452,44 @@ export default function ResultsUploadForm() {
         {/* ── Réputation ── */}
         <div>
           <h3 className="font-heading text-base font-semibold text-white mb-1">
-            Réputation <span className="text-brand-muted text-sm font-normal">(basée sur incidents XML — départ 50, cap 200)</span>
+            Réputation <span className="text-brand-muted text-sm font-normal">(basée sur types d&apos;incidents — départ 50, cap 200)</span>
           </h3>
-          <p className="text-brand-muted text-xs mb-4">Incidents extraits automatiquement du fichier XML LMU.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <FormulaField
-              label="0–1 incident"
-              value={formula.repDelta_01}
-              onChange={(v) => setF("repDelta_01", v)}
-              min={-20} max={20} step={1}
-              hint="gain réputation" prefix={formula.repDelta_01 >= 0 ? "+" : undefined}
-            />
-            <FormulaField
-              label="2 incidents"
-              value={formula.repDelta_2}
-              onChange={(v) => setF("repDelta_2", v)}
-              min={-20} max={20} step={1}
-              hint="gain réputation" prefix={formula.repDelta_2 >= 0 ? "+" : undefined}
-            />
-            <FormulaField
-              label="3 incidents"
-              value={formula.repDelta_3}
-              onChange={(v) => setF("repDelta_3", v)}
-              min={-20} max={20} step={1}
-              hint="perte réputation" danger={formula.repDelta_3 < 0}
-            />
-            <FormulaField
-              label="4+ incidents"
-              value={formula.repDelta_4plus}
-              onChange={(v) => setF("repDelta_4plus", v)}
-              min={-20} max={20} step={1}
-              hint="perte réputation" danger={formula.repDelta_4plus < 0}
-            />
-            <FormulaField
-              label="Bonus finish"
-              value={formula.repFinishBonus}
-              onChange={(v) => setF("repFinishBonus", v)}
-              min={0} max={10} step={1}
-              hint="+pts si non-DNF" prefix="+"
-            />
+          <p className="text-brand-muted text-xs mb-4">
+            Δ = gain de base + bonus finish − offtrack × pénalité − contact × pénalité − avert. × pénalité − sanction × pénalité. Les compteurs par pilote sont ajustables dans l&apos;aperçu.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+            <FormulaField label="Gain de base" value={formula.repBase} onChange={(v) => setF("repBase", v)}
+              min={0} max={20} step={1} hint="points par course" />
+            <FormulaField label="Bonus finish" value={formula.repFinishBonus} onChange={(v) => setF("repFinishBonus", v)}
+              min={0} max={10} step={1} hint="+pts si non-DNF" />
+            <FormulaField label="Offtrack" value={formula.offtrackPenalty} onChange={(v) => setF("offtrackPenalty", v)}
+              min={0} max={10} step={0.05} danger hint="malus par offtrack" />
+            <FormulaField label="Contact immobile" value={formula.contactPenalty} onChange={(v) => setF("contactPenalty", v)}
+              min={0} max={10} step={0.5} danger hint="malus par contact" />
+            <FormulaField label="Avert. pilote" value={formula.avertPenalty} onChange={(v) => setF("avertPenalty", v)}
+              min={0} max={10} step={0.5} danger hint={`ratio ${formula.avertRatioMin}–${formula.sanctionRatioMin} (avertissement)`} />
+            <FormulaField label="Sanction pilote" value={formula.sanctionPenalty} onChange={(v) => setF("sanctionPenalty", v)}
+              min={0} max={20} step={0.5} danger hint={`ratio ≥${formula.sanctionRatioMin} (sanction)`} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <FormulaField label="Ratio min. avertissement" value={formula.avertRatioMin} onChange={(v) => setF("avertRatioMin", v)}
+              min={1} max={20} step={0.5} hint={`Ratio force ≥ ${formula.avertRatioMin} → avertissement`} />
+            <FormulaField label="Ratio min. sanction" value={formula.sanctionRatioMin} onChange={(v) => setF("sanctionRatioMin", v)}
+              min={1} max={20} step={0.5} danger hint={`Ratio force ≥ ${formula.sanctionRatioMin} → sanction`} />
+          </div>
+
+          <div className="bg-brand-surface/50 border border-orange-500/20 rounded-xl p-4">
+            <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">⚡ Détection haute force</p>
+            <p className="text-xs text-brand-muted mb-3">
+              Le ratio seul ne détecte pas les collisions violentes à forces similaires. Si la force maximale dépasse le seuil, un ratio plus faible suffit pour déclencher un avertissement.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <FormulaField label="Seuil force élevée" value={formula.forceThreshold} onChange={(v) => setF("forceThreshold", v)}
+                min={100} max={10000} step={100} hint="Force max (N) à partir de laquelle ce mode s'active. Défaut : 800." />
+              <FormulaField label="Ratio min. (haute force)" value={formula.forceRatioMin} onChange={(v) => setF("forceRatioMin", v)}
+                min={1} max={5} step={0.05} hint="Ratio minimum pour avertissement lors d'un impact haute force. Défaut : 1.05." />
+            </div>
           </div>
         </div>
 
@@ -504,44 +529,11 @@ export default function ResultsUploadForm() {
           </div>
         </div>
 
-        <div className="border-t border-brand-border" />
-
-        {/* ── Avertissements & Sanctions ── */}
-        <div>
-          <h3 className="font-heading text-base font-semibold text-white mb-1">
-            Avertissements &amp; Sanctions
-          </h3>
-          <p className="text-brand-muted text-xs mb-4">
-            Badges affichés dans le tableau selon le nombre d'incidents. Valeurs sauvegardées automatiquement après chaque course.
-          </p>
-          <div className="grid grid-cols-3 gap-4">
-            <FormulaField
-              label="Seuil avertissement ⚠️"
-              value={formula.warningIncidentThresh}
-              onChange={(v) => setF("warningIncidentThresh", v)}
-              min={1} max={20} step={1}
-              hint={`≥${formula.warningIncidentThresh} incidents → badge ⚠️`}
-            />
-            <FormulaField
-              label="Seuil sanction 🚫"
-              value={formula.sanctionIncidentThresh}
-              onChange={(v) => setF("sanctionIncidentThresh", v)}
-              min={1} max={30} step={1}
-              hint={`≥${formula.sanctionIncidentThresh} incidents → badge 🚫`}
-              danger
-            />
-            <FormulaField
-              label="Seuil force élevée (N)"
-              value={formula.forceThreshold}
-              onChange={(v) => setF("forceThreshold", v)}
-              min={100} max={10000} step={100}
-              hint="Contacts au-dessus de ce seuil"
-            />
-          </div>
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => setFormula(DEFAULT_FORMULA)}
-            className="mt-4 text-xs text-brand-muted hover:text-white transition-colors underline underline-offset-2"
+            className="text-xs text-brand-muted hover:text-white transition-colors underline underline-offset-2"
           >
             Réinitialiser toutes les valeurs par défaut
           </button>
@@ -671,11 +663,15 @@ export default function ResultsUploadForm() {
                 {hasExtended && <Th>Tours</Th>}
                 {hasExtended && <Th>Meilleur temps</Th>}
                 {hasExtended && <Th>Arrivée</Th>}
-                {hasIncidents && <Th>Incidents</Th>}
+                {hasIncidents && <Th>Inc.</Th>}
+                <Th>Off.</Th>
+                <Th>Cont.</Th>
+                <Th>Avert.</Th>
+                <Th>Sanct.</Th>
                 <Th>XP classe</Th>
                 <Th>Argent</Th>
                 {hasLadder && <Th>Ladder Δ</Th>}
-                <Th>Réputation Δ</Th>
+                <Th>Rép. Δ</Th>
                 <Th>Statut</Th>
               </tr>
             </thead>
@@ -715,15 +711,28 @@ export default function ResultsUploadForm() {
                     {hasIncidents && (
                       <td className="px-4 py-3 text-center whitespace-nowrap">
                         {(entry.incidents ?? 0) > 0 ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span className="text-orange-400 font-bold">{entry.incidents}</span>
-                            {incidentBadge(entry.incidents, formula.warningIncidentThresh, formula.sanctionIncidentThresh)}
-                          </span>
+                          <span className="text-orange-400 font-bold">{entry.incidents}</span>
                         ) : (
                           <span className="text-green-400 text-xs">✓</span>
                         )}
                       </td>
                     )}
+                    {(["offtrack", "contact", "avert", "sanction"] as const).map((field) => (
+                      <td key={field} className="px-2 py-3 text-center">
+                        <input
+                          type="number" min={0} max={99} step={1}
+                          value={incidentTypes[entry.username]?.[field] ?? 0}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setIncidentTypes((prev) => ({
+                              ...prev,
+                              [entry.username]: { ...(prev[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 }), [field]: val },
+                            }));
+                          }}
+                          className="w-12 bg-brand-dark border border-brand-border rounded px-1 py-1 text-white font-mono text-xs text-center focus:outline-none focus:border-brand-red"
+                        />
+                      </td>
+                    ))}
                     <td className="px-4 py-3 font-semibold text-brand-red whitespace-nowrap">
                       +{entry.xpGained.toLocaleString("fr-FR")} XP
                     </td>
@@ -742,13 +751,14 @@ export default function ResultsUploadForm() {
                       </td>
                     )}
                     <td className="px-4 py-3 whitespace-nowrap text-center">
-                      {(entry.reputationDelta ?? 0) > 0 ? (
-                        <span className="text-green-400 font-semibold">+{entry.reputationDelta}</span>
-                      ) : (entry.reputationDelta ?? 0) < 0 ? (
-                        <span className="text-red-400 font-semibold">{entry.reputationDelta}</span>
-                      ) : (
-                        <span className="text-brand-muted">0</span>
-                      )}
+                      {(() => {
+                        const rep = calcRepDelta(entry.finishStatus, incidentTypes[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 }, formula);
+                        return rep > 0
+                          ? <span className="text-green-400 font-semibold">+{rep}</span>
+                          : rep < 0
+                          ? <span className="text-red-400 font-semibold">{rep}</span>
+                          : <span className="text-brand-muted">0</span>;
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       {entry.willBeCreated
