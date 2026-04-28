@@ -85,26 +85,37 @@ export interface CalculatedEntry extends RawEntry {
 
 // ── Reputation ────────────────────────────────────────────────────────────────
 
+export function classifyIncidents(incidents: number, formula: RewardFormula): {
+  offtrack: number; contact: number; avert: number; sanction: number;
+} {
+  if (incidents >= formula.sanctionRatioMin) {
+    return { offtrack: 0, contact: 0, avert: 0, sanction: 1 };
+  }
+  if (incidents >= formula.avertRatioMin) {
+    return { offtrack: 0, contact: 0, avert: 1, sanction: 0 };
+  }
+  return { offtrack: incidents, contact: 0, avert: 0, sanction: 0 };
+}
+
 export function calculateReputation(
-  offtrack: number,
-  contact: number,
-  avert: number,
-  sanction: number,
+  incidents: number,
   finishStatus: string | undefined,
   formula: RewardFormula
 ): number {
+  const { offtrack, contact, avert, sanction } = classifyIncidents(incidents, formula);
   const finished = !finishStatus || (
     finishStatus.toLowerCase() !== "dnf" &&
     finishStatus.toLowerCase() !== "dsq" &&
     finishStatus.toLowerCase() !== "dq"
   );
-  const delta = formula.repBase
+  return Math.round(
+    formula.repBase
     + (finished ? formula.repFinishBonus : 0)
     - offtrack * formula.offtrackPenalty
     - contact  * formula.contactPenalty
     - avert    * formula.avertPenalty
-    - sanction * formula.sanctionPenalty;
-  return Math.round(delta);
+    - sanction * formula.sanctionPenalty
+  );
 }
 
 // ── Ladder coefficient ────────────────────────────────────────────────────────
@@ -139,10 +150,6 @@ export function calculateLadderDelta(
 export interface ExtendedRawEntry extends RawEntry {
   carClass?:     string;
   finishStatus?: string;
-  offtrack?:     number;
-  contact?:      number;
-  avert?:        number;
-  sanction?:     number;
 }
 
 // ── calculateAll ──────────────────────────────────────────────────────────────
@@ -232,12 +239,9 @@ export function calculateAll(
         : p1Prize + (pLastPrize - p1Prize) * (positionInClass - 1) / (totalInClass - 1);
       const moneyGained = Math.round(moneyBase + positionPrize);
 
-      // Réputation (type-based)
+      // Réputation (classification automatique depuis incidents XML)
       const reputationDelta = calculateReputation(
-        entry.offtrack  ?? 0,
-        entry.contact   ?? 0,
-        entry.avert     ?? 0,
-        entry.sanction  ?? 0,
+        entry.incidents,
         entry.finishStatus,
         formula
       );

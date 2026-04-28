@@ -53,19 +53,12 @@ export async function POST(req: Request) {
     const warningThreshold  = 4;
     const sanctionThreshold = 8;
 
-    // Build extended entries with per-pilot incident type counts
-    const extendedEntries: ExtendedRawEntry[] = parsed.entries.map((e, idx) => {
-      const u = e.username;
-      return {
-        ...e,
-        carClass:     parsed.extended[idx]?.carClass,
-        finishStatus: parsed.extended[idx]?.finishStatus,
-        offtrack: parseInt(formData.get(`offtrack_${u}`) as string ?? "0", 10) || 0,
-        contact:  parseInt(formData.get(`contact_${u}`)  as string ?? "0", 10) || 0,
-        avert:    parseInt(formData.get(`avert_${u}`)    as string ?? "0", 10) || 0,
-        sanction: parseInt(formData.get(`sanction_${u}`) as string ?? "0", 10) || 0,
-      };
-    });
+    // Build extended entries
+    const extendedEntries: ExtendedRawEntry[] = parsed.entries.map((e, idx) => ({
+      ...e,
+      carClass:     parsed.extended[idx]?.carClass,
+      finishStatus: parsed.extended[idx]?.finishStatus,
+    }));
 
     // Fetch XP tiers from DB (admin-configurable)
     const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
