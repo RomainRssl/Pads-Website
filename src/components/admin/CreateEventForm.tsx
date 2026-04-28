@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface FormState {
@@ -23,16 +23,40 @@ const initialState: FormState = {
 
 export default function CreateEventForm() {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>(initialState);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError(null);
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    if (file) {
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImagePreview(null);
+    }
+  }
+
+  async function uploadImage(): Promise<string | null> {
+    if (!imageFile) return null;
+    const fd = new FormData();
+    fd.append("file", imageFile);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error ?? "Erreur lors de l'upload de l'image");
+    }
+    const data = await res.json();
+    return data.url as string;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -41,6 +65,8 @@ export default function CreateEventForm() {
     setError(null);
 
     try {
+      const imageUrl = await uploadImage();
+
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -48,6 +74,7 @@ export default function CreateEventForm() {
           ...form,
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
+          imageUrl: imageUrl || undefined,
         }),
       });
 
@@ -58,6 +85,8 @@ export default function CreateEventForm() {
 
       setSuccess(true);
       setForm(initialState);
+      setImageFile(null);
+      setImagePreview(null);
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -85,12 +114,8 @@ export default function CreateEventForm() {
           Titre de la course <span className="text-brand-red">*</span>
         </label>
         <input
-          id="title"
-          name="title"
-          type="text"
-          required
-          value={form.title}
-          onChange={handleChange}
+          id="title" name="title" type="text" required
+          value={form.title} onChange={handleChange}
           placeholder="Gran Turismo World Series — Manche 3"
           className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
         />
@@ -102,12 +127,8 @@ export default function CreateEventForm() {
           Date et heure <span className="text-brand-red">*</span>
         </label>
         <input
-          id="date"
-          name="date"
-          type="datetime-local"
-          required
-          value={form.date}
-          onChange={handleChange}
+          id="date" name="date" type="datetime-local" required
+          value={form.date} onChange={handleChange}
           className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
         />
       </div>
@@ -119,12 +140,8 @@ export default function CreateEventForm() {
             Jeu <span className="text-brand-red">*</span>
           </label>
           <input
-            id="game"
-            name="game"
-            type="text"
-            required
-            value={form.game}
-            onChange={handleChange}
+            id="game" name="game" type="text" required
+            value={form.game} onChange={handleChange}
             placeholder="Gran Turismo 7"
             className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
           />
@@ -134,12 +151,8 @@ export default function CreateEventForm() {
             Circuit <span className="text-brand-red">*</span>
           </label>
           <input
-            id="track"
-            name="track"
-            type="text"
-            required
-            value={form.track}
-            onChange={handleChange}
+            id="track" name="track" type="text" required
+            value={form.track} onChange={handleChange}
             placeholder="Spa-Francorchamps"
             className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
           />
@@ -149,12 +162,8 @@ export default function CreateEventForm() {
             Voiture <span className="text-brand-red">*</span>
           </label>
           <input
-            id="car"
-            name="car"
-            type="text"
-            required
-            value={form.car}
-            onChange={handleChange}
+            id="car" name="car" type="text" required
+            value={form.car} onChange={handleChange}
             placeholder="Porsche 911 GT3"
             className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
           />
@@ -164,18 +173,45 @@ export default function CreateEventForm() {
       {/* Description */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-brand-text mb-1.5">
-          Description{" "}
-          <span className="text-brand-muted font-normal">(optionnel)</span>
+          Description <span className="text-brand-muted font-normal">(optionnel)</span>
         </label>
         <textarea
-          id="description"
-          name="description"
-          rows={4}
-          value={form.description}
-          onChange={handleChange}
+          id="description" name="description" rows={4}
+          value={form.description} onChange={handleChange}
           placeholder="Règles, informations importantes sur la course..."
           className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors resize-none"
         />
+      </div>
+
+      {/* Image */}
+      <div>
+        <label className="block text-sm font-medium text-brand-text mb-1.5">
+          Image de l&apos;annonce <span className="text-brand-muted font-normal">(optionnel · JPG, PNG, WebP, GIF · max 5 Mo)</span>
+        </label>
+        {imagePreview && (
+          <div className="mb-3 relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imagePreview} alt="Aperçu" className="w-full max-h-48 object-cover rounded-lg border border-brand-border" />
+            <button
+              type="button"
+              onClick={() => { setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-brand-dark/80 border border-brand-border text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors"
+            >×</button>
+          </div>
+        )}
+        <div
+          className="border-2 border-dashed border-brand-border rounded-xl p-6 text-center cursor-pointer hover:border-brand-red/50 transition-colors"
+          onClick={() => fileRef.current?.click()}
+        >
+          <p className="text-brand-muted text-sm">Cliquez pour choisir une image</p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleImageChange}
+          />
+        </div>
       </div>
 
       <button

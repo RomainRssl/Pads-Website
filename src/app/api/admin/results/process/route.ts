@@ -50,6 +50,8 @@ export async function POST(req: Request) {
     }
 
     const formula = parseFormulaFromForm(formData);
+    const warningThreshold  = parseInt(formData.get("warningIncidentThresh") as string ?? "4", 10) || 4;
+    const sanctionThreshold = parseInt(formData.get("sanctionIncidentThresh") as string ?? "8", 10) || 8;
 
     // Build extended entries
     const extendedEntries: ExtendedRawEntry[] = parsed.entries.map((e, idx) => ({
@@ -62,19 +64,33 @@ export async function POST(req: Request) {
     const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
     const classXpTiers = tiersFromDb(licenseConfigs);
 
-    // Fetch all players
+    // Fetch all existing players
     const lowerUsernames = new Set(parsed.entries.map((e) => e.username.toLowerCase()));
     const allPlayers = await prisma.player.findMany({ include: { team: true } });
     const players = allPlayers.filter((p) => lowerUsernames.has(p.username.toLowerCase()));
     const playerMap = new Map(players.map((p) => [p.username.toLowerCase(), p]));
 
+    // Auto-create unknown players
+    const unknownUsernames = Array.from(lowerUsernames).filter((u) => !playerMap.has(u));
+    let autoCreated = 0;
+    for (const lower of unknownUsernames) {
+      const originalName = parsed.entries.find((e) => e.username.toLowerCase() === lower)?.username ?? lower;
+      const created = await prisma.player.create({
+        data: { username: originalName, reputation: 50 },
+        include: { team: true },
+      });
+      playerMap.set(lower, created);
+      autoCreated++;
+    }
+
     // Fetch current class XP per player (for ladder tier calculation)
+    const allPlayerIds = Array.from(playerMap.values()).map((p) => p.id);
     const classStats = await prisma.playerClassStats.findMany({
-      where: { playerId: { in: players.map((p) => p.id) } },
+      where: { playerId: { in: allPlayerIds } },
       include: { player: { select: { username: true } } },
     });
-    const classXpLookup = new Map<string, number>(); // "username::carClass" → classXp
-    const ladderPointsLookup = new Map<string, number>(); // "username::carClass" → ladderPoints
+    const classXpLookup = new Map<string, number>();
+    const ladderPointsLookup = new Map<string, number>();
     for (const stat of classStats) {
       const key = `${stat.player.username.toLowerCase()}::${stat.carClass}`;
       classXpLookup.set(key, stat.classXp);
@@ -104,14 +120,19 @@ export async function POST(req: Request) {
       const raceSession = await tx.raceSession.create({
         data: {
           durationMin,
-          processedBy: session.user.discordId ?? session.user.id,
+          processedBy:      session.user.discordId ?? session.user.id,
+          trackVenue:       parsed.meta.trackVenue ?? null,
+          trackEvent:       parsed.meta.trackEvent ?? null,
+          sessionType:      parsed.meta.sessionType ?? null,
+          warningThreshold,
+          sanctionThreshold,
         },
       });
 
       for (const entry of toUpdate) {
         const player = playerMap.get(entry.username.toLowerCase())!;
+        const ext = parsed.extended.find((x) => x.username.toLowerCase() === entry.username.toLowerCase());
 
-        // Fetch current reputation to apply clamping [0, 200]
         const currentRep = player.reputation ?? 50;
         const newRep = Math.min(200, Math.max(0, currentRep + entry.reputationDelta));
 
@@ -121,6 +142,7 @@ export async function POST(req: Request) {
             xp:            { increment: entry.xpGained },
             money:         { increment: entry.moneyGained },
             finishedRaces: { increment: 1 },
+            totalRaces:    { increment: 1 },
             ...(entry.isClean ? { cleanRaces: { increment: 1 } } : {}),
             reputation:    newRep,
           },
@@ -138,23 +160,21 @@ export async function POST(req: Request) {
             incidents:       entry.incidents,
             reputationDelta: entry.reputationDelta,
             ladderDelta:     entry.ladderDelta,
+            laps:            ext?.laps ?? null,
+            bestLapTimeSec:  ext?.bestLapTimeSec ?? null,
+            finishStatus:    ext?.finishStatus ?? null,
+            teamName:        ext?.teamName ?? null,
           },
         });
 
-        // Update class-specific stats (upsert PlayerClassStats)
         if (entry.carClass) {
           const statKey = `${entry.username.toLowerCase()}::${entry.carClass}`;
-          const currentClassXp     = classXpLookup.get(statKey) ?? 0;
+          const currentClassXp      = classXpLookup.get(statKey) ?? 0;
           const currentLadderPoints = ladderPointsLookup.get(statKey) ?? 0;
-          const newLadderPoints    = Math.max(0, currentLadderPoints + entry.ladderDelta);
+          const newLadderPoints     = Math.max(0, currentLadderPoints + entry.ladderDelta);
 
           await tx.playerClassStats.upsert({
-            where: {
-              playerId_carClass: {
-                playerId: player.id,
-                carClass: entry.carClass,
-              },
-            },
+            where: { playerId_carClass: { playerId: player.id, carClass: entry.carClass } },
             update: {
               classXp:      { increment: entry.xpGained },
               ladderPoints: newLadderPoints,
@@ -168,7 +188,6 @@ export async function POST(req: Request) {
           });
         }
 
-        // Update team XP
         if (player.teamId) {
           await tx.team.update({
             where: { id: player.teamId },
@@ -205,6 +224,7 @@ export async function POST(req: Request) {
       updatedPlayers,
       totalPlayers: calculated.length,
       skipped: calculated.length - updatedPlayers,
+      autoCreated,
     });
   } catch (err) {
     console.error("[process] Unhandled error:", err);

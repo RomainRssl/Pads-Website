@@ -68,6 +68,7 @@ model Event {
   track       String
   car         String
   description String?
+  imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdById String
@@ -137,11 +138,16 @@ model PlayerCategory {
 }
 
 model RaceSession {
-  id          String       @id @default(cuid())
-  durationMin Int
-  processedAt DateTime     @default(now())
-  processedBy String
-  results     RaceResult[]
+  id                String       @id @default(cuid())
+  durationMin       Int
+  processedAt       DateTime     @default(now())
+  processedBy       String
+  trackVenue        String?
+  trackEvent        String?
+  sessionType       String?
+  warningThreshold  Int          @default(4)
+  sanctionThreshold Int          @default(8)
+  results           RaceResult[]
 }
 
 model RaceResult {
@@ -158,6 +164,10 @@ model RaceResult {
   incidents       Int         @default(0)
   reputationDelta Int         @default(0)
   ladderDelta     Int         @default(0)
+  laps            Int?
+  bestLapTimeSec  Float?
+  finishStatus    String?
+  teamName        String?
 }
 
 model PlayerClassStats {
@@ -169,6 +179,34 @@ model PlayerClassStats {
   ladderPoints Int      @default(0)
 
   @@unique([playerId, carClass])
+}
+
+model FormulaDefaults {
+  id                     String @id @default("singleton")
+  finishBonus            Float  @default(10)
+  positionBase           Float  @default(10)
+  positionMultiplier     Float  @default(1.5)
+  podiumP1               Float  @default(10)
+  podiumP2               Float  @default(7)
+  podiumP3               Float  @default(5)
+  incidentMalusPct       Float  @default(2)
+  incidentMalusCap       Float  @default(20)
+  moneyBasePerMin        Float  @default(50)
+  coeffCourse            Float  @default(1)
+  organizerSharePct      Float  @default(25)
+  p1PrizePct             Float  @default(10)
+  pLastMinPct            Float  @default(25)
+  repDelta_01            Float  @default(3)
+  repDelta_2             Float  @default(1)
+  repDelta_3             Float  @default(-1)
+  repDelta_4plus         Float  @default(-3)
+  repFinishBonus         Float  @default(1)
+  ladderCoeff_sm         Float  @default(4)
+  ladderCoeff_md         Float  @default(3)
+  ladderCoeff_lg         Float  @default(2)
+  warningIncidentThresh  Int    @default(4)
+  sanctionIncidentThresh Int    @default(8)
+  forceThreshold         Int    @default(1500)
 }
 
 // ── Twitch multiplex ──────────────────────────────────────────────────────────

@@ -39,6 +39,16 @@ export default function EventCard({ event }: EventCardProps) {
       {/* Racing stripe accent */}
       <div className="h-1 bg-gradient-to-r from-brand-red via-brand-orange to-brand-red" />
 
+      {/* Event image */}
+      {event.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={event.imageUrl}
+          alt={event.title}
+          className="w-full h-40 object-cover"
+        />
+      )}
+
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">

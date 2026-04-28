@@ -112,6 +112,7 @@ export async function POST(req: Request) {
     const preview = calculated.map((entry, idx) => ({
       ...entry,
       foundInDb:      foundSet.has(entry.username.toLowerCase()),
+      willBeCreated:  !foundSet.has(entry.username.toLowerCase()),
       carClass:       parsed.extended[idx]?.carClass,
       carNumber:      parsed.extended[idx]?.carNumber,
       teamName:       parsed.extended[idx]?.teamName,

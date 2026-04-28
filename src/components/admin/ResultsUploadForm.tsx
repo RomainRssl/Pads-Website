@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,7 @@ interface PreviewEntry {
   reputationDelta: number;
   ladderDelta: number;
   foundInDb: boolean;
+  willBeCreated?: boolean;
   carClass?: string;
   carNumber?: string;
   teamName?: string;
@@ -57,6 +58,10 @@ interface Formula {
   ladderCoeff_sm: number;
   ladderCoeff_md: number;
   ladderCoeff_lg: number;
+  // Avertissements & Sanctions
+  warningIncidentThresh: number;
+  sanctionIncidentThresh: number;
+  forceThreshold: number;
 }
 
 const DEFAULT_FORMULA: Formula = {
@@ -81,12 +86,16 @@ const DEFAULT_FORMULA: Formula = {
   ladderCoeff_sm: 4,
   ladderCoeff_md: 3,
   ladderCoeff_lg: 2,
+  warningIncidentThresh: 4,
+  sanctionIncidentThresh: 8,
+  forceThreshold: 1500,
 };
 
 interface ProcessResult {
   updatedPlayers: number;
   totalPlayers: number;
   skipped: number;
+  autoCreated?: number;
 }
 
 type Step = "upload" | "preview" | "done";
@@ -115,6 +124,16 @@ function sessionLabel(type: RaceMeta["sessionType"]): string {
   return "Session";
 }
 
+function incidentBadge(incidents: number, warnThresh: number, sanctionThresh: number) {
+  if (incidents >= sanctionThresh) {
+    return <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-red-500/20 border border-red-500/40 text-red-400 font-bold">🚫</span>;
+  }
+  if (incidents >= warnThresh) {
+    return <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-orange-500/20 border border-orange-500/40 text-orange-400 font-bold">⚠️</span>;
+  }
+  return null;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ResultsUploadForm() {
@@ -130,6 +149,16 @@ export default function ResultsUploadForm() {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load saved formula defaults on mount
+  useEffect(() => {
+    fetch("/api/admin/formula-defaults")
+      .then((r) => r.json())
+      .then((data) => {
+        setFormula((prev) => ({ ...prev, ...data }));
+      })
+      .catch(() => {/* use defaults on error */});
+  }, []);
 
   const isXml = file?.name.toLowerCase().endsWith(".xml") ?? false;
 
@@ -166,7 +195,21 @@ export default function ResultsUploadForm() {
     fd.append("ladderCoeff_sm", String(formula.ladderCoeff_sm));
     fd.append("ladderCoeff_md", String(formula.ladderCoeff_md));
     fd.append("ladderCoeff_lg", String(formula.ladderCoeff_lg));
+    // Avertissements & Sanctions
+    fd.append("warningIncidentThresh",  String(formula.warningIncidentThresh));
+    fd.append("sanctionIncidentThresh", String(formula.sanctionIncidentThresh));
+    fd.append("forceThreshold",         String(formula.forceThreshold));
     return fd;
+  }
+
+  async function saveDefaults() {
+    try {
+      await fetch("/api/admin/formula-defaults", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formula),
+      });
+    } catch {/* non-blocking */}
   }
 
   function reset() {
@@ -179,7 +222,6 @@ export default function ResultsUploadForm() {
     setDuration("");
     setDurationUsed(0);
     setDurationAutoDetected(false);
-    setFormula(DEFAULT_FORMULA);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -217,7 +259,7 @@ export default function ResultsUploadForm() {
     setError(null);
 
     const fd = buildFormData();
-    fd.set("duration", String(durationUsed)); // use confirmed duration
+    fd.set("duration", String(durationUsed));
 
     try {
       const res = await fetch("/api/admin/results/process", { method: "POST", body: fd });
@@ -227,6 +269,8 @@ export default function ResultsUploadForm() {
       if (!res.ok) throw new Error((data.error as string) ?? "Erreur serveur.");
       setResult(data as unknown as ProcessResult);
       setStep("done");
+      // Save formula as new defaults after successful processing
+      await saveDefaults();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
@@ -251,7 +295,6 @@ export default function ResultsUploadForm() {
             XP = durée + finish + [posBase + (N−pos) × mult] + podium · XP final = XP × (1 − malus incidents)
           </p>
 
-          {/* Bonus de base */}
           <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mb-2">Bonus de base</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
             <FormulaField
@@ -277,7 +320,6 @@ export default function ResultsUploadForm() {
             />
           </div>
 
-          {/* Bonus podium */}
           <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mb-2">Bonus podium 🏆</p>
           <div className="grid grid-cols-3 gap-4 mb-4">
             <FormulaField
@@ -303,7 +345,6 @@ export default function ResultsUploadForm() {
             />
           </div>
 
-          {/* Malus incidents */}
           <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mb-2">Malus incidents ⚠️</p>
           <div className="grid grid-cols-2 gap-4">
             <FormulaField
@@ -461,10 +502,46 @@ export default function ResultsUploadForm() {
               prefix="×"
             />
           </div>
+        </div>
+
+        <div className="border-t border-brand-border" />
+
+        {/* ── Avertissements & Sanctions ── */}
+        <div>
+          <h3 className="font-heading text-base font-semibold text-white mb-1">
+            Avertissements &amp; Sanctions
+          </h3>
+          <p className="text-brand-muted text-xs mb-4">
+            Badges affichés dans le tableau selon le nombre d'incidents. Valeurs sauvegardées automatiquement après chaque course.
+          </p>
+          <div className="grid grid-cols-3 gap-4">
+            <FormulaField
+              label="Seuil avertissement ⚠️"
+              value={formula.warningIncidentThresh}
+              onChange={(v) => setF("warningIncidentThresh", v)}
+              min={1} max={20} step={1}
+              hint={`≥${formula.warningIncidentThresh} incidents → badge ⚠️`}
+            />
+            <FormulaField
+              label="Seuil sanction 🚫"
+              value={formula.sanctionIncidentThresh}
+              onChange={(v) => setF("sanctionIncidentThresh", v)}
+              min={1} max={30} step={1}
+              hint={`≥${formula.sanctionIncidentThresh} incidents → badge 🚫`}
+              danger
+            />
+            <FormulaField
+              label="Seuil force élevée (N)"
+              value={formula.forceThreshold}
+              onChange={(v) => setF("forceThreshold", v)}
+              min={100} max={10000} step={100}
+              hint="Contacts au-dessus de ce seuil"
+            />
+          </div>
           <button
             type="button"
             onClick={() => setFormula(DEFAULT_FORMULA)}
-            className="mt-3 text-xs text-brand-muted hover:text-white transition-colors underline underline-offset-2"
+            className="mt-4 text-xs text-brand-muted hover:text-white transition-colors underline underline-offset-2"
           >
             Réinitialiser toutes les valeurs par défaut
           </button>
@@ -534,12 +611,13 @@ export default function ResultsUploadForm() {
 
   // ── Preview step ────────────────────────────────────────────────────────────
   if (step === "preview") {
-    const found   = preview.filter((e) => e.foundInDb).length;
-    const skipped = preview.length - found;
+    const found      = preview.filter((e) => e.foundInDb || e.willBeCreated).length;
+    const autoNew    = preview.filter((e) => e.willBeCreated).length;
+    const skipped    = preview.filter((e) => !e.foundInDb && !e.willBeCreated).length;
     const hasExtended = preview.some((e) => e.carClass !== undefined);
     const hasLadder   = preview.some((e) => (e.ladderDelta ?? 0) !== 0);
-    const classes = [...new Set(preview.map((e) => e.carClass).filter(Boolean))];
-    const totalXp = preview.filter((e) => e.foundInDb).reduce((s, e) => s + e.xpGained, 0);
+    const classes = Array.from(new Set(preview.map((e) => e.carClass).filter(Boolean)));
+    const totalXp = preview.filter((e) => e.foundInDb || e.willBeCreated).reduce((s, e) => s + e.xpGained, 0);
     const leader  = [...preview].sort((a, b) => a.position - b.position)[0];
     const hasIncidents = preview.some((e) => (e.incidents ?? 0) > 0);
 
@@ -574,7 +652,8 @@ export default function ResultsUploadForm() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-brand-border">
               <MiniStat label="Détectés" value={preview.length} color="text-white" />
               <MiniStat label="Seront mis à jour" value={found} color="text-green-400" />
-              {skipped > 0 && <MiniStat label="Inconnus" value={skipped} color="text-yellow-400" />}
+              {autoNew > 0 && <MiniStat label="Profils créés auto" value={autoNew} color="text-emerald-400" />}
+              {skipped > 0 && <MiniStat label="Ignorés" value={skipped} color="text-yellow-400" />}
               <MiniStat label="XP distribués" value={totalXp.toLocaleString("fr-FR")} color="text-brand-red" />
               {leader && <MiniStat label="Vainqueur" value={leader.username} color="text-yellow-300" />}
             </div>
@@ -606,7 +685,7 @@ export default function ResultsUploadForm() {
                 return (
                   <tr key={entry.username}
                     className={`border-b border-brand-border last:border-0 transition-colors
-                      ${entry.foundInDb ? "hover:bg-brand-surface/50" : "opacity-50"}
+                      ${(entry.foundInDb || entry.willBeCreated) ? "hover:bg-brand-surface/50" : "opacity-50"}
                       ${isDnf ? "bg-red-500/5" : ""}`}>
                     <td className="px-4 py-3 font-bold text-brand-text text-center whitespace-nowrap">
                       {entry.position === 1 ? "🥇" : entry.position === 2 ? "🥈" : entry.position === 3 ? "🥉" : `#${entry.position}`}
@@ -634,9 +713,12 @@ export default function ResultsUploadForm() {
                       </td>
                     )}
                     {hasIncidents && (
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {(entry.incidents ?? 0) > 0 ? (
-                          <span className="text-orange-400 font-bold">{entry.incidents}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-orange-400 font-bold">{entry.incidents}</span>
+                            {incidentBadge(entry.incidents, formula.warningIncidentThresh, formula.sanctionIncidentThresh)}
+                          </span>
                         ) : (
                           <span className="text-green-400 text-xs">✓</span>
                         )}
@@ -669,9 +751,11 @@ export default function ResultsUploadForm() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {entry.foundInDb
+                      {entry.willBeCreated
+                        ? <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">Nouveau ✦</span>
+                        : entry.foundInDb
                         ? <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/10 border border-green-500/30 text-green-400">Trouvé</span>
-                        : <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">Inconnu</span>}
+                        : <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">Ignoré</span>}
                     </td>
                   </tr>
                 );
@@ -680,9 +764,14 @@ export default function ResultsUploadForm() {
           </table>
         </div>
 
+        {autoNew > 0 && (
+          <p className="text-emerald-400/80 text-sm">
+            ✦ {autoNew} profil{autoNew > 1 ? "s" : ""} créé{autoNew > 1 ? "s" : ""} automatiquement avec le pseudo LMU.
+          </p>
+        )}
         {skipped > 0 && (
           <p className="text-yellow-400/80 text-sm">
-            ⚠️ {skipped} pilote{skipped > 1 ? "s" : ""} introuvable{skipped > 1 ? "s" : ""} en base — créez leur profil dans le panel Joueurs.
+            ⚠️ {skipped} pilote{skipped > 1 ? "s" : ""} ignoré{skipped > 1 ? "s" : ""} (non reconnus en base).
           </p>
         )}
 
@@ -707,13 +796,20 @@ export default function ResultsUploadForm() {
       <div className="bg-brand-card border border-green-500/30 rounded-xl p-8 text-center">
         <div className="text-5xl mb-4">🏁</div>
         <h2 className="font-heading text-2xl font-bold text-white mb-2">Résultats enregistrés !</h2>
-        <p className="text-brand-muted mb-6">La notification Discord a été envoyée automatiquement.</p>
+        <p className="text-brand-muted mb-2">La notification Discord a été envoyée automatiquement.</p>
+        <p className="text-xs text-brand-muted mb-6">Les paramètres de formule ont été sauvegardés comme nouveaux défauts.</p>
         {result && (
-          <div className="flex justify-center gap-6 mb-6 text-sm">
+          <div className="flex justify-center gap-6 mb-6 text-sm flex-wrap">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-400">{result.updatedPlayers}</p>
               <p className="text-brand-muted">profils mis à jour</p>
             </div>
+            {(result.autoCreated ?? 0) > 0 && (
+              <div className="text-center">
+                <p className="text-2xl font-bold text-emerald-400">{result.autoCreated}</p>
+                <p className="text-brand-muted">profils créés auto</p>
+              </div>
+            )}
             {result.skipped > 0 && (
               <div className="text-center">
                 <p className="text-2xl font-bold text-yellow-400">{result.skipped}</p>
