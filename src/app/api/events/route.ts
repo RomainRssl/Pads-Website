@@ -11,7 +11,7 @@ const createEventSchema = z.object({
   track: z.string().min(1).max(60),
   car: z.string().min(1).max(60),
   description: z.string().max(500).optional(),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().optional().or(z.literal("")),
 });
 
 export async function GET() {
