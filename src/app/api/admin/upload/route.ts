@@ -41,5 +41,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Erreur lors de l'enregistrement du fichier." }, { status: 500 });
   }
 
-  return NextResponse.json({ url: `/uploads/events/${filename}` });
+  return NextResponse.json({ url: `/api/uploads/events/${filename}` });
 }
