@@ -45,7 +45,7 @@ export default function EventCard({ event }: EventCardProps) {
         <img
           src={event.imageUrl}
           alt={event.title}
-          className="w-full h-40 object-cover"
+          className="w-full max-h-72 object-contain bg-brand-surface"
         />
       )}
 
