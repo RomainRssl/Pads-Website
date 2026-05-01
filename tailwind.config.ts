@@ -6,7 +6,7 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          red: "#E63946",
+          red: "#F4820A",
           orange: "#F4A261",
           dark: "#0A0A0F",
           surface: "#111118",
@@ -23,14 +23,14 @@ const config: Config = {
       },
       backgroundImage: {
         "racing-grid":
-          "linear-gradient(rgba(230,57,70,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(230,57,70,0.04) 1px, transparent 1px)",
+          "linear-gradient(rgba(244,130,10,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(244,130,10,0.04) 1px, transparent 1px)",
       },
       backgroundSize: {
         grid: "40px 40px",
       },
       boxShadow: {
-        "red-glow": "0 0 20px rgba(230, 57, 70, 0.15)",
-        "red-glow-lg": "0 0 40px rgba(230, 57, 70, 0.2)",
+        "red-glow": "0 0 20px rgba(244, 130, 10, 0.20)",
+        "red-glow-lg": "0 0 40px rgba(244, 130, 10, 0.28)",
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-in-out",

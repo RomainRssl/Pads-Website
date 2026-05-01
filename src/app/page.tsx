@@ -30,15 +30,19 @@ export default async function HomePage() {
               Communauté Sim Racing
             </div>
 
-            <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
-              Par amour
-              <br />
-              du{" "}
-              <span className="text-brand-red relative">
-                spin
-                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-brand-red" />
-              </span>
-            </h1>
+            <div className="flex items-center gap-5 mb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="PADS" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg shadow-brand-red/20" />
+              <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight">
+                Par amour
+                <br />
+                du{" "}
+                <span className="text-brand-red relative">
+                  spin
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-brand-red" />
+                </span>
+              </h1>
+            </div>
 
             <p className="text-brand-muted text-lg sm:text-xl leading-relaxed mb-8 max-w-xl">
               La communauté française dédiée à la simulation de course. Rejoignez-nous pour des courses organisées, des championnats et du fun sur circuit.
@@ -74,12 +78,12 @@ export default async function HomePage() {
                   </a>
                 </div>
 
-                {/* QR Code */}
+                {/* QR Code — generated on the fly */}
                 <div className="flex flex-col items-center gap-2">
                   <div className="bg-white p-3 rounded-xl shadow-lg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/qr-discord.png"
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://discord.gg/AmMRGSbaV&bgcolor=ffffff&color=000000&margin=0"
                       alt="QR Code Discord"
                       width={120}
                       height={120}

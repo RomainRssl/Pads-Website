@@ -14,12 +14,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Left — logo + desktop links */}
         <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="font-heading text-lg sm:text-xl font-bold text-white tracking-wide hover:text-brand-red transition-colors whitespace-nowrap"
-          >
-            Par amour du{" "}
-            <span className="text-brand-red">spin</span>
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-85 transition-opacity">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="PADS" className="w-9 h-9 rounded-full object-cover" />
+            <span className="font-heading text-base sm:text-lg font-bold text-white tracking-wide whitespace-nowrap hidden sm:block">
+              Par amour du <span className="text-brand-red">spin</span>
+            </span>
           </Link>
           <Link
             href="/pilotes"
@@ -31,7 +31,7 @@ export default function Navbar() {
             href="/lives"
             className="hidden sm:flex items-center gap-1.5 text-sm text-brand-muted hover:text-white transition-colors"
           >
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
             Lives
           </Link>
           <Link
@@ -150,7 +150,7 @@ export default function Navbar() {
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
           >
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
             Lives
           </Link>
           <Link
