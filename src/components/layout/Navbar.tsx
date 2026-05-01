@@ -16,7 +16,7 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-85 transition-opacity">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="PADS" className="w-9 h-9 rounded-full object-cover" />
+            <img src="/LOGO.png" alt="PADS" className="w-9 h-9 rounded-full object-cover" />
             <span className="font-heading text-base sm:text-lg font-bold text-white tracking-wide whitespace-nowrap hidden sm:block">
               Par amour du <span className="text-brand-red">spin</span>
             </span>

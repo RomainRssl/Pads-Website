@@ -32,7 +32,7 @@ export default async function HomePage() {
 
             <div className="flex items-center gap-5 mb-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="PADS" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg shadow-brand-red/20" />
+              <img src="/LOGO.png" alt="PADS" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg shadow-brand-red/20" />
               <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight">
                 Par amour
                 <br />
