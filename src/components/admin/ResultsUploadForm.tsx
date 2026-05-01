@@ -663,16 +663,17 @@ export default function ResultsUploadForm() {
         </div>
 
         {/* Standings table */}
-        <div className="overflow-x-auto rounded-xl border border-brand-border">
-          <table className="w-full text-sm">
+        <div className="rounded-xl border border-brand-border overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-brand-border bg-brand-surface">
                 <Th>Pos</Th>
                 <Th>Pilote</Th>
                 {hasExtended && <Th>Classe</Th>}
                 {hasExtended && <Th>Tours</Th>}
-                {hasExtended && <Th>Meilleur temps</Th>}
-                {hasExtended && <Th>Arrivée</Th>}
+                {hasExtended && <Th>Tps. tour</Th>}
+                {hasExtended && <Th>Arr.</Th>}
                 <Th>Off.</Th>
                 <Th>Co.</Th>
                 <Th>Av.</Th>
@@ -779,6 +780,7 @@ export default function ResultsUploadForm() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {autoNew > 0 && (

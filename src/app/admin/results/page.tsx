@@ -14,7 +14,7 @@ export default function ResultsPage() {
         </p>
       </div>
 
-      <div className="bg-brand-card border border-brand-border rounded-xl p-6 sm:p-8">
+      <div className="bg-brand-card border border-brand-border rounded-xl p-4 sm:p-6">
         <ResultsUploadForm />
       </div>
     </div>
