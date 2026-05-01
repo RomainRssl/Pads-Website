@@ -44,6 +44,9 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
   const hasFinish     = session.results.some((r) => r.finishStatus);
   const hasIncidents  = session.results.some((r) => r.incidents > 0);
   const hasLadder     = session.results.some((r) => r.ladderDelta !== 0);
+  const hasIncidentBreakdown = session.results.some(
+    (r) => (r.offtrackCount ?? 0) + (r.contactCount ?? 0) + (r.avertCount ?? 0) + (r.sanctionCount ?? 0) > 0
+  );
   const classes       = Array.from(new Set(session.results.map((r) => r.carClass).filter(Boolean)));
 
   return (
@@ -92,7 +95,11 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
               {hasLaps     && <Th>Tours</Th>}
               {hasBestLap  && <Th>Meilleur temps</Th>}
               {hasFinish   && <Th>Arrivée</Th>}
-              {hasIncidents && <Th>Incidents</Th>}
+              {hasIncidentBreakdown && <Th>Off.</Th>}
+              {hasIncidentBreakdown && <Th>Cont.</Th>}
+              {hasIncidentBreakdown && <Th>Avert.</Th>}
+              {hasIncidentBreakdown && <Th>Sanct.</Th>}
+              {hasIncidents && !hasIncidentBreakdown && <Th>Incidents</Th>}
               <Th>XP</Th>
               <Th>Argent</Th>
               {hasLadder   && <Th>Ladder Δ</Th>}
@@ -133,14 +140,24 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
                       ) : null}
                     </td>
                   )}
-                  {hasIncidents && (
+                  {hasIncidentBreakdown && (
+                    <>
+                      {(["offtrackCount","contactCount","avertCount","sanctionCount"] as const).map((field) => {
+                        const val = (result[field] ?? 0) as number;
+                        return (
+                          <td key={field} className="px-3 py-3 text-center">
+                            {val > 0
+                              ? <span className="text-orange-400 font-bold">{val}</span>
+                              : <span className="text-brand-muted text-xs">0</span>}
+                          </td>
+                        );
+                      })}
+                    </>
+                  )}
+                  {hasIncidents && !hasIncidentBreakdown && (
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {result.incidents > 0 ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="text-orange-400 font-bold">{result.incidents}</span>
-                          {isSanction && <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 border border-red-500/40 text-red-400 font-bold">🚫</span>}
-                          {isWarning  && <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 border border-orange-500/40 text-orange-400 font-bold">⚠️</span>}
-                        </span>
+                        <span className="text-orange-400 font-bold">{result.incidents}</span>
                       ) : (
                         <span className="text-green-400 text-xs">✓</span>
                       )}

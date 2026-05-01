@@ -9,7 +9,7 @@ const createEventSchema = z.object({
   date: z.string().datetime(),
   game: z.string().min(1).max(60),
   track: z.string().min(1).max(60),
-  car: z.string().min(1).max(60),
+  car: z.string().min(1).max(500),
   description: z.string().max(500).optional(),
   imageUrl: z.string().optional().or(z.literal("")),
 });

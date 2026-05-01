@@ -8,7 +8,6 @@ interface FormState {
   date: string;
   game: string;
   track: string;
-  car: string;
   description: string;
 }
 
@@ -17,19 +16,81 @@ const initialState: FormState = {
   date: "",
   game: "",
   track: "",
-  car: "",
   description: "",
 };
+
+const LMU_CARS = [
+  { group: "LMGT3", options: [
+    "LMGT3 (toute classe)",
+    "Aston Martin Vantage AMR LMGT3 Evo",
+    "BMW M4 LMGT3",
+    "BMW M4 LMGT3 Evo",
+    "Chevrolet Corvette Z06 LMGT3.R",
+    "Ferrari 296 LMGT3",
+    "Ford Mustang LMGT3",
+    "Lamborghini Huracán LMGT3 Evo 2",
+    "Lexus RC F LMGT3",
+    "Mercedes-AMG LMGT3",
+    "McLaren 720S LMGT3 Evo",
+    "Porsche 911 LMGT3 R (992)",
+  ]},
+  { group: "Hypercar", options: [
+    "Hypercar (toute classe)",
+    "Alpine A424",
+    "Aston Martin Valkyrie AMR LMH",
+    "BMW M Hybrid V8",
+    "Cadillac V-Series.R",
+    "Ferrari 499P",
+    "Genesis GMR-001 LMDh",
+    "Glickenhaus SCG 007",
+    "Isotta Fraschini Tipo 6-C",
+    "Lamborghini SC63",
+    "Peugeot 9X8 2023",
+    "Peugeot 9X8 2024",
+    "Porsche 963",
+    "Toyota GR010-Hybrid",
+    "Vanwall Vandervell 680",
+  ]},
+  { group: "LMP2", options: [
+    "LMP2 (toute classe)",
+    "Oreca 07 Gibson",
+    "Oreca 07 Gibson ELMS",
+  ]},
+  { group: "LMP3", options: [
+    "LMP3 (toute classe)",
+    "Ligier JS P325",
+    "Ginetta G61-LT-P3 Evo",
+    "Duqueine D09",
+  ]},
+  { group: "GTE", options: [
+    "GTE (toute classe)",
+    "Aston Martin Vantage GTE",
+    "Chevrolet Corvette C8.R",
+    "Ferrari 488 GTE Evo",
+    "Porsche 911 RSR-19",
+  ]},
+];
 
 export default function CreateEventForm() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>(initialState);
+  const [cars, setCars] = useState<string[]>([""]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  function updateCar(idx: number, val: string) {
+    setCars((prev) => prev.map((c, i) => i === idx ? val : c));
+  }
+  function addCar() {
+    if (cars.length < 5) setCars((prev) => [...prev, ""]);
+  }
+  function removeCar(idx: number) {
+    setCars((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -72,6 +133,7 @@ export default function CreateEventForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          car: cars.filter(Boolean).join(", "),
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
           imageUrl: imageUrl || undefined,
@@ -85,6 +147,7 @@ export default function CreateEventForm() {
 
       setSuccess(true);
       setForm(initialState);
+      setCars([""]);
       setImageFile(null);
       setImagePreview(null);
       setTimeout(() => router.push("/admin"), 1500);
@@ -133,8 +196,8 @@ export default function CreateEventForm() {
         />
       </div>
 
-      {/* Game / Track / Car — 3 columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Game / Track — 2 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="game" className="block text-sm font-medium text-brand-text mb-1.5">
             Jeu <span className="text-brand-red">*</span>
@@ -157,16 +220,50 @@ export default function CreateEventForm() {
             className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
           />
         </div>
-        <div>
-          <label htmlFor="car" className="block text-sm font-medium text-brand-text mb-1.5">
-            Voiture <span className="text-brand-red">*</span>
-          </label>
-          <input
-            id="car" name="car" type="text" required
-            value={form.car} onChange={handleChange}
-            placeholder="Porsche 911 GT3"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
-          />
+      </div>
+
+      {/* Car dropdown — multi-select up to 5 */}
+      <div>
+        <label className="block text-sm font-medium text-brand-text mb-1.5">
+          Voiture / Classe <span className="text-brand-red">*</span>
+          <span className="ml-2 text-brand-muted font-normal text-xs">jusqu&apos;à 5 classes</span>
+        </label>
+        <div className="space-y-2">
+          {cars.map((car, idx) => (
+            <div key={idx} className="flex gap-2">
+              <select
+                value={car}
+                onChange={(e) => updateCar(idx, e.target.value)}
+                required={idx === 0}
+                className="flex-1 px-3 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+              >
+                <option value="">— Choisir une voiture ou classe —</option>
+                {LMU_CARS.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.options.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {cars.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeCar(idx)}
+                  className="px-3 py-2 rounded-lg border border-brand-border text-brand-muted hover:text-brand-red hover:border-brand-red transition-colors text-lg leading-none"
+                >×</button>
+              )}
+            </div>
+          ))}
+          {cars.length < 5 && (
+            <button
+              type="button"
+              onClick={addCar}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-brand-border text-brand-muted hover:border-brand-red hover:text-brand-red transition-colors text-sm"
+            >
+              <span className="text-lg leading-none">+</span> Ajouter une classe / voiture
+            </button>
+          )}
         </div>
       </div>
 

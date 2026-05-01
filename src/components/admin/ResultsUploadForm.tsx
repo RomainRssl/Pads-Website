@@ -673,11 +673,10 @@ export default function ResultsUploadForm() {
                 {hasExtended && <Th>Tours</Th>}
                 {hasExtended && <Th>Meilleur temps</Th>}
                 {hasExtended && <Th>Arrivée</Th>}
-                {hasIncidents && <Th>Inc.</Th>}
                 <Th>Off.</Th>
-                <Th>Cont.</Th>
-                <Th>Avert.</Th>
-                <Th>Sanct.</Th>
+                <Th>Co.</Th>
+                <Th>Av.</Th>
+                <Th>Sa.</Th>
                 <Th>XP classe</Th>
                 <Th>Argent</Th>
                 {hasLadder && <Th>Ladder Δ</Th>}
@@ -693,38 +692,29 @@ export default function ResultsUploadForm() {
                     className={`border-b border-brand-border last:border-0 transition-colors
                       ${(entry.foundInDb || entry.willBeCreated) ? "hover:bg-brand-surface/50" : "opacity-50"}
                       ${isDnf ? "bg-red-500/5" : ""}`}>
-                    <td className="px-4 py-3 font-bold text-brand-text text-center whitespace-nowrap">
+                    <td className="px-2 py-2 font-bold text-brand-text text-center whitespace-nowrap">
                       {entry.position === 1 ? "🥇" : entry.position === 2 ? "🥈" : entry.position === 3 ? "🥉" : `#${entry.position}`}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-2">
                       <p className="font-medium text-brand-text whitespace-nowrap">{entry.username}</p>
                       {entry.teamName && <p className="text-xs text-brand-muted truncate max-w-[180px]">{entry.teamName}</p>}
                     </td>
                     {hasExtended && (
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-2">
                         {entry.carClass && (
                           <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-brand-surface border border-brand-border text-brand-muted">{entry.carClass}</span>
                         )}
                       </td>
                     )}
-                    {hasExtended && <td className="px-4 py-3 text-brand-text text-center">{entry.laps ?? "—"}</td>}
-                    {hasExtended && <td className="px-4 py-3 font-mono text-brand-text whitespace-nowrap">{formatLapTime(entry.bestLapTimeSec)}</td>}
+                    {hasExtended && <td className="px-2 py-2 text-brand-text text-center">{entry.laps ?? "—"}</td>}
+                    {hasExtended && <td className="px-2 py-2 font-mono text-brand-text whitespace-nowrap">{formatLapTime(entry.bestLapTimeSec)}</td>}
                     {hasExtended && (
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-2 py-2 whitespace-nowrap">
                         {isDnf ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-bold">DNF</span>
                         ) : entry.finishStatus ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400">Classé</span>
                         ) : null}
-                      </td>
-                    )}
-                    {hasIncidents && (
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        {(entry.incidents ?? 0) > 0 ? (
-                          <span className="text-orange-400 font-bold">{entry.incidents}</span>
-                        ) : (
-                          <span className="text-green-400 text-xs">✓</span>
-                        )}
                       </td>
                     )}
                     {(["offtrack", "contact", "avert", "sanction"] as const).map((field) => {
@@ -744,19 +734,19 @@ export default function ResultsUploadForm() {
                                 },
                               }));
                             }}
-                            className={`w-12 rounded px-1 py-1 font-mono text-xs text-center focus:outline-none focus:border-brand-red border ${val > 0 ? "bg-orange-500/10 border-orange-500/40 text-orange-300" : "bg-brand-dark border-brand-border text-brand-muted"}`}
+                            className={`w-10 rounded px-1 py-1 font-mono text-xs text-center focus:outline-none focus:border-brand-red border ${val > 0 ? "bg-orange-500/10 border-orange-500/40 text-orange-300" : "bg-brand-dark border-brand-border text-brand-muted"}`}
                           />
                         </td>
                       );
                     })}
-                    <td className="px-4 py-3 font-semibold text-brand-red whitespace-nowrap">
+                    <td className="px-2 py-2 font-semibold text-brand-red whitespace-nowrap">
                       +{entry.xpGained.toLocaleString("fr-FR")} XP
                     </td>
-                    <td className="px-4 py-3 text-brand-muted whitespace-nowrap">
+                    <td className="px-2 py-2 text-brand-muted whitespace-nowrap">
                       +{entry.moneyGained.toLocaleString("fr-FR")} 💰
                     </td>
                     {hasLadder && (
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-center">
+                      <td className="px-2 py-2 whitespace-nowrap font-mono text-center">
                         {(entry.ladderDelta ?? 0) > 0 ? (
                           <span className="text-blue-400 font-bold">+{entry.ladderDelta}</span>
                         ) : (entry.ladderDelta ?? 0) < 0 ? (
@@ -766,7 +756,7 @@ export default function ResultsUploadForm() {
                         )}
                       </td>
                     )}
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 py-2 whitespace-nowrap text-center">
                       {(() => {
                         const counts = incidentTypes[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
                         const rep = calcRepDelta(counts, entry.finishStatus, formula);
@@ -777,7 +767,7 @@ export default function ResultsUploadForm() {
                           : <span className="text-brand-muted">0</span>;
                       })()}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-2">
                       {entry.willBeCreated
                         ? <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">Nouveau ✦</span>
                         : entry.foundInDb

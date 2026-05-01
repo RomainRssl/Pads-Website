@@ -143,6 +143,7 @@ export async function POST(req: Request) {
       for (const entry of toUpdate) {
         const player = playerMap.get(entry.username.toLowerCase())!;
         const ext = parsed.extended.find((x) => x.username.toLowerCase() === entry.username.toLowerCase());
+        const extEnt = extendedEntries.find(x => x.username.toLowerCase() === entry.username.toLowerCase());
 
         const currentRep = player.reputation ?? 50;
         const newRep = Math.min(200, Math.max(0, currentRep + entry.reputationDelta));
@@ -175,6 +176,10 @@ export async function POST(req: Request) {
             bestLapTimeSec:  ext?.bestLapTimeSec ?? null,
             finishStatus:    ext?.finishStatus ?? null,
             teamName:        ext?.teamName ?? null,
+            offtrackCount: extEnt?.offtrackCount ?? null,
+            contactCount:  extEnt?.contactCount  ?? null,
+            avertCount:    extEnt?.avertCount     ?? null,
+            sanctionCount: extEnt?.sanctionCount  ?? null,
           },
         });
 

@@ -168,6 +168,10 @@ model RaceResult {
   bestLapTimeSec  Float?
   finishStatus    String?
   teamName        String?
+  offtrackCount  Int?
+  contactCount   Int?
+  avertCount     Int?
+  sanctionCount  Int?
 }
 
 model PlayerClassStats {

@@ -72,7 +72,9 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="flex flex-wrap gap-2 mb-4">
           <EventBadge label={event.game} variant="game" />
           <EventBadge label={event.track} variant="track" />
-          <EventBadge label={event.car} variant="car" />
+          {event.car.split(",").map((c) => c.trim()).filter(Boolean).map((c) => (
+            <EventBadge key={c} label={c} variant="car" />
+          ))}
         </div>
 
         {/* Description */}
