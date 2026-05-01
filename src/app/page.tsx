@@ -83,7 +83,7 @@ export default async function HomePage() {
                   <div className="bg-white p-3 rounded-xl shadow-lg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://discord.gg/AmMRGSbaV&bgcolor=ffffff&color=000000&margin=0"
+                      src="/qr-discord.png"
                       alt="QR Code Discord"
                       width={120}
                       height={120}
