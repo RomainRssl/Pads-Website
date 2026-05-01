@@ -23,7 +23,7 @@ export default async function HomePage() {
         {/* Red gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-brand-red/5 via-transparent to-brand-dark" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 sm:py-32">
+        <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 py-24 sm:py-32">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm font-medium mb-6">
               <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
@@ -98,7 +98,7 @@ export default async function HomePage() {
       </section>
 
       {/* Events Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+      <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-16">
         <EventList events={events} />
       </section>
     </>

@@ -873,7 +873,7 @@ function FormulaField({
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="text-left px-4 py-3 font-semibold text-brand-muted whitespace-nowrap text-xs uppercase tracking-wide">{children}</th>;
+  return <th className="text-left px-2 py-2 font-semibold text-brand-muted whitespace-nowrap text-xs uppercase tracking-wide">{children}</th>;
 }
 
 function InfoPill({ icon, label }: { icon: string; label: string }) {

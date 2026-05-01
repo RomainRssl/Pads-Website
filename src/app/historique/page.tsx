@@ -22,7 +22,7 @@ export default async function HistoriquePage() {
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-16">
       <div className="mb-8">
         <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white mb-2">
           Historique des courses

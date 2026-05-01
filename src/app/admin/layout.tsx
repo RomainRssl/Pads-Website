@@ -32,7 +32,7 @@ export default async function AdminLayout({
     <div className="min-h-screen">
       {/* Admin top bar */}
       <div className="bg-brand-surface border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-3">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-3">
           <span className="shrink-0 px-2 py-0.5 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs font-semibold">
             ADMIN
           </span>

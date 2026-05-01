@@ -9,7 +9,27 @@
       "Bash(base64 -d echo \"---PACKAGE---\" gh api repos/RomainRssl/Pads-Website/contents/package.json --jq '.content')",
       "Bash(base64 -d echo \"---SCHEMA---\" gh api repos/RomainRssl/Pads-Website/contents/prisma/schema.prisma --jq '.content')",
       "Bash(base64 -d echo \"---PILOTES_LIST---\" gh api repos/RomainRssl/Pads-Website/contents/src/app/pilotes/page.tsx --jq '.content')",
-      "PowerShell(gh api repos/RomainRssl/Pads-Website/contents/src/components/layout/Navbar.tsx --method PUT --input \"C:\\\\Users\\\\Romain\\\\AppData\\\\Local\\\\Temp\\\\navbar_body.json\" --jq '.commit.sha')"
+      "PowerShell(gh api repos/RomainRssl/Pads-Website/contents/src/components/layout/Navbar.tsx --method PUT --input \"C:\\\\Users\\\\Romain\\\\AppData\\\\Local\\\\Temp\\\\navbar_body.json\" --jq '.commit.sha')",
+      "Bash(curl -s \"https://dev.twitch.tv/docs/embed/video-and-clips/\")",
+      "WebFetch(domain:dev.twitch.tv)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(node_modules\\\\.bin\\\\prisma migrate *)",
+      "Bash(npx --yes prisma@5.22.0 migrate dev --name class-progression)",
+      "Bash(npm run *)",
+      "Bash(git commit -m 'fix: forcer redirectProxyUrl NextAuth pour corriger OAuth2 redirect_uri sur IP *)",
+      "Bash(git commit -m 'fix: trustHost:true dans auth.ts + suppression redirectProxyUrl qui causait Configuration error *)",
+      "Read(//var/www/**)",
+      "Bash(pm2 logs *)",
+      "Bash(ssh -o StrictHostKeyChecking=no localhost \"cd /var/www/paramourduspin && pm2 logs paramourduspin --lines 50 --nostream\")",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(git commit *)",
+      "Bash(npx prisma *)",
+      "Bash(findstr prisma *)",
+      "Bash(npx prisma@5 migrate dev --name \"formula-defaults-race-history-event-image\")",
+      "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx prisma@5 migrate dev --name \"formula-defaults-race-history-event-image\")"
     ]
   }
 }
