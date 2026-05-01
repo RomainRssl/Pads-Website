@@ -86,123 +86,127 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
 
       {/* Results table */}
       <div className="rounded-xl border border-brand-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-brand-border bg-brand-surface">
-                <Th>Pos</Th>
-                <Th>Pilote</Th>
-                {hasClass    && <Th>Classe</Th>}
-                {hasLaps     && <Th>Tours</Th>}
-                {hasBestLap  && <Th>Tps. tour</Th>}
-                {hasFinish   && <Th>Arr.</Th>}
-                {hasIncidentBreakdown && <Th>Off.</Th>}
-                {hasIncidentBreakdown && <Th>Co.</Th>}
-                {hasIncidentBreakdown && <Th>Av.</Th>}
-                {hasIncidentBreakdown && <Th>Sa.</Th>}
-                {hasIncidents && !hasIncidentBreakdown && <Th>Inc.</Th>}
-                <Th>XP</Th>
-                <Th>Argent</Th>
-                {hasLadder   && <Th>Ladder Δ</Th>}
-                <Th>Rép. Δ</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {session.results.map((result) => {
-                const isDnf = result.finishStatus && result.finishStatus !== "Finished Normally";
-                const isSanction = result.incidents >= session.sanctionThreshold;
-                const isWarning  = !isSanction && result.incidents >= session.warningThreshold;
+        <table className="w-full text-xs table-fixed">
+          <colgroup>
+            <col className="w-10" />
+            <col className="w-36" />
+            {hasClass   && <col className="w-20" />}
+            {hasLaps    && <col className="w-12" />}
+            {hasBestLap && <col className="w-16" />}
+            {hasFinish  && <col className="w-12" />}
+            {hasIncidentBreakdown && <><col className="w-9" /><col className="w-9" /><col className="w-9" /><col className="w-9" /></>}
+            {hasIncidents && !hasIncidentBreakdown && <col className="w-10" />}
+            <col className="w-16" />
+            <col className="w-20" />
+            {hasLadder  && <col className="w-14" />}
+            <col className="w-12" />
+          </colgroup>
+          <thead>
+            <tr className="border-b border-brand-border bg-brand-surface">
+              <Th center>Pos</Th>
+              <Th>Pilote</Th>
+              {hasClass    && <Th>Classe</Th>}
+              {hasLaps     && <Th center>Tours</Th>}
+              {hasBestLap  && <Th>Tps.</Th>}
+              {hasFinish   && <Th center>Arr.</Th>}
+              {hasIncidentBreakdown && <Th center>Off.</Th>}
+              {hasIncidentBreakdown && <Th center>Co.</Th>}
+              {hasIncidentBreakdown && <Th center>Av.</Th>}
+              {hasIncidentBreakdown && <Th center>Sa.</Th>}
+              {hasIncidents && !hasIncidentBreakdown && <Th center>Inc.</Th>}
+              <Th center>XP</Th>
+              <Th center>Argent</Th>
+              {hasLadder   && <Th center>Ldr Δ</Th>}
+              <Th center>Rép.</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {session.results.map((result) => {
+              const isDnf = result.finishStatus && result.finishStatus !== "Finished Normally";
 
-                return (
-                  <tr key={result.id}
-                    className={`border-b border-brand-border last:border-0 hover:bg-brand-surface/50 transition-colors ${isDnf ? "bg-red-500/5" : ""}`}>
-                    <td className="px-2 py-2 font-bold text-brand-text text-center whitespace-nowrap">
-                      {result.position === 1 ? "🥇" : result.position === 2 ? "🥈" : result.position === 3 ? "🥉" : `#${result.position}`}
-                    </td>
-                    <td className="px-2 py-2">
-                      <p className="font-medium text-brand-text whitespace-nowrap">{result.player.username}</p>
-                      {result.teamName && <p className="text-brand-muted truncate max-w-[160px]">{result.teamName}</p>}
-                    </td>
-                    {hasClass && (
-                      <td className="px-2 py-2">
-                        {result.carClass && (
-                          <span className="font-mono px-1 py-0.5 rounded bg-brand-surface border border-brand-border text-brand-muted">{result.carClass}</span>
-                        )}
-                      </td>
-                    )}
-                    {hasLaps && <td className="px-2 py-2 text-brand-text text-center">{result.laps ?? "—"}</td>}
-                    {hasBestLap && <td className="px-2 py-2 font-mono text-brand-text whitespace-nowrap">{formatLapTime(result.bestLapTimeSec)}</td>}
-                    {hasFinish && (
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        {isDnf ? (
-                          <span className="px-1.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-bold">DNF</span>
-                        ) : result.finishStatus ? (
-                          <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400">✓</span>
-                        ) : null}
-                      </td>
-                    )}
-                    {hasIncidentBreakdown && (
-                      <>
-                        {(["offtrackCount","contactCount","avertCount","sanctionCount"] as const).map((field) => {
-                          const val = (result[field] ?? 0) as number;
-                          return (
-                            <td key={field} className="px-2 py-2 text-center">
-                              {val > 0
-                                ? <span className="text-orange-400 font-bold">{val}</span>
-                                : <span className="text-brand-muted">0</span>}
-                            </td>
-                          );
-                        })}
-                      </>
-                    )}
-                    {hasIncidents && !hasIncidentBreakdown && (
-                      <td className="px-2 py-2 text-center whitespace-nowrap">
-                        {result.incidents > 0 ? (
-                          <span className="text-orange-400 font-bold">{result.incidents}</span>
-                        ) : (
-                          <span className="text-green-400">✓</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-2 py-2 font-semibold text-brand-red whitespace-nowrap">
-                      +{result.xpGained.toLocaleString("fr-FR")} XP
-                    </td>
-                    <td className="px-2 py-2 text-brand-muted whitespace-nowrap">
-                      +{result.moneyGained.toLocaleString("fr-FR")} 💰
-                    </td>
-                    {hasLadder && (
-                      <td className="px-2 py-2 whitespace-nowrap font-mono text-center">
-                        {result.ladderDelta > 0 ? (
-                          <span className="text-blue-400 font-bold">+{result.ladderDelta}</span>
-                        ) : result.ladderDelta < 0 ? (
-                          <span className="text-red-400 font-bold">{result.ladderDelta}</span>
-                        ) : (
-                          <span className="text-brand-muted">0</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-2 py-2 whitespace-nowrap text-center">
-                      {result.reputationDelta > 0 ? (
-                        <span className="text-green-400 font-semibold">+{result.reputationDelta}</span>
-                      ) : result.reputationDelta < 0 ? (
-                        <span className="text-red-400 font-semibold">{result.reputationDelta}</span>
-                      ) : (
-                        <span className="text-brand-muted">0</span>
+              return (
+                <tr key={result.id}
+                  className={`border-b border-brand-border last:border-0 hover:bg-brand-surface/50 transition-colors ${isDnf ? "bg-red-500/5" : ""}`}>
+                  <td className="px-1 py-2 font-bold text-brand-text text-center">
+                    {result.position === 1 ? "🥇" : result.position === 2 ? "🥈" : result.position === 3 ? "🥉" : `#${result.position}`}
+                  </td>
+                  <td className="px-2 py-2 overflow-hidden">
+                    <p className="font-medium text-brand-text truncate">{result.player.username}</p>
+                    {result.teamName && <p className="text-brand-muted truncate">{result.teamName}</p>}
+                  </td>
+                  {hasClass && (
+                    <td className="px-1 py-2 overflow-hidden">
+                      {result.carClass && (
+                        <span className="font-mono text-brand-muted truncate block">{result.carClass}</span>
                       )}
                     </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  )}
+                  {hasLaps && <td className="px-1 py-2 text-brand-text text-center">{result.laps ?? "—"}</td>}
+                  {hasBestLap && <td className="px-1 py-2 font-mono text-brand-text text-center">{formatLapTime(result.bestLapTimeSec)}</td>}
+                  {hasFinish && (
+                    <td className="px-1 py-2 text-center">
+                      {isDnf
+                        ? <span className="text-red-400 font-bold">DNF</span>
+                        : result.finishStatus
+                        ? <span className="text-green-400">✓</span>
+                        : null}
+                    </td>
+                  )}
+                  {hasIncidentBreakdown && (
+                    <>
+                      {(["offtrackCount","contactCount","avertCount","sanctionCount"] as const).map((field) => {
+                        const val = (result[field] ?? 0) as number;
+                        return (
+                          <td key={field} className="px-1 py-2 text-center">
+                            {val > 0
+                              ? <span className="text-orange-400 font-bold">{val}</span>
+                              : <span className="text-brand-muted">0</span>}
+                          </td>
+                        );
+                      })}
+                    </>
+                  )}
+                  {hasIncidents && !hasIncidentBreakdown && (
+                    <td className="px-1 py-2 text-center">
+                      {result.incidents > 0
+                        ? <span className="text-orange-400 font-bold">{result.incidents}</span>
+                        : <span className="text-green-400">✓</span>}
+                    </td>
+                  )}
+                  <td className="px-1 py-2 font-semibold text-brand-red text-center">
+                    +{result.xpGained.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-1 py-2 text-brand-muted text-center">
+                    +{result.moneyGained.toLocaleString("fr-FR")}
+                  </td>
+                  {hasLadder && (
+                    <td className="px-1 py-2 font-mono text-center">
+                      {result.ladderDelta > 0
+                        ? <span className="text-blue-400 font-bold">+{result.ladderDelta}</span>
+                        : result.ladderDelta < 0
+                        ? <span className="text-red-400 font-bold">{result.ladderDelta}</span>
+                        : <span className="text-brand-muted">0</span>}
+                    </td>
+                  )}
+                  <td className="px-1 py-2 text-center">
+                    {result.reputationDelta > 0
+                      ? <span className="text-green-400 font-semibold">+{result.reputationDelta}</span>
+                      : result.reputationDelta < 0
+                      ? <span className="text-red-400 font-semibold">{result.reputationDelta}</span>
+                      : <span className="text-brand-muted">0</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </main>
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="text-left px-2 py-2 font-semibold text-brand-muted whitespace-nowrap text-xs uppercase tracking-wide">{children}</th>;
+function Th({ children, center }: { children: React.ReactNode; center?: boolean }) {
+  return <th className={`px-1 py-2 font-semibold text-brand-muted text-xs uppercase tracking-wide truncate ${center ? "text-center" : "text-left"}`}>{children}</th>;
 }
 
 function Pill({ icon, label }: { icon: string; label: string }) {

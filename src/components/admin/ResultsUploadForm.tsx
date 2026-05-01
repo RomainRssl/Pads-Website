@@ -664,25 +664,38 @@ export default function ResultsUploadForm() {
 
         {/* Standings table */}
         <div className="rounded-xl border border-brand-border overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs table-fixed">
+            <colgroup>
+              <col className="w-10" />
+              <col className="w-32" />
+              {hasExtended && <col className="w-16" />}
+              {hasExtended && <col className="w-10" />}
+              {hasExtended && <col className="w-14" />}
+              {hasExtended && <col className="w-10" />}
+              <col className="w-9" /><col className="w-9" /><col className="w-9" /><col className="w-9" />
+              <col className="w-14" />
+              <col className="w-16" />
+              {hasLadder && <col className="w-12" />}
+              <col className="w-10" />
+              <col className="w-14" />
+            </colgroup>
             <thead>
               <tr className="border-b border-brand-border bg-brand-surface">
-                <Th>Pos</Th>
+                <Th center>Pos</Th>
                 <Th>Pilote</Th>
                 {hasExtended && <Th>Classe</Th>}
-                {hasExtended && <Th>Tours</Th>}
-                {hasExtended && <Th>Tps. tour</Th>}
-                {hasExtended && <Th>Arr.</Th>}
-                <Th>Off.</Th>
-                <Th>Co.</Th>
-                <Th>Av.</Th>
-                <Th>Sa.</Th>
-                <Th>XP classe</Th>
-                <Th>Argent</Th>
-                {hasLadder && <Th>Ladder Δ</Th>}
-                <Th>Rép. Δ</Th>
-                <Th>Statut</Th>
+                {hasExtended && <Th center>Trs</Th>}
+                {hasExtended && <Th center>Tps.</Th>}
+                {hasExtended && <Th center>Arr.</Th>}
+                <Th center>Off</Th>
+                <Th center>Co</Th>
+                <Th center>Av</Th>
+                <Th center>Sa</Th>
+                <Th center>XP</Th>
+                <Th center>Argent</Th>
+                {hasLadder && <Th center>Ldr Δ</Th>}
+                <Th center>Rép.</Th>
+                <Th center>DB</Th>
               </tr>
             </thead>
             <tbody>
@@ -693,35 +706,35 @@ export default function ResultsUploadForm() {
                     className={`border-b border-brand-border last:border-0 transition-colors
                       ${(entry.foundInDb || entry.willBeCreated) ? "hover:bg-brand-surface/50" : "opacity-50"}
                       ${isDnf ? "bg-red-500/5" : ""}`}>
-                    <td className="px-2 py-2 font-bold text-brand-text text-center whitespace-nowrap">
+                    <td className="px-1 py-2 font-bold text-brand-text text-center">
                       {entry.position === 1 ? "🥇" : entry.position === 2 ? "🥈" : entry.position === 3 ? "🥉" : `#${entry.position}`}
                     </td>
-                    <td className="px-2 py-2">
-                      <p className="font-medium text-brand-text whitespace-nowrap">{entry.username}</p>
-                      {entry.teamName && <p className="text-xs text-brand-muted truncate max-w-[180px]">{entry.teamName}</p>}
+                    <td className="px-1 py-2 overflow-hidden">
+                      <p className="font-medium text-brand-text truncate">{entry.username}</p>
+                      {entry.teamName && <p className="text-brand-muted truncate">{entry.teamName}</p>}
                     </td>
                     {hasExtended && (
-                      <td className="px-2 py-2">
+                      <td className="px-1 py-2 overflow-hidden">
                         {entry.carClass && (
-                          <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-brand-surface border border-brand-border text-brand-muted">{entry.carClass}</span>
+                          <span className="font-mono text-brand-muted truncate block">{entry.carClass}</span>
                         )}
                       </td>
                     )}
-                    {hasExtended && <td className="px-2 py-2 text-brand-text text-center">{entry.laps ?? "—"}</td>}
-                    {hasExtended && <td className="px-2 py-2 font-mono text-brand-text whitespace-nowrap">{formatLapTime(entry.bestLapTimeSec)}</td>}
+                    {hasExtended && <td className="px-1 py-2 text-brand-text text-center">{entry.laps ?? "—"}</td>}
+                    {hasExtended && <td className="px-1 py-2 font-mono text-brand-text text-center">{formatLapTime(entry.bestLapTimeSec)}</td>}
                     {hasExtended && (
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        {isDnf ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-bold">DNF</span>
-                        ) : entry.finishStatus ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400">Classé</span>
-                        ) : null}
+                      <td className="px-1 py-2 text-center">
+                        {isDnf
+                          ? <span className="text-red-400 font-bold">DNF</span>
+                          : entry.finishStatus
+                          ? <span className="text-green-400">✓</span>
+                          : null}
                       </td>
                     )}
                     {(["offtrack", "contact", "avert", "sanction"] as const).map((field) => {
                       const val = incidentTypes[entry.username]?.[field] ?? 0;
                       return (
-                        <td key={field} className="px-2 py-3 text-center">
+                        <td key={field} className="px-0 py-1.5 text-center">
                           <input
                             type="number" min={0} max={99} step={1}
                             value={val}
@@ -735,29 +748,27 @@ export default function ResultsUploadForm() {
                                 },
                               }));
                             }}
-                            className={`w-10 rounded px-1 py-1 font-mono text-xs text-center focus:outline-none focus:border-brand-red border ${val > 0 ? "bg-orange-500/10 border-orange-500/40 text-orange-300" : "bg-brand-dark border-brand-border text-brand-muted"}`}
+                            className={`w-8 rounded px-0.5 py-0.5 font-mono text-xs text-center focus:outline-none focus:border-brand-red border ${val > 0 ? "bg-orange-500/10 border-orange-500/40 text-orange-300" : "bg-brand-dark border-brand-border text-brand-muted"}`}
                           />
                         </td>
                       );
                     })}
-                    <td className="px-2 py-2 font-semibold text-brand-red whitespace-nowrap">
-                      +{entry.xpGained.toLocaleString("fr-FR")} XP
+                    <td className="px-1 py-2 font-semibold text-brand-red text-center">
+                      +{entry.xpGained.toLocaleString("fr-FR")}
                     </td>
-                    <td className="px-2 py-2 text-brand-muted whitespace-nowrap">
-                      +{entry.moneyGained.toLocaleString("fr-FR")} 💰
+                    <td className="px-1 py-2 text-brand-muted text-center">
+                      +{entry.moneyGained.toLocaleString("fr-FR")}
                     </td>
                     {hasLadder && (
-                      <td className="px-2 py-2 whitespace-nowrap font-mono text-center">
-                        {(entry.ladderDelta ?? 0) > 0 ? (
-                          <span className="text-blue-400 font-bold">+{entry.ladderDelta}</span>
-                        ) : (entry.ladderDelta ?? 0) < 0 ? (
-                          <span className="text-red-400 font-bold">{entry.ladderDelta}</span>
-                        ) : (
-                          <span className="text-brand-muted">0</span>
-                        )}
+                      <td className="px-1 py-2 font-mono text-center">
+                        {(entry.ladderDelta ?? 0) > 0
+                          ? <span className="text-blue-400 font-bold">+{entry.ladderDelta}</span>
+                          : (entry.ladderDelta ?? 0) < 0
+                          ? <span className="text-red-400 font-bold">{entry.ladderDelta}</span>
+                          : <span className="text-brand-muted">0</span>}
                       </td>
                     )}
-                    <td className="px-2 py-2 whitespace-nowrap text-center">
+                    <td className="px-1 py-2 text-center">
                       {(() => {
                         const counts = incidentTypes[entry.username] ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
                         const rep = calcRepDelta(counts, entry.finishStatus, formula);
@@ -768,19 +779,18 @@ export default function ResultsUploadForm() {
                           : <span className="text-brand-muted">0</span>;
                       })()}
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-1 py-2 text-center overflow-hidden">
                       {entry.willBeCreated
-                        ? <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">Nouveau ✦</span>
+                        ? <span className="text-emerald-400">✦</span>
                         : entry.foundInDb
-                        ? <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/10 border border-green-500/30 text-green-400">Trouvé</span>
-                        : <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">Ignoré</span>}
+                        ? <span className="text-green-400">✓</span>
+                        : <span className="text-yellow-400">⚠</span>}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          </div>
         </div>
 
         {autoNew > 0 && (
@@ -874,8 +884,8 @@ function FormulaField({
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="text-left px-2 py-2 font-semibold text-brand-muted whitespace-nowrap text-xs uppercase tracking-wide">{children}</th>;
+function Th({ children, center }: { children: React.ReactNode; center?: boolean }) {
+  return <th className={`px-1 py-2 font-semibold text-brand-muted text-xs uppercase tracking-wide truncate ${center ? "text-center" : "text-left"}`}>{children}</th>;
 }
 
 function InfoPill({ icon, label }: { icon: string; label: string }) {
