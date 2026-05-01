@@ -50,7 +50,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
   const classes       = Array.from(new Set(session.results.map((r) => r.carClass).filter(Boolean)));
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <main className="w-full px-4 sm:px-6 py-16">
       {/* Back link */}
       <Link href="/historique" className="inline-flex items-center gap-2 text-brand-muted hover:text-white text-sm mb-8 transition-colors">
         ← Historique des courses
