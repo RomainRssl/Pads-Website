@@ -121,12 +121,13 @@ function extractTag(block: string, tag: string): string | null {
 function normalizeCarClass(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const map: Record<string, string> = {
-    "HYPER":    "HYPERCAR",
-    "HYPERCAR": "HYPERCAR",
-    "GT3":      "GT3",
-    "GTE":      "GTE",
-    "LMP2":     "LMP2",
-    "LMP3":     "LMP3",
+    "HYPER":      "HYPERCAR",
+    "HYPERCAR":   "HYPERCAR",
+    "GT3":        "GT3",
+    "GTE":        "GTE",
+    "LMP2":       "LMP2",
+    "LMP2_ELMS":  "LMP2",
+    "LMP3":       "LMP3",
   };
   return map[raw.toUpperCase()] ?? raw;
 }
