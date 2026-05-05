@@ -18,8 +18,8 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
   const parsedResults = typeof results === 'string' ? JSON.parse(results) : results;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+      <table className="w-full text-sm whitespace-nowrap">
         <thead>
           <tr className="border-b border-brand-border">
             <th className="px-4 py-2 text-left text-brand-muted font-semibold">Position</th>

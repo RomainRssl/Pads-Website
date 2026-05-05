@@ -177,10 +177,10 @@ export default async function ClassementPage({
           )}
 
           {/* Full standings table */}
-          <div className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 border-b border-brand-border bg-brand-dark px-4 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wider">
+          <div className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 border-b border-brand-border bg-brand-dark px-4 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wider min-w-min">
               <div className="text-center">Pos</div>
-              <div>Pilote</div>
+              <div className="min-w-[150px]">Pilote</div>
               <div className="text-center hidden sm:block">Rang XP</div>
               <div className="text-center hidden sm:block">Rang Ladder</div>
               <div className="text-right">Ladder pts</div>
@@ -208,7 +208,7 @@ export default async function ClassementPage({
                 <Link
                   key={p.player.id}
                   href={`/pilotes/${encodeURIComponent(p.player.username)}`}
-                  className={`grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 px-4 py-3 border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/60 transition-colors items-center ${
+                  className={`grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 px-4 py-3 border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/60 transition-colors items-center min-w-min ${
                     isLeader ? "bg-brand-red/5" : ""
                   }`}
                 >
@@ -216,12 +216,12 @@ export default async function ClassementPage({
                     {p.pos === 1 ? "🥇" : p.pos === 2 ? "🥈" : p.pos === 3 ? "🥉" : p.pos}
                   </div>
 
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-[150px]">
                     <div className="w-8 h-8 shrink-0 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center text-white font-bold text-sm font-heading">
                       {p.player.username[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-white text-sm truncate hover:text-brand-red transition-colors">
+                      <p className="font-heading font-bold text-white text-sm whitespace-nowrap hover:text-brand-red transition-colors">
                         {formatPilotName(p.player.username).toUpperCase()}
                       </p>
                       <p className="text-xs text-brand-muted truncate">

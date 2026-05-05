@@ -641,8 +641,8 @@ export default function ResultsUploadForm() {
         </div>
 
         {/* Standings table */}
-        <div className="overflow-x-auto rounded-xl border border-brand-border">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-brand-border -mx-4 sm:mx-0 px-4 sm:px-0">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr className="border-b border-brand-border bg-brand-surface">
                 <Th>Pos</Th>
