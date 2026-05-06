@@ -20,7 +20,7 @@ export default async function AdminPage() {
         </div>
         <Link
           href="/admin/create"
-          className="px-4 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold text-sm transition-colors"
+          className="px-4 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-semibold text-sm transition-colors"
         >
           + Nouvelle course
         </Link>

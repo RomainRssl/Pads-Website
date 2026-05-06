@@ -64,7 +64,7 @@ export default async function ClassementPage({
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🏆</span>
           <h1 className="font-heading text-4xl font-bold text-white tracking-wide">
-            Ladder <span className="text-brand-red">Pilotes</span>
+            Ladder <span className="text-brand-orange">Pilotes</span>
           </h1>
         </div>
         <p className="text-brand-muted">
@@ -83,9 +83,9 @@ export default async function ClassementPage({
               href={`/classement?classe=${cls}`}
               className={`px-4 py-2 rounded-lg text-sm font-bold font-mono transition-colors border
                 ${isActive
-                  ? "bg-brand-red text-white border-brand-red"
+                  ? "bg-brand-orange text-white border-brand-orange"
                   : hasData
-                  ? "bg-brand-surface border-brand-border text-brand-text hover:border-brand-red/50 hover:text-white"
+                  ? "bg-brand-surface border-brand-border text-brand-text hover:border-brand-orange/50 hover:text-white"
                   : "bg-brand-surface border-brand-border/40 text-brand-muted/50 cursor-default"
                 }`}
             >
@@ -149,7 +149,7 @@ export default async function ClassementPage({
                     <div className="w-12 h-12 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center text-white font-bold font-heading text-xl mx-auto mb-3">
                       {p.player.username[0].toUpperCase()}
                     </div>
-                    <p className="font-heading font-bold text-white text-lg group-hover:text-brand-red transition-colors truncate">
+                    <p className="font-heading font-bold text-white text-lg group-hover:text-brand-orange transition-colors truncate">
                       {formatPilotName(p.player.username).toUpperCase()}
                     </p>
                     <p className="text-xs text-brand-muted mb-3 truncate">
@@ -209,7 +209,7 @@ export default async function ClassementPage({
                   key={p.player.id}
                   href={`/pilotes/${encodeURIComponent(p.player.username)}`}
                   className={`grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 px-4 py-3 border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/60 transition-colors items-center min-w-min ${
-                    isLeader ? "bg-brand-red/5" : ""
+                    isLeader ? "bg-brand-orange/5" : ""
                   }`}
                 >
                   <div className={`text-center font-heading font-bold text-lg ${posColor}`}>
@@ -221,7 +221,7 @@ export default async function ClassementPage({
                       {p.player.username[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-white text-sm whitespace-nowrap hover:text-brand-red transition-colors">
+                      <p className="font-heading font-bold text-white text-sm whitespace-nowrap hover:text-brand-orange transition-colors">
                         {formatPilotName(p.player.username).toUpperCase()}
                       </p>
                       <p className="text-xs text-brand-muted truncate">
@@ -260,7 +260,7 @@ export default async function ClassementPage({
 
                   {/* Ladder points */}
                   <div className="text-right">
-                    <p className="font-heading font-bold text-brand-red text-base">
+                    <p className="font-heading font-bold text-brand-orange text-base">
                       {p.stat.ladderPoints.toLocaleString("fr-FR")}
                       <span className="text-brand-muted text-xs font-normal ml-1">pts</span>
                     </p>

@@ -77,7 +77,7 @@ export default function EventTable({ initialEvents }: EventTableProps) {
                 <button
                   onClick={() => handleDelete(event.id)}
                   disabled={deleting === event.id}
-                  className="px-3 py-1 rounded-lg text-xs font-medium border border-brand-red/30 text-brand-red hover:bg-brand-red/10 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1 rounded-lg text-xs font-medium border border-brand-orange/30 text-brand-orange hover:bg-brand-orange/10 disabled:opacity-50 transition-colors"
                 >
                   {deleting === event.id ? "..." : "Supprimer"}
                 </button>

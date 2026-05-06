@@ -49,7 +49,7 @@ export default function RaceHistoryContent() {
 
   if (error) {
     return (
-      <div className="bg-brand-red/10 border border-brand-red/30 rounded-lg p-4 text-brand-red">
+      <div className="bg-brand-orange/10 border border-brand-orange/30 rounded-lg p-4 text-brand-orange">
         {error}
       </div>
     );

@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
+import { CAR_CLASSES } from "@/lib/class-tiers";
 
 interface FormState {
   title: string;
   date: string;
   game: string;
   track: string;
-  car: string;
+  cars: string[];
   description: string;
 }
 
@@ -18,7 +19,7 @@ const initialState: FormState = {
   date: "",
   game: "",
   track: "",
-  car: "",
+  cars: [""],
   description: "",
 };
 
@@ -31,10 +32,32 @@ export default function CreateEventForm() {
   const [success, setSuccess] = useState(false);
 
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name.startsWith("cars-")) {
+      const index = parseInt(name.replace("cars-", ""), 10);
+      setForm((prev) => ({
+        ...prev,
+        cars: prev.cars.map((c, i) => (i === index ? value : c)),
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
     setError(null);
+  }
+
+  function addCarClass() {
+    if (form.cars.length < 5) {
+      setForm((prev) => ({ ...prev, cars: [...prev.cars, ""] }));
+    }
+  }
+
+  function removeCarClass(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      cars: prev.cars.filter((_, i) => i !== index),
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -69,6 +92,7 @@ export default function CreateEventForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          cars: form.cars.filter(c => c.trim()),
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
           image: imagePath,
@@ -99,7 +123,7 @@ export default function CreateEventForm() {
         </div>
       )}
       {error && (
-        <div className="p-4 rounded-lg bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm">
+        <div className="p-4 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm">
           {error}
         </div>
       )}
@@ -107,7 +131,7 @@ export default function CreateEventForm() {
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-brand-text mb-1.5">
-          Titre de la course <span className="text-brand-red">*</span>
+          Titre de la course <span className="text-brand-orange">*</span>
         </label>
         <input
           id="title"
@@ -117,14 +141,14 @@ export default function CreateEventForm() {
           value={form.title}
           onChange={handleChange}
           placeholder="Gran Turismo World Series — Manche 3"
-          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
         />
       </div>
 
       {/* Date */}
       <div>
         <label htmlFor="date" className="block text-sm font-medium text-brand-text mb-1.5">
-          Date et heure <span className="text-brand-red">*</span>
+          Date et heure <span className="text-brand-orange">*</span>
         </label>
         <input
           id="date"
@@ -133,15 +157,15 @@ export default function CreateEventForm() {
           required
           value={form.date}
           onChange={handleChange}
-          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
         />
       </div>
 
-      {/* Game / Track / Car — 3 columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Game / Track */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="game" className="block text-sm font-medium text-brand-text mb-1.5">
-            Jeu <span className="text-brand-red">*</span>
+            Jeu <span className="text-brand-orange">*</span>
           </label>
           <input
             id="game"
@@ -151,12 +175,12 @@ export default function CreateEventForm() {
             value={form.game}
             onChange={handleChange}
             placeholder="Gran Turismo 7"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           />
         </div>
         <div>
           <label htmlFor="track" className="block text-sm font-medium text-brand-text mb-1.5">
-            Circuit <span className="text-brand-red">*</span>
+            Circuit <span className="text-brand-orange">*</span>
           </label>
           <input
             id="track"
@@ -166,24 +190,55 @@ export default function CreateEventForm() {
             value={form.track}
             onChange={handleChange}
             placeholder="Spa-Francorchamps"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           />
         </div>
-        <div>
-          <label htmlFor="car" className="block text-sm font-medium text-brand-text mb-1.5">
-            Voiture <span className="text-brand-red">*</span>
-          </label>
-          <input
-            id="car"
-            name="car"
-            type="text"
-            required
-            value={form.car}
-            onChange={handleChange}
-            placeholder="Porsche 911 GT3"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
-          />
+      </div>
+
+      {/* Car Classes / Voitures */}
+      <div>
+        <label className="block text-sm font-medium text-brand-text mb-1.5">
+          Voiture / Classe <span className="text-brand-orange">*</span>{" "}
+          <span className="text-brand-muted font-normal">(jusqu'à 5 classes)</span>
+        </label>
+        <div className="space-y-2.5">
+          {form.cars.map((carClass, idx) => (
+            <div key={idx} className="flex gap-2">
+              <select
+                name={`cars-${idx}`}
+                value={carClass}
+                onChange={handleChange}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+              >
+                <option value="">Sélectionner une classe...</option>
+                {CAR_CLASSES.map((cls) => (
+                  <option key={cls} value={cls}>
+                    {cls}
+                  </option>
+                ))}
+              </select>
+              {form.cars.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeCarClass(idx)}
+                  className="px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-muted hover:text-brand-orange hover:border-brand-orange transition-colors"
+                  title="Supprimer cette classe"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
         </div>
+        {form.cars.length < 5 && (
+          <button
+            type="button"
+            onClick={addCarClass}
+            className="mt-2.5 text-sm text-brand-orange hover:text-brand-orange/80 transition-colors"
+          >
+            + Ajouter une classe / voiture
+          </button>
+        )}
       </div>
 
       {/* Image Upload */}
@@ -208,14 +263,14 @@ export default function CreateEventForm() {
           value={form.description}
           onChange={handleChange}
           placeholder="Règles, informations importantes sur la course..."
-          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors resize-none"
+          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors resize-none"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading || success}
-        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:bg-brand-red/50 text-white font-semibold transition-colors"
+        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:bg-brand-orange/50 text-white font-semibold transition-colors"
       >
         {loading && (
           <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">

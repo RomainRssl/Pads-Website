@@ -74,7 +74,7 @@ export default function RaceHistoryCard({ race }: RaceHistoryCardProps) {
   };
 
   return (
-    <div className="bg-brand-surface border border-brand-border rounded-lg overflow-hidden hover:border-brand-red/50 transition-colors">
+    <div className="bg-brand-surface border border-brand-border rounded-lg overflow-hidden hover:border-brand-orange/50 transition-colors">
       <button
         onClick={handleOpen}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-brand-bg transition-colors"

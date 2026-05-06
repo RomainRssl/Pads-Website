@@ -153,9 +153,9 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
     setError("");
   }
 
-  const inputCls = "w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red";
+  const inputCls = "w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-orange";
   const numInputCls = inputCls + " font-mono";
-  const addInputCls = "bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red text-sm";
+  const addInputCls = "bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-orange text-sm";
 
   return (
     <div className="space-y-6">
@@ -163,7 +163,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
       <form onSubmit={addPlayer} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="text-xs text-brand-muted block mb-1">Pseudo LMU <span className="text-brand-red">*</span></label>
+            <label className="text-xs text-brand-muted block mb-1">Pseudo LMU <span className="text-brand-orange">*</span></label>
             <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
               placeholder="ex: Romain Roussel" className={addInputCls + " w-full"} />
           </div>
@@ -173,7 +173,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
               placeholder="ex: douze_" className={addInputCls + " w-full"} />
           </div>
           <div>
-            <label className="text-xs text-brand-muted block mb-1">Discord ID <span className="text-brand-red">*</span></label>
+            <label className="text-xs text-brand-muted block mb-1">Discord ID <span className="text-brand-orange">*</span></label>
             <input type="text" value={newDiscordId} onChange={(e) => setNewDiscordId(e.target.value)}
               placeholder="ex: 123456789012345678" className={addInputCls + " w-full"} />
           </div>
@@ -187,7 +187,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" disabled={loading || !newUsername.trim() || !newDiscordId.trim()}
-            className="px-5 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
+            className="px-5 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
             + Ajouter le pilote
           </button>
           <p className="text-xs text-brand-muted">* champs obligatoires</p>
@@ -213,7 +213,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                       <div>
                         <label className="text-xs text-brand-muted block mb-1">Pseudo LMU ✏️</label>
                         <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)}
-                          className="w-full bg-brand-surface border border-brand-red/50 rounded-lg px-3 py-2 text-white font-heading font-bold text-sm focus:outline-none focus:border-brand-red" />
+                          className="w-full bg-brand-surface border border-brand-orange/50 rounded-lg px-3 py-2 text-white font-heading font-bold text-sm focus:outline-none focus:border-brand-orange" />
                       </div>
                       <div>
                         <label className="text-xs text-brand-muted block mb-1">Pseudo Discord</label>
@@ -240,7 +240,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                     <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-3">Statistiques</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       <div>
-                        <label className="text-xs text-brand-muted block mb-1">XP <span className="text-brand-red">🏆</span></label>
+                        <label className="text-xs text-brand-muted block mb-1">XP <span className="text-brand-orange">🏆</span></label>
                         <input type="number" min={0} value={editXp}
                           onChange={(e) => setEditXp(Math.max(0, Number(e.target.value)))}
                           className={numInputCls} />
@@ -316,7 +316,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                               }
                               className={`px-3 py-1 rounded-lg text-sm font-bold border transition-colors ${
                                 checked
-                                  ? "bg-brand-red/10 border-brand-red text-brand-red"
+                                  ? "bg-brand-orange/10 border-brand-orange text-brand-orange"
                                   : "bg-transparent border-brand-border text-brand-muted hover:border-brand-text"
                               }`}>
                               {checked ? "✓ " : ""}{cat.name}
@@ -330,7 +330,7 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                   {/* Actions */}
                   <div className="flex gap-2 pt-1 border-t border-brand-border">
                     <button onClick={() => saveEdit(player.id)}
-                      className="px-4 py-1.5 rounded-lg bg-brand-red text-white text-sm font-semibold">
+                      className="px-4 py-1.5 rounded-lg bg-brand-orange text-white text-sm font-semibold">
                       Enregistrer
                     </button>
                     <button onClick={() => { setEditingId(null); setError(""); }}
@@ -350,13 +350,13 @@ export default function PlayerManager({ initialPlayers, teams, categories }: Pro
                       )}
                       {player.team && <span className="text-xs text-brand-muted">· {player.team.name}</span>}
                       {player.categories.map((pc) => (
-                        <span key={pc.category.id} className="text-xs px-1.5 py-0.5 rounded bg-brand-red/10 text-brand-red border border-brand-red/30 font-bold">
+                        <span key={pc.category.id} className="text-xs px-1.5 py-0.5 rounded bg-brand-orange/10 text-brand-orange border border-brand-orange/30 font-bold">
                           {pc.category.name}
                         </span>
                       ))}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-brand-muted">
-                      <span className="text-brand-red font-semibold">{player.xp.toLocaleString("fr-FR")} XP</span>
+                      <span className="text-brand-orange font-semibold">{player.xp.toLocaleString("fr-FR")} XP</span>
                       <span>{player.money.toLocaleString("fr-FR")} 💰</span>
                       <span>Réputation : {player.reputation}/100</span>
                       <span>{player.finishedRaces} courses</span>

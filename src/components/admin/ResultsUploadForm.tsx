@@ -277,14 +277,14 @@ export default function ResultsUploadForm() {
         {/* ── Sélection de l'événement ── */}
         <div>
           <label htmlFor="event" className="block text-sm font-medium text-brand-text mb-1.5">
-            Événement <span className="text-brand-red">*</span>
+            Événement <span className="text-brand-orange">*</span>
           </label>
           <select
             id="event"
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
             disabled={loadingEvents || events.length === 0}
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors disabled:opacity-50"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors disabled:opacity-50"
           >
             {loadingEvents ? (
               <option>Chargement des événements...</option>
@@ -534,11 +534,11 @@ export default function ResultsUploadForm() {
         {/* ── Fichier ── */}
         <div>
           <label className="block text-sm font-medium text-brand-text mb-1.5">
-            Fichier de résultats <span className="text-brand-red">*</span>
+            Fichier de résultats <span className="text-brand-orange">*</span>
             <span className="ml-2 text-brand-muted font-normal">.xml (LMU), .json ou .csv</span>
           </label>
           <div
-            className="border-2 border-dashed border-brand-border rounded-xl p-8 text-center cursor-pointer hover:border-brand-red/50 transition-colors"
+            className="border-2 border-dashed border-brand-border rounded-xl p-8 text-center cursor-pointer hover:border-brand-orange/50 transition-colors"
             onClick={() => fileRef.current?.click()}
           >
             {file ? (
@@ -551,7 +551,7 @@ export default function ResultsUploadForm() {
                 <button
                   type="button"
                   onClick={(ev) => { ev.stopPropagation(); setFile(null); if (fileRef.current) fileRef.current.value = ""; }}
-                  className="ml-auto text-brand-muted hover:text-brand-red text-xl"
+                  className="ml-auto text-brand-muted hover:text-brand-orange text-xl"
                 >×</button>
               </div>
             ) : (
@@ -572,18 +572,18 @@ export default function ResultsUploadForm() {
             Durée de la course (minutes)
             {isXml
               ? <span className="ml-2 text-brand-muted font-normal text-xs">optionnel — auto-détectée depuis le XML</span>
-              : <span className="text-brand-red"> *</span>}
+              : <span className="text-brand-orange"> *</span>}
           </label>
           <input
             id="duration" type="number" min="1" max="480" value={duration}
             onChange={(e) => { setDuration(e.target.value); setError(null); }}
             placeholder={isXml ? "Laisser vide = depuis le XML" : "ex : 45"}
-            className="w-48 px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+            className="w-48 px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           />
         </div>
 
         <button type="submit" disabled={loading}
-          className="flex items-center gap-2 px-8 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:opacity-50 text-white font-semibold transition-colors">
+          className="flex items-center gap-2 px-8 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white font-semibold transition-colors">
           {loading ? <Spinner /> : null}
           {loading ? "Analyse en cours…" : "Aperçu des récompenses →"}
         </button>
@@ -608,12 +608,12 @@ export default function ResultsUploadForm() {
 
         {/* Race summary */}
         <div className="bg-brand-dark border border-brand-border rounded-xl overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-brand-red via-brand-red/60 to-transparent" />
+          <div className="h-1 bg-gradient-to-r from-brand-orange via-brand-orange/60 to-transparent" />
           <div className="p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-brand-red font-bold text-xs uppercase tracking-wider">
+                  <span className="text-brand-orange font-bold text-xs uppercase tracking-wider">
                     {sessionLabel(meta.sessionType)}
                   </span>
                   {classes.map((cls) => (
@@ -634,7 +634,7 @@ export default function ResultsUploadForm() {
               <MiniStat label="Détectés" value={preview.length} color="text-white" />
               <MiniStat label="Seront mis à jour" value={found} color="text-green-400" />
               {skipped > 0 && <MiniStat label="Inconnus" value={skipped} color="text-yellow-400" />}
-              <MiniStat label="XP distribués" value={totalXp.toLocaleString("fr-FR")} color="text-brand-red" />
+              <MiniStat label="XP distribués" value={totalXp.toLocaleString("fr-FR")} color="text-brand-orange" />
               {leader && <MiniStat label="Vainqueur" value={leader.username} color="text-yellow-300" />}
             </div>
           </div>
@@ -701,7 +701,7 @@ export default function ResultsUploadForm() {
                         )}
                       </td>
                     )}
-                    <td className="px-4 py-3 font-semibold text-brand-red whitespace-nowrap">
+                    <td className="px-4 py-3 font-semibold text-brand-orange whitespace-nowrap">
                       +{entry.xpGained.toLocaleString("fr-FR")} XP
                     </td>
                     <td className="px-4 py-3 text-brand-muted whitespace-nowrap">
@@ -747,7 +747,7 @@ export default function ResultsUploadForm() {
 
         <div className="flex gap-3 flex-wrap">
           <button onClick={handleProcess} disabled={loading || found === 0}
-            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:opacity-50 text-white font-bold transition-colors">
+            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white font-bold transition-colors">
             {loading ? <Spinner /> : null}
             {loading ? "Sauvegarde…" : `✓ Valider et mettre à jour ${found} profil${found > 1 ? "s" : ""}`}
           </button>
@@ -782,7 +782,7 @@ export default function ResultsUploadForm() {
           </div>
         )}
         <button onClick={reset}
-          className="px-6 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold transition-colors">
+          className="px-6 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-semibold transition-colors">
           Traiter une autre course
         </button>
       </div>
@@ -807,7 +807,7 @@ function FormulaField({
         <input
           type="number" min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-          className="w-full bg-brand-dark border border-brand-border rounded-lg px-2 py-1.5 text-white font-mono text-sm font-bold focus:outline-none focus:border-brand-red text-center"
+          className="w-full bg-brand-dark border border-brand-border rounded-lg px-2 py-1.5 text-white font-mono text-sm font-bold focus:outline-none focus:border-brand-orange text-center"
         />
         {suffix && <span className="text-sm text-brand-muted">{suffix}</span>}
       </div>
@@ -840,7 +840,7 @@ function MiniStat({ label, value, color }: { label: string; value: string | numb
 }
 
 function ErrorBanner({ message }: { message: string }) {
-  return <div className="p-4 rounded-lg bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm">{message}</div>;
+  return <div className="p-4 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm">{message}</div>;
 }
 
 function Spinner() {
@@ -862,7 +862,7 @@ function UploadIcon() {
 
 function FileIcon() {
   return (
-    <svg className="w-8 h-8 text-brand-red shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="w-8 h-8 text-brand-orange shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
     </svg>
   );

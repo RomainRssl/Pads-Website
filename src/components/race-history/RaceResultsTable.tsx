@@ -47,7 +47,7 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
         <tbody>
           {parsedResults.map((result: RaceResult, idx: number) => (
             <tr key={idx} className="border-b border-brand-border/50 hover:bg-brand-bg transition-colors">
-              <td className="px-4 py-3 font-semibold text-brand-red w-12">
+              <td className="px-4 py-3 font-semibold text-brand-orange w-12">
                 {result.position}
               </td>
               <td className="px-4 py-3 text-brand-text font-medium">

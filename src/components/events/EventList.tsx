@@ -26,7 +26,7 @@ export default function EventList({ events }: EventListProps) {
         <h2 className="font-heading text-3xl font-bold text-white">
           Prochaines courses
         </h2>
-        <span className="px-2.5 py-0.5 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm font-semibold">
+        <span className="px-2.5 py-0.5 rounded-full bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-semibold">
           {events.length}
         </span>
       </div>

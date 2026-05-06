@@ -23,14 +23,14 @@ const config: Config = {
       },
       backgroundImage: {
         "racing-grid":
-          "linear-gradient(rgba(230,57,70,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(230,57,70,0.04) 1px, transparent 1px)",
+          "linear-gradient(rgba(244,162,97,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(244,162,97,0.04) 1px, transparent 1px)",
       },
       backgroundSize: {
         grid: "40px 40px",
       },
       boxShadow: {
-        "red-glow": "0 0 20px rgba(230, 57, 70, 0.15)",
-        "red-glow-lg": "0 0 40px rgba(230, 57, 70, 0.2)",
+        "orange-glow": "0 0 20px rgba(244, 162, 97, 0.15)",
+        "orange-glow-lg": "0 0 40px rgba(244, 162, 97, 0.2)",
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-in-out",
