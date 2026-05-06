@@ -34,7 +34,7 @@ export default function EventCard({ event }: EventCardProps) {
   if (isToday) countdownLabel = "Aujourd'hui !";
   else if (isTomorrow) countdownLabel = "Demain !";
 
-  const carClasses = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
+  const carClasses: string[] = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
 
   return (
     <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">
@@ -64,8 +64,8 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="flex flex-wrap gap-2 mb-4">
           <EventBadge label={event.game} variant="game" />
           <EventBadge label={event.track} variant="track" />
-          {carClasses.map((carClass, idx) => (
-            <EventBadge key={idx} label={carClass} variant="car" />
+          {carClasses.map((carClass: string) => (
+            <EventBadge key={carClass} label={carClass} variant="car" />
           ))}
         </div>
 
