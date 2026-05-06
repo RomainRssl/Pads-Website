@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
-import { CAR_CLASSES } from "@/lib/class-tiers";
+import { CAR_CLASSES, CAR_MODELS } from "@/lib/class-tiers";
 
 interface FormState {
   title: string;
@@ -199,22 +199,29 @@ export default function CreateEventForm() {
       <div>
         <label className="block text-sm font-medium text-brand-text mb-1.5">
           Voiture / Classe <span className="text-brand-orange">*</span>{" "}
-          <span className="text-brand-muted font-normal">(jusqu'à 5 classes)</span>
+          <span className="text-brand-muted font-normal">(jusqu'à 5 selections)</span>
         </label>
         <div className="space-y-2.5">
-          {form.cars.map((carClass, idx) => (
+          {form.cars.map((carValue, idx) => (
             <div key={idx} className="flex gap-2">
               <select
                 name={`cars-${idx}`}
-                value={carClass}
+                value={carValue}
                 onChange={handleChange}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
               >
-                <option value="">Sélectionner une classe...</option>
-                {CAR_CLASSES.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls}
-                  </option>
+                <option value="">Sélectionner une classe ou voiture...</option>
+                {CAR_CLASSES.map((carClass) => (
+                  <optgroup key={carClass} label={`${carClass} (classe générale)`}>
+                    <option value={carClass} className="font-semibold">
+                      ★ {carClass}
+                    </option>
+                    {CAR_MODELS[carClass].map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               {form.cars.length > 1 && (
