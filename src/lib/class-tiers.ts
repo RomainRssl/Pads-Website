@@ -27,7 +27,7 @@ export const LADDER_TIERS: Tier[] = [
 
 // ── Classes de voiture supportées ────────────────────────────────────────────
 
-export const CAR_CLASSES = ["GT3", "GTE", "LMP2", "LMP3", "HYPERCAR"] as const;
+export const CAR_CLASSES = ["HYPERCAR", "LMP2", "GTE", "LMGT3", "LMP3"] as const;
 export type CarClass = typeof CAR_CLASSES[number];
 
 // ── Convertisseur LicenseConfig DB → Tier[] ──────────────────────────────────

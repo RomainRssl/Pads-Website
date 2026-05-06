@@ -123,7 +123,8 @@ function normalizeCarClass(raw: string | undefined): string | undefined {
   const map: Record<string, string> = {
     "HYPER":      "HYPERCAR",
     "HYPERCAR":   "HYPERCAR",
-    "GT3":        "GT3",
+    "GT3":        "LMGT3",
+    "LMGT3":      "LMGT3",
     "GTE":        "GTE",
     "LMP2":       "LMP2",
     "LMP2_ELMS":  "LMP2",
