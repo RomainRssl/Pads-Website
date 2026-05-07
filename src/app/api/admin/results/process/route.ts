@@ -117,6 +117,12 @@ export async function POST(req: Request) {
     const toUpdate = enriched.filter((e) => e.foundInDb);
     const updatedPlayers = toUpdate.length;
 
+    // Fetch event track info for track records before transaction
+    const eventData = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { track: true },
+    });
+
     // ── Prisma transaction ────────────────────────────────────────────────────
     await prisma.$transaction(async (tx) => {
       const raceSession = await tx.raceSession.create({
@@ -195,6 +201,83 @@ export async function POST(req: Request) {
         }
       }
 
+      // ── Constructor Championship Points (GT3, GTE, HYPERCAR only) ───────────
+      const constructorClasses = ["GT3", "GTE", "HYPERCAR", "LMGT3"];
+      for (const carClass of constructorClasses) {
+        const classEntries = parsed.extended
+          .filter((e) => e.carClass === carClass && e.constructor)
+          .sort((a, b) => a.position - b.position)
+          .slice(0, 10);
+
+        const points = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+        for (const [idx, entry] of classEntries.entries()) {
+          const constructorName = entry["constructor" as keyof typeof entry] as string | undefined;
+          if (constructorName) {
+            await tx.constructorStandings.upsert({
+              where: {
+                carClass_constructorName: {
+                  carClass,
+                  constructorName,
+                },
+              },
+              update: {
+                seasonPoints: { increment: points[idx] ?? 0 },
+                raceCount: { increment: 1 },
+                updatedAt: new Date(),
+              },
+              create: {
+                carClass,
+                constructorName,
+                seasonPoints: points[idx] ?? 0,
+                raceCount: 1,
+              },
+            });
+          }
+        }
+      }
+
+      // ── Track Records (all classes with valid best lap time) ───────────────
+      if (eventData?.track) {
+        for (const entry of parsed.extended) {
+          const constructorName = entry["constructor" as keyof typeof entry] as string | undefined;
+          if (entry.carClass && entry.bestLapTimeSec && entry.bestLapTimeSec > 0 && constructorName) {
+            const existing = await tx.trackRecord.findUnique({
+              where: {
+                carClass_circuit: {
+                  carClass: entry.carClass,
+                  circuit: eventData.track,
+                },
+              },
+            });
+
+            if (!existing || entry.bestLapTimeSec < existing.bestLapTime) {
+              await tx.trackRecord.upsert({
+                where: {
+                  carClass_circuit: {
+                    carClass: entry.carClass,
+                    circuit: eventData.track,
+                  },
+                },
+                update: {
+                  constructorName,
+                  piloteName: entry.username,
+                  bestLapTime: entry.bestLapTimeSec,
+                  raceDate: new Date(),
+                },
+                create: {
+                  carClass: entry.carClass,
+                  circuit: eventData.track,
+                  constructorName,
+                  piloteName: entry.username,
+                  bestLapTime: entry.bestLapTimeSec,
+                  raceDate: new Date(),
+                },
+              });
+            }
+          }
+        }
+      }
+
       // ── Create RaceHistory entry ──────────────────────────────────────────
       const event = await tx.event.findUnique({
         where: { id: eventId },
@@ -211,6 +294,7 @@ export async function POST(req: Request) {
             rawResults: JSON.stringify(
               enriched.map((e, idx) => {
                 const extEntry = parsed.extended[idx];
+                const constructorName = extEntry?.["constructor" as keyof typeof extEntry] as string | undefined;
                 return {
                   position: e.position,
                   username: e.username,
@@ -221,6 +305,7 @@ export async function POST(req: Request) {
                   bestLapTime: extEntry?.bestLapTimeSec,
                   incidents: e.incidents,
                   finishStatus: extEntry?.finishStatus,
+                  constructor: constructorName,
                   isClean: e.isClean,
                 };
               })

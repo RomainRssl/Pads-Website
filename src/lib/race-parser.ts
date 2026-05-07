@@ -15,6 +15,7 @@ export interface ExtendedEntry extends RawEntry {
   laps?: number;
   bestLapTimeSec?: number | null; // null = no valid best lap
   finishStatus?: string;
+  constructor?: string; // Extracted from CarType (e.g., "Mercedes", "Porsche")
 }
 
 /** Race-level metadata extracted from XML header */
@@ -69,7 +70,14 @@ export function parseJSON(text: string): ParseResult {
     };
   });
 
-  return { entries, extended: entries.map((e) => ({ ...e })), meta: emptyMeta() };
+  return {
+    entries,
+    extended: entries.map((e) => ({
+      ...e,
+      constructor: undefined,
+    })),
+    meta: emptyMeta(),
+  };
 }
 
 // ── CSV parser ────────────────────────────────────────────────────────────────
@@ -105,7 +113,14 @@ export function parseCSV(text: string): ParseResult {
     };
   });
 
-  return { entries, extended: entries.map((e) => ({ ...e })), meta: emptyMeta() };
+  return {
+    entries,
+    extended: entries.map((e) => ({
+      ...e,
+      constructor: undefined,
+    })),
+    meta: emptyMeta(),
+  };
 }
 
 // ── LMU XML parser ────────────────────────────────────────────────────────────
@@ -131,6 +146,48 @@ function normalizeCarClass(raw: string | undefined): string | undefined {
     "LMP3":       "LMP3",
   };
   return map[raw.toUpperCase()] ?? raw;
+}
+
+/** Extract constructor name from CarType string */
+function extractConstructor(carType: string | undefined): string | undefined {
+  if (!carType) return undefined;
+
+  const constructorMap: Record<string, string> = {
+    "mercedes":    "Mercedes",
+    "porsche":     "Porsche",
+    "bmw":         "BMW",
+    "ferrari":     "Ferrari",
+    "lamborghini": "Lamborghini",
+    "aston":       "Aston Martin",
+    "chevrolet":   "Chevrolet",
+    "corvette":    "Chevrolet",
+    "lexus":       "Lexus",
+    "mclaren":     "McLaren",
+    "ford":        "Ford",
+    "mustang":     "Ford",
+    "oreca":       "Oreca",
+    "ligier":      "Ligier",
+    "ginetta":     "Ginetta",
+    "duqueine":    "Duqueine",
+    "isotta":      "Isotta Fraschini",
+    "vanwall":     "Vanwall",
+    "glickenhaus": "Glickenhaus",
+    "genesis":     "Genesis",
+    "cadillac":    "Cadillac",
+    "peugeot":     "Peugeot",
+    "toyota":      "Toyota",
+    "alpine":      "Alpine",
+  };
+
+  const lowerCarType = carType.toLowerCase();
+
+  for (const [key, value] of Object.entries(constructorMap)) {
+    if (lowerCarType.includes(key)) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 function detectSessionType(text: string): RaceMeta["sessionType"] {
@@ -184,6 +241,8 @@ export function parseXML(text: string): ParseResult {
 
     const carClass     = normalizeCarClass(extractTag(block, "CarClass") ?? undefined);
     const carNumber    = extractTag(block, "CarNumber") ?? undefined;
+    const carType      = extractTag(block, "CarType") ?? undefined;
+    const constructor  = extractConstructor(carType);
     const rawTeamName  = extractTag(block, "TeamName");
     const teamName     = rawTeamName ? rawTeamName.replace(/\+/g, " ") : undefined;
     const lapsRaw      = extractTag(block, "Laps");
@@ -207,6 +266,7 @@ export function parseXML(text: string): ParseResult {
       laps: laps && !isNaN(laps) ? laps : undefined,
       bestLapTimeSec,
       finishStatus,
+      constructor,
     };
 
     entries.push(raw);

@@ -293,6 +293,121 @@ export default async function ClassementPage({
         <span>·</span>
         <span>Points = Score × coefficient grille</span>
       </div>
+
+      {/* Constructor Championship Section */}
+      <ConstructorStandings />
+    </div>
+  );
+}
+
+async function ConstructorStandings() {
+  const standings = await prisma.constructorStandings.findMany({
+    orderBy: [
+      { carClass: "asc" },
+      { seasonPoints: "desc" },
+    ],
+  });
+
+  const constructorClasses = ["GT3", "GTE", "HYPERCAR", "LMGT3"];
+  const grouped: Record<string, any[]> = {};
+  for (const cls of constructorClasses) {
+    grouped[cls] = standings
+      .filter((s) => s.carClass === cls)
+      .map((s, idx) => ({
+        position: idx + 1,
+        ...s,
+      }));
+  }
+
+  const hasData = Object.values(grouped).some((arr) => arr.length > 0);
+
+  if (!hasData) return null;
+
+  return (
+    <div className="mt-12 pt-8 border-t border-brand-border">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-3xl">🏭</span>
+          <h2 className="font-heading text-4xl font-bold text-white tracking-wide">
+            Championnat <span className="text-brand-orange">Constructeur</span>
+          </h2>
+        </div>
+        <p className="text-brand-muted">
+          Points attribués aux 10 premiers (25-18-15-12-10-8-6-4-2-1)
+        </p>
+      </div>
+
+      {/* Constructor tabs */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {constructorClasses.map((cls) => {
+          const hasConstructors = grouped[cls].length > 0;
+          return (
+            <div
+              key={cls}
+              className={`px-4 py-2 rounded-lg text-sm font-bold font-mono transition-colors border
+                ${hasConstructors
+                  ? "bg-brand-surface border-brand-border text-brand-text"
+                  : "bg-brand-surface border-brand-border/40 text-brand-muted/50"
+                }`}
+            >
+              {cls}
+              {hasConstructors && (
+                <span className="ml-1.5 text-brand-muted font-normal text-xs">
+                  {grouped[cls].length}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Constructor standings grids */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {constructorClasses.map((cls) => {
+          const classStandings = grouped[cls];
+          if (classStandings.length === 0) return null;
+
+          return (
+            <div key={cls} className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
+              <div className="bg-brand-dark px-4 py-3 border-b border-brand-border">
+                <h3 className="font-heading text-lg font-bold text-white">{cls}</h3>
+              </div>
+              <div className="divide-y divide-brand-border">
+                {classStandings.map((standing) => (
+                  <div
+                    key={standing.id}
+                    className="px-4 py-3 flex items-center justify-between hover:bg-brand-dark/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="text-sm font-heading font-bold w-8 text-center">
+                        {standing.position === 1
+                          ? "🥇"
+                          : standing.position === 2
+                          ? "🥈"
+                          : standing.position === 3
+                          ? "🥉"
+                          : standing.position}
+                      </div>
+                      <span className="font-semibold text-white truncate">
+                        {standing.constructorName}
+                      </span>
+                    </div>
+                    <div className="text-right ml-4 shrink-0">
+                      <p className="font-heading font-bold text-brand-orange text-lg">
+                        {standing.seasonPoints}
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        {standing.raceCount} course{standing.raceCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

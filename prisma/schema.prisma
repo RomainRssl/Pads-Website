@@ -186,6 +186,33 @@ model PlayerClassStats {
   @@unique([playerId, carClass])
 }
 
+// ── Constructeur Championship ────────────────────────────────────────────────
+
+model ConstructorStandings {
+  id                String   @id @default(cuid())
+  carClass          String   // GT3, GTE, HYPERCAR
+  constructorName   String   // Mercedes, Porsche, BMW, etc.
+  seasonPoints      Int      @default(0)
+  raceCount         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([carClass, constructorName])
+}
+
+model TrackRecord {
+  id              String   @id @default(cuid())
+  carClass        String   // GT3, GTE, HYPERCAR, LMP2, LMP3
+  circuit         String
+  constructorName String   // Constructor/Car model
+  piloteName      String
+  bestLapTime     Float    // In seconds
+  raceDate        DateTime
+  createdAt       DateTime @default(now())
+
+  @@unique([carClass, circuit])
+}
+
 // ── Twitch multiplex ──────────────────────────────────────────────────────────
 
 model TwitchStreamer {

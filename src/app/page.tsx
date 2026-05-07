@@ -79,7 +79,7 @@ export default async function HomePage() {
                   <div className="bg-white p-3 rounded-xl shadow-lg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/qr-discord.png"
+                      src="/IMG/qr-discord.png"
                       alt="QR Code Discord"
                       width={120}
                       height={120}
