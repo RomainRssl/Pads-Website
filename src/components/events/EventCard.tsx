@@ -86,22 +86,6 @@ export default function EventCard({ event }: EventCardProps) {
           </p>
         )}
 
-        {/* Server info */}
-        {(event.serverName || event.serverPassword) && (
-          <div className="flex flex-wrap gap-3 text-xs mb-3 px-3 py-2 rounded-lg bg-brand-surface border border-brand-border">
-            {event.serverName && (
-              <span className="flex items-center gap-1.5 text-brand-muted">
-                🖥️ <span className="text-brand-text font-medium">{event.serverName}</span>
-              </span>
-            )}
-            {event.serverPassword && (
-              <span className="flex items-center gap-1.5 text-brand-muted">
-                🔑 <span className="text-brand-text font-mono">{event.serverPassword}</span>
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Date footer */}
         <div className="flex items-center gap-2 text-brand-muted text-sm border-t border-brand-border pt-3 mt-auto">
           <CalendarIcon />
