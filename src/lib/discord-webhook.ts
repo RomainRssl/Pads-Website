@@ -37,13 +37,16 @@ export async function sendEventNotification(event: Event): Promise<void> {
     timeZone: "Europe/Paris",
   });
 
+  const carClasses = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
+  const carValue = Array.isArray(carClasses) ? carClasses.join(", ") : event.cars;
+
   const embed: DiscordEmbed = {
     title: `🏁 Nouvelle course — ${event.title}`,
     description: event.description ?? "Aucune description fournie.",
-    color: 0xe63946,
+    color: 0xF4A261,
     fields: [
       { name: "🎮 Jeu", value: event.game, inline: true },
-      { name: "🏎️ Voiture", value: event.car, inline: true },
+      { name: "🏎️ Voitures", value: carValue, inline: true },
       { name: "🗺️ Circuit", value: event.track, inline: true },
       { name: "📅 Date", value: formattedDate, inline: false },
     ],
@@ -99,7 +102,7 @@ export async function sendRaceResultsNotification(
   const embed: DiscordEmbed = {
     title: "🏁 Résultats traités !",
     description: `Les statistiques ont été mises à jour pour la course de **${summary.durationMin} minutes**.`,
-    color: 0xe63946,
+    color: 0xF4A261,
     fields: [
       {
         name: "📊 Résumé",

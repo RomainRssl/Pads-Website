@@ -18,7 +18,7 @@ export default function SetupDonePage() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-bold transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-bold transition-colors"
         >
           Aller sur le site →
         </Link>

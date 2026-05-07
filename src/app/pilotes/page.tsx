@@ -41,14 +41,14 @@ export default async function PilotesPage() {
               <Link
                 key={player.id}
                 href={`/pilotes/${encodeURIComponent(player.username)}`}
-                className="group bg-brand-surface border border-brand-border rounded-xl p-5 hover:border-brand-red/50 hover:bg-brand-surface/80 transition-all"
+                className="group bg-brand-surface border border-brand-border rounded-xl p-5 hover:border-brand-orange/50 hover:bg-brand-surface/80 transition-all"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center text-white font-bold font-heading text-lg">
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-heading font-bold text-white truncate group-hover:text-brand-red transition-colors">
+                    <p className="font-heading font-bold text-white truncate group-hover:text-brand-orange transition-colors">
                       {formatPilotName(player.username).toUpperCase()}
                     </p>
                     <p className="text-xs text-brand-muted truncate">{player.team?.name ?? "Sans écurie"}</p>
@@ -63,7 +63,7 @@ export default async function PilotesPage() {
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <p className="text-brand-red font-bold font-heading text-lg">{player.xp.toLocaleString("fr-FR")}</p>
+                    <p className="text-brand-orange font-bold font-heading text-lg">{player.xp.toLocaleString("fr-FR")}</p>
                     <p className="text-brand-muted text-xs">XP</p>
                   </div>
                   <div>

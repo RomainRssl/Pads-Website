@@ -64,7 +64,7 @@ export default async function ClassementPage({
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🏆</span>
           <h1 className="font-heading text-4xl font-bold text-white tracking-wide">
-            Ladder <span className="text-brand-red">Pilotes</span>
+            Ladder <span className="text-brand-orange">Pilotes</span>
           </h1>
         </div>
         <p className="text-brand-muted">
@@ -83,9 +83,9 @@ export default async function ClassementPage({
               href={`/classement?classe=${cls}`}
               className={`px-4 py-2 rounded-lg text-sm font-bold font-mono transition-colors border
                 ${isActive
-                  ? "bg-brand-red text-white border-brand-red"
+                  ? "bg-brand-orange text-white border-brand-orange"
                   : hasData
-                  ? "bg-brand-surface border-brand-border text-brand-text hover:border-brand-red/50 hover:text-white"
+                  ? "bg-brand-surface border-brand-border text-brand-text hover:border-brand-orange/50 hover:text-white"
                   : "bg-brand-surface border-brand-border/40 text-brand-muted/50 cursor-default"
                 }`}
             >
@@ -149,7 +149,7 @@ export default async function ClassementPage({
                     <div className="w-12 h-12 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center text-white font-bold font-heading text-xl mx-auto mb-3">
                       {p.player.username[0].toUpperCase()}
                     </div>
-                    <p className="font-heading font-bold text-white text-lg group-hover:text-brand-red transition-colors truncate">
+                    <p className="font-heading font-bold text-white text-lg group-hover:text-brand-orange transition-colors truncate">
                       {formatPilotName(p.player.username).toUpperCase()}
                     </p>
                     <p className="text-xs text-brand-muted mb-3 truncate">
@@ -177,10 +177,10 @@ export default async function ClassementPage({
           )}
 
           {/* Full standings table */}
-          <div className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 border-b border-brand-border bg-brand-dark px-4 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wider">
+          <div className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 border-b border-brand-border bg-brand-dark px-4 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wider min-w-min">
               <div className="text-center">Pos</div>
-              <div>Pilote</div>
+              <div className="min-w-[150px]">Pilote</div>
               <div className="text-center hidden sm:block">Rang XP</div>
               <div className="text-center hidden sm:block">Rang Ladder</div>
               <div className="text-right">Ladder pts</div>
@@ -208,20 +208,20 @@ export default async function ClassementPage({
                 <Link
                   key={p.player.id}
                   href={`/pilotes/${encodeURIComponent(p.player.username)}`}
-                  className={`grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 px-4 py-3 border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/60 transition-colors items-center ${
-                    isLeader ? "bg-brand-red/5" : ""
+                  className={`grid grid-cols-[3rem_1fr_6rem_6rem_7rem_5rem_5rem] gap-0 px-4 py-3 border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/60 transition-colors items-center min-w-min ${
+                    isLeader ? "bg-brand-orange/5" : ""
                   }`}
                 >
                   <div className={`text-center font-heading font-bold text-lg ${posColor}`}>
                     {p.pos === 1 ? "🥇" : p.pos === 2 ? "🥈" : p.pos === 3 ? "🥉" : p.pos}
                   </div>
 
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-[150px]">
                     <div className="w-8 h-8 shrink-0 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center text-white font-bold text-sm font-heading">
                       {p.player.username[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-white text-sm truncate hover:text-brand-red transition-colors">
+                      <p className="font-heading font-bold text-white text-sm whitespace-nowrap hover:text-brand-orange transition-colors">
                         {formatPilotName(p.player.username).toUpperCase()}
                       </p>
                       <p className="text-xs text-brand-muted truncate">
@@ -260,7 +260,7 @@ export default async function ClassementPage({
 
                   {/* Ladder points */}
                   <div className="text-right">
-                    <p className="font-heading font-bold text-brand-red text-base">
+                    <p className="font-heading font-bold text-brand-orange text-base">
                       {p.stat.ladderPoints.toLocaleString("fr-FR")}
                       <span className="text-brand-muted text-xs font-normal ml-1">pts</span>
                     </p>
@@ -292,6 +292,121 @@ export default async function ClassementPage({
         <span>Score Ladder = ((N+1)/2) − position parmi même rang XP</span>
         <span>·</span>
         <span>Points = Score × coefficient grille</span>
+      </div>
+
+      {/* Constructor Championship Section */}
+      <ConstructorStandings />
+    </div>
+  );
+}
+
+async function ConstructorStandings() {
+  const standings = await prisma.constructorStandings.findMany({
+    orderBy: [
+      { carClass: "asc" },
+      { seasonPoints: "desc" },
+    ],
+  });
+
+  const constructorClasses = ["GT3", "GTE", "HYPERCAR", "LMGT3"];
+  const grouped: Record<string, any[]> = {};
+  for (const cls of constructorClasses) {
+    grouped[cls] = standings
+      .filter((s) => s.carClass === cls)
+      .map((s, idx) => ({
+        position: idx + 1,
+        ...s,
+      }));
+  }
+
+  const hasData = Object.values(grouped).some((arr) => arr.length > 0);
+
+  if (!hasData) return null;
+
+  return (
+    <div className="mt-12 pt-8 border-t border-brand-border">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-3xl">🏭</span>
+          <h2 className="font-heading text-4xl font-bold text-white tracking-wide">
+            Championnat <span className="text-brand-orange">Constructeur</span>
+          </h2>
+        </div>
+        <p className="text-brand-muted">
+          Points attribués aux 10 premiers (25-18-15-12-10-8-6-4-2-1)
+        </p>
+      </div>
+
+      {/* Constructor tabs */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {constructorClasses.map((cls) => {
+          const hasConstructors = grouped[cls].length > 0;
+          return (
+            <div
+              key={cls}
+              className={`px-4 py-2 rounded-lg text-sm font-bold font-mono transition-colors border
+                ${hasConstructors
+                  ? "bg-brand-surface border-brand-border text-brand-text"
+                  : "bg-brand-surface border-brand-border/40 text-brand-muted/50"
+                }`}
+            >
+              {cls}
+              {hasConstructors && (
+                <span className="ml-1.5 text-brand-muted font-normal text-xs">
+                  {grouped[cls].length}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Constructor standings grids */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {constructorClasses.map((cls) => {
+          const classStandings = grouped[cls];
+          if (classStandings.length === 0) return null;
+
+          return (
+            <div key={cls} className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
+              <div className="bg-brand-dark px-4 py-3 border-b border-brand-border">
+                <h3 className="font-heading text-lg font-bold text-white">{cls}</h3>
+              </div>
+              <div className="divide-y divide-brand-border">
+                {classStandings.map((standing) => (
+                  <div
+                    key={standing.id}
+                    className="px-4 py-3 flex items-center justify-between hover:bg-brand-dark/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="text-sm font-heading font-bold w-8 text-center">
+                        {standing.position === 1
+                          ? "🥇"
+                          : standing.position === 2
+                          ? "🥈"
+                          : standing.position === 3
+                          ? "🥉"
+                          : standing.position}
+                      </div>
+                      <span className="font-semibold text-white truncate">
+                        {standing.constructorName}
+                      </span>
+                    </div>
+                    <div className="text-right ml-4 shrink-0">
+                      <p className="font-heading font-bold text-brand-orange text-lg">
+                        {standing.seasonPoints}
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        {standing.raceCount} course{standing.raceCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

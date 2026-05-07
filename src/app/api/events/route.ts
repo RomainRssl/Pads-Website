@@ -9,7 +9,7 @@ const createEventSchema = z.object({
   date: z.string().datetime(),
   game: z.string().min(1).max(60),
   track: z.string().min(1).max(60),
-  car: z.string().min(1).max(500),
+  cars: z.array(z.string().min(1)).min(1).max(5),
   description: z.string().max(500).optional(),
   imageUrl: z.string().optional().or(z.literal("")),
 });
@@ -41,8 +41,11 @@ export async function POST(req: Request) {
 
   const event = await prisma.event.create({
     data: {
-      ...parsed.data,
+      title: parsed.data.title,
       date: new Date(parsed.data.date),
+      game: parsed.data.game,
+      track: parsed.data.track,
+      cars: JSON.stringify(parsed.data.cars),
       description: parsed.data.description ?? null,
       imageUrl: parsed.data.imageUrl || null,
       createdById: session.user.discordId,

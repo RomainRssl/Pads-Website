@@ -38,10 +38,10 @@ export default function CategoryManager({ initialCategories }: { initialCategori
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nom de la catégorie (ex: LMGT3)"
-          className="flex-1 bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red text-sm"
+          className="flex-1 bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-orange text-sm"
         />
         <button type="submit" disabled={!newName.trim()}
-          className="px-5 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold text-sm transition-colors disabled:opacity-50">
+          className="px-5 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-semibold text-sm transition-colors disabled:opacity-50">
           + Ajouter
         </button>
       </form>
@@ -52,8 +52,8 @@ export default function CategoryManager({ initialCategories }: { initialCategori
       ) : (
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-red/10 border border-brand-red/30">
-              <span className="text-brand-red font-bold text-sm">{cat.name}</span>
+            <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30">
+              <span className="text-brand-orange font-bold text-sm">{cat.name}</span>
               <button onClick={() => deleteCategory(cat.id, cat.name)} className="text-red-400 hover:text-red-300 text-xs ml-1 transition-colors">✕</button>
             </div>
           ))}

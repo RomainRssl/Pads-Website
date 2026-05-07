@@ -64,14 +64,14 @@ export default function StreamerManager({ initialStreamers }: Props) {
             value={input}
             onChange={(e) => { setInput(e.target.value); setError(null); }}
             placeholder="Pseudo Twitch (ex : xqc)"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           />
-          {error && <p className="mt-1 text-sm text-brand-red">{error}</p>}
+          {error && <p className="mt-1 text-sm text-brand-orange">{error}</p>}
         </div>
         <button
           type="submit"
           disabled={adding || !input.trim()}
-          className="px-5 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:opacity-50 text-white font-semibold transition-colors shrink-0"
+          className="px-5 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white font-semibold transition-colors shrink-0"
         >
           {adding ? "…" : "+ Ajouter"}
         </button>
@@ -112,7 +112,7 @@ export default function StreamerManager({ initialStreamers }: Props) {
                     <button
                       onClick={() => handleDelete(s.id)}
                       disabled={deleting === s.id}
-                      className="px-3 py-1 rounded-lg text-xs font-medium border border-brand-red/30 text-brand-red hover:bg-brand-red/10 disabled:opacity-50 transition-colors"
+                      className="px-3 py-1 rounded-lg text-xs font-medium border border-brand-orange/30 text-brand-orange hover:bg-brand-orange/10 disabled:opacity-50 transition-colors"
                     >
                       {deleting === s.id ? "…" : "Retirer"}
                     </button>

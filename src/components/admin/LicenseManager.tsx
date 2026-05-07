@@ -58,14 +58,14 @@ export default function LicenseManager({ initialLicenses }: { initialLicenses: L
                     <label className="text-xs text-brand-muted block mb-1">Label</label>
                     <input type="text" value={editData.label ?? lic.label}
                       onChange={(e) => setEditData((p) => ({ ...p, label: e.target.value }))}
-                      className="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red"
+                      className="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-orange"
                     />
                   </div>
                   <div>
                     <label className="text-xs text-brand-muted block mb-1">XP minimum</label>
                     <input type="number" value={editData.minXp ?? lic.minXp}
                       onChange={(e) => setEditData((p) => ({ ...p, minXp: Number(e.target.value) }))}
-                      className="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red"
+                      className="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-orange"
                     />
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export default function LicenseManager({ initialLicenses }: { initialLicenses: L
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => saveEdit(lic.id)} className="px-4 py-1.5 rounded-lg bg-brand-red text-white text-sm font-semibold">Enregistrer</button>
+                  <button onClick={() => saveEdit(lic.id)} className="px-4 py-1.5 rounded-lg bg-brand-orange text-white text-sm font-semibold">Enregistrer</button>
                   <button onClick={() => setEditingId(null)} className="px-4 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm">Annuler</button>
                 </div>
               </div>
@@ -106,11 +106,11 @@ export default function LicenseManager({ initialLicenses }: { initialLicenses: L
         <div className="grid grid-cols-2 gap-3">
           <input type="text" placeholder="ID (ex: DIAMOND)" value={newData.id}
             onChange={(e) => setNewData((p) => ({ ...p, id: e.target.value }))}
-            className="bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red placeholder:text-brand-muted"
+            className="bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-orange placeholder:text-brand-muted"
           />
           <input type="number" placeholder="XP minimum" value={newData.minXp}
             onChange={(e) => setNewData((p) => ({ ...p, minXp: Number(e.target.value) }))}
-            className="bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-red"
+            className="bg-brand-dark border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:border-brand-orange"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -118,7 +118,7 @@ export default function LicenseManager({ initialLicenses }: { initialLicenses: L
             onChange={(e) => setNewData((p) => ({ ...p, color: e.target.value }))}
             className="w-10 h-8 rounded cursor-pointer bg-transparent border-0"
           />
-          <button type="submit" className="px-4 py-2 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white text-sm font-semibold transition-colors">
+          <button type="submit" className="px-4 py-2 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white text-sm font-semibold transition-colors">
             + Ajouter
           </button>
         </div>

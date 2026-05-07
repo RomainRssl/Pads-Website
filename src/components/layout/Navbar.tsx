@@ -41,10 +41,16 @@ export default function Navbar() {
             Classement
           </Link>
           <Link
-            href="/historique"
+            href="/race-history"
             className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
           >
-            Historique
+            📚 Historique
+          </Link>
+          <Link
+            href="/records"
+            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
+          >
+            🏆 Records
           </Link>
         </div>
 
@@ -69,7 +75,7 @@ export default function Navbar() {
               {session.user.role === "ADMIN" && (
                 <Link
                   href="/admin"
-                  className="px-3 py-1.5 rounded-lg bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm font-medium hover:bg-brand-red/20 transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium hover:bg-brand-orange/20 transition-colors"
                 >
                   Admin
                 </Link>
@@ -161,11 +167,18 @@ export default function Navbar() {
             Classement
           </Link>
           <Link
-            href="/historique"
+            href="/race-history"
             onClick={() => setMobileOpen(false)}
             className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
           >
-            Historique
+            📚 Historique
+          </Link>
+          <Link
+            href="/records"
+            onClick={() => setMobileOpen(false)}
+            className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
+          >
+            🏆 Records
           </Link>
         </div>
       )}

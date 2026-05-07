@@ -66,12 +66,12 @@ export default function TeamManager({ initialTeams }: Props) {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nom de l'écurie"
-          className="flex-1 bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-red"
+          className="flex-1 bg-brand-dark border border-brand-border rounded-lg px-4 py-2.5 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-orange"
         />
         <button
           type="submit"
           disabled={loading || !newName.trim()}
-          className="px-5 py-2.5 rounded-lg bg-brand-red hover:bg-brand-red/80 text-white font-semibold transition-colors disabled:opacity-50"
+          className="px-5 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-semibold transition-colors disabled:opacity-50"
         >
           + Ajouter
         </button>
@@ -91,7 +91,7 @@ export default function TeamManager({ initialTeams }: Props) {
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="flex-1 bg-brand-dark border border-brand-border rounded-lg px-3 py-1.5 text-brand-text focus:outline-none focus:border-brand-red text-sm"
+                    className="flex-1 bg-brand-dark border border-brand-border rounded-lg px-3 py-1.5 text-brand-text focus:outline-none focus:border-brand-orange text-sm"
                     autoFocus
                   />
                   <button onClick={() => saveEdit(team.id)} className="text-green-400 hover:text-green-300 text-sm font-semibold">Enregistrer</button>

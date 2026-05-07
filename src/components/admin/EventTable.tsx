@@ -95,7 +95,7 @@ export default function EventTable({ initialEvents }: EventTableProps) {
         date:        editData.dateLocal ? new Date(editData.dateLocal).toISOString() : undefined,
         game:        editData.game,
         track:       editData.track,
-        car:         editData.car,
+        cars:        editData.cars,
         description: editData.description,
         imageUrl:    imageUrl ?? null,
       };
@@ -202,11 +202,11 @@ export default function EventTable({ initialEvents }: EventTableProps) {
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-brand-muted mb-1 block">Voiture</label>
+                          <label className="text-xs text-brand-muted mb-1 block">Voiture(s)</label>
                           <input
                             type="text"
-                            value={editData.car ?? ""}
-                            onChange={(e) => setEditData((p) => ({ ...p, car: e.target.value }))}
+                            value={editData.cars ?? ""}
+                            onChange={(e) => setEditData((p) => ({ ...p, cars: e.target.value }))}
                             className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-red"
                           />
                         </div>

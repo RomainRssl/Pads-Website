@@ -67,7 +67,7 @@ export default function RolesPage() {
 
         <div className="bg-brand-card border border-brand-border rounded-xl p-6">
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm">
               {error}
             </div>
           )}
@@ -86,7 +86,7 @@ export default function RolesPage() {
                   onClick={() => setSelected(role.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
                     selected === role.id
-                      ? "border-brand-red bg-brand-red/10"
+                      ? "border-brand-orange bg-brand-orange/10"
                       : "border-brand-border hover:border-brand-muted bg-brand-surface"
                   }`}
                 >
@@ -96,7 +96,7 @@ export default function RolesPage() {
                   />
                   <span className="font-medium text-brand-text">{role.name}</span>
                   {selected === role.id && (
-                    <span className="ml-auto text-brand-red text-sm">✓</span>
+                    <span className="ml-auto text-brand-orange text-sm">✓</span>
                   )}
                 </button>
               ))}
@@ -106,7 +106,7 @@ export default function RolesPage() {
           <button
             onClick={handleSave}
             disabled={!selected || saving}
-            className="w-full px-6 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:bg-brand-red/40 disabled:cursor-not-allowed text-white font-bold transition-colors"
+            className="w-full px-6 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:bg-brand-orange/40 disabled:cursor-not-allowed text-white font-bold transition-colors"
           >
             {saving ? "Enregistrement..." : "Confirmer le rôle admin"}
           </button>

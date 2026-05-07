@@ -21,12 +21,12 @@ export default async function HomePage() {
           style={{ backgroundSize: "40px 40px" }}
         />
         {/* Red gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-red/5 via-transparent to-brand-dark" />
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-orange/5 via-transparent to-brand-dark" />
 
         <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 py-24 sm:py-32">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm font-medium mb-6">
-              <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium mb-6">
+              <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
               Communauté Sim Racing
             </div>
 
@@ -83,7 +83,7 @@ export default async function HomePage() {
                   <div className="bg-white p-3 rounded-xl shadow-lg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/qr-discord.png"
+                      src="/IMG/qr-discord.png"
                       alt="QR Code Discord"
                       width={120}
                       height={120}

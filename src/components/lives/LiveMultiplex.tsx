@@ -212,7 +212,7 @@ function StreamerRow({ streamer, isSelected, canAdd, onToggle }: RowProps) {
       onClick={onToggle}
       disabled={disabled}
       className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors
-        ${isSelected ? "bg-brand-red/10 border-l-2 border-brand-red" : "border-l-2 border-transparent"}
+        ${isSelected ? "bg-brand-orange/10 border-l-2 border-brand-orange" : "border-l-2 border-transparent"}
         ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-brand-border/50 cursor-pointer"}
       `}
     >
@@ -253,7 +253,7 @@ function StreamerRow({ streamer, isSelected, canAdd, onToggle }: RowProps) {
 
       {/* Status pill */}
       {isSelected ? (
-        <span className="shrink-0 text-xs font-semibold text-brand-red">✓ Actif</span>
+        <span className="shrink-0 text-xs font-semibold text-brand-orange">✓ Actif</span>
       ) : streamer.isLive ? (
         <span className="shrink-0 px-1.5 py-0.5 rounded text-xs font-bold bg-red-500 text-white">
           LIVE
@@ -297,7 +297,7 @@ function StreamEmbed({ login, displayName, isLive, title, viewerCount, onClose }
         )}
         <button
           onClick={onClose}
-          className="shrink-0 w-6 h-6 rounded flex items-center justify-center text-brand-muted hover:text-white hover:bg-brand-red/20 transition-colors text-lg leading-none"
+          className="shrink-0 w-6 h-6 rounded flex items-center justify-center text-brand-muted hover:text-white hover:bg-brand-orange/20 transition-colors text-lg leading-none"
           aria-label="Fermer"
         >
           ×

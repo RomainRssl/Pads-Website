@@ -34,10 +34,12 @@ export default function EventCard({ event }: EventCardProps) {
   if (isToday) countdownLabel = "Aujourd'hui !";
   else if (isTomorrow) countdownLabel = "Demain !";
 
+  const carClasses: string[] = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
+
   return (
-    <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-red/40 hover:shadow-red-glow transition-all duration-300 animate-fade-in">
+    <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">
       {/* Racing stripe accent */}
-      <div className="h-1 bg-gradient-to-r from-brand-red via-brand-orange to-brand-red" />
+      <div className="h-1 bg-gradient-to-r from-brand-orange via-brand-orange to-brand-orange" />
 
       {/* Event image */}
       {event.imageUrl && (
@@ -58,7 +60,7 @@ export default function EventCard({ event }: EventCardProps) {
           <span
             className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
               isToday || isTomorrow
-                ? "bg-brand-red text-white"
+                ? "bg-brand-orange text-white"
                 : isSoon
                 ? "bg-brand-orange/20 text-brand-orange border border-brand-orange/30"
                 : "bg-brand-surface text-brand-muted border border-brand-border"
@@ -72,8 +74,8 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="flex flex-wrap gap-2 mb-4">
           <EventBadge label={event.game} variant="game" />
           <EventBadge label={event.track} variant="track" />
-          {event.car.split(",").map((c) => c.trim()).filter(Boolean).map((c) => (
-            <EventBadge key={c} label={c} variant="car" />
+          {carClasses.map((carClass: string) => (
+            <EventBadge key={carClass} label={carClass} variant="car" />
           ))}
         </div>
 

@@ -58,7 +58,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
 
       {/* Main card */}
       <div className="mt-4 bg-brand-surface border border-brand-border rounded-2xl overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-brand-red via-brand-red/60 to-transparent" />
+        <div className="h-2 bg-gradient-to-r from-brand-orange via-brand-orange/60 to-transparent" />
 
         <div className="p-6 sm:p-8">
           <div className="flex flex-col gap-6">
@@ -82,7 +82,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
               {categories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {categories.map((cat) => (
-                    <span key={cat.id} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-brand-red/10 border border-brand-red/30 text-brand-red">
+                    <span key={cat.id} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-brand-orange/10 border border-brand-orange/30 text-brand-orange">
                       {cat.name}
                     </span>
                   ))}

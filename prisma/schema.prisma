@@ -61,17 +61,31 @@ model VerificationToken {
 // Role is stored as String ("USER" | "ADMIN") — SQLite does not support enums
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   title       String
   date        DateTime
   game        String
   track       String
-  car         String
+  cars        String         // JSON array of car classes, max 5
   description String?
   imageUrl    String?
+  raceHistory RaceHistory[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdById String
+}
+
+model RaceHistory {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  title      String
+  date       DateTime
+  track      String
+  image      String?
+  rawResults String
+  createdAt  DateTime @default(now())
+  createdBy  String
 }
 
 // Singleton row — configuration du serveur Discord (remplie via /setup)
@@ -213,6 +227,33 @@ model FormulaDefaults {
   ladderCoeff_sm   Float  @default(4)
   ladderCoeff_md   Float  @default(3)
   ladderCoeff_lg   Float  @default(2)
+}
+
+// ── Constructeur Championship ────────────────────────────────────────────────
+
+model ConstructorStandings {
+  id                String   @id @default(cuid())
+  carClass          String   // GT3, GTE, HYPERCAR
+  constructorName   String   // Mercedes, Porsche, BMW, etc.
+  seasonPoints      Int      @default(0)
+  raceCount         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([carClass, constructorName])
+}
+
+model TrackRecord {
+  id              String   @id @default(cuid())
+  carClass        String   // GT3, GTE, HYPERCAR, LMP2, LMP3
+  circuit         String
+  constructorName String   // Constructor/Car model
+  piloteName      String
+  bestLapTime     Float    // In seconds
+  raceDate        DateTime
+  createdAt       DateTime @default(now())
+
+  @@unique([carClass, circuit])
 }
 
 // ── Twitch multiplex ──────────────────────────────────────────────────────────

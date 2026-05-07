@@ -29,7 +29,12 @@
       "Bash(npx prisma *)",
       "Bash(findstr prisma *)",
       "Bash(npx prisma@5 migrate dev --name \"formula-defaults-race-history-event-image\")",
-      "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx prisma@5 migrate dev --name \"formula-defaults-race-history-event-image\")"
+      "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx prisma@5 migrate dev --name \"formula-defaults-race-history-event-image\")",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(cat /tmp/ResultsUploadForm_HEAD.tsx)",
+      "Bash(npm install *)",
+      "Bash(npx next *)"
     ]
   }
 }

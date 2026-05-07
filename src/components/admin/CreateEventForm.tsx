@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import ImageUpload from "./ImageUpload";
 
 interface FormState {
   title: string;
@@ -133,7 +134,7 @@ export default function CreateEventForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          car: cars.filter(Boolean).join(", "),
+          cars: cars.filter(Boolean),
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
           imageUrl: imageUrl || undefined,
@@ -166,7 +167,7 @@ export default function CreateEventForm() {
         </div>
       )}
       {error && (
-        <div className="p-4 rounded-lg bg-brand-red/10 border border-brand-red/30 text-brand-red text-sm">
+        <div className="p-4 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm">
           {error}
         </div>
       )}
@@ -174,20 +175,20 @@ export default function CreateEventForm() {
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-brand-text mb-1.5">
-          Titre de la course <span className="text-brand-red">*</span>
+          Titre de la course <span className="text-brand-orange">*</span>
         </label>
         <input
           id="title" name="title" type="text" required
           value={form.title} onChange={handleChange}
           placeholder="Gran Turismo World Series — Manche 3"
-          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
         />
       </div>
 
       {/* Date */}
       <div>
         <label htmlFor="date" className="block text-sm font-medium text-brand-text mb-1.5">
-          Date et heure <span className="text-brand-red">*</span>
+          Date et heure <span className="text-brand-orange">*</span>
         </label>
         <input
           id="date" name="date" type="datetime-local" required
@@ -200,24 +201,24 @@ export default function CreateEventForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="game" className="block text-sm font-medium text-brand-text mb-1.5">
-            Jeu <span className="text-brand-red">*</span>
+            Jeu <span className="text-brand-orange">*</span>
           </label>
           <input
             id="game" name="game" type="text" required
             value={form.game} onChange={handleChange}
             placeholder="Gran Turismo 7"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           />
         </div>
         <div>
           <label htmlFor="track" className="block text-sm font-medium text-brand-text mb-1.5">
-            Circuit <span className="text-brand-red">*</span>
+            Circuit <span className="text-brand-orange">*</span>
           </label>
           <input
             id="track" name="track" type="text" required
             value={form.track} onChange={handleChange}
             placeholder="Spa-Francorchamps"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           />
         </div>
       </div>
@@ -276,7 +277,7 @@ export default function CreateEventForm() {
           id="description" name="description" rows={4}
           value={form.description} onChange={handleChange}
           placeholder="Règles, informations importantes sur la course..."
-          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors resize-none"
+          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors resize-none"
         />
       </div>
 
@@ -314,7 +315,7 @@ export default function CreateEventForm() {
       <button
         type="submit"
         disabled={loading || success}
-        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:bg-brand-red/50 text-white font-semibold transition-colors"
+        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:bg-brand-orange/50 text-white font-semibold transition-colors"
       >
         {loading && (
           <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">

@@ -31,6 +31,8 @@ const config: Config = {
       boxShadow: {
         "red-glow": "0 0 20px rgba(244, 130, 10, 0.20)",
         "red-glow-lg": "0 0 40px rgba(244, 130, 10, 0.28)",
+        "orange-glow": "0 0 20px rgba(244, 162, 97, 0.15)",
+        "orange-glow-lg": "0 0 40px rgba(244, 162, 97, 0.2)",
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-in-out",
