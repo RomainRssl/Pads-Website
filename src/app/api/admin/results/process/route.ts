@@ -27,7 +27,6 @@ export async function POST(req: Request) {
     const eventId = formData.get("eventId") as string | null;
 
     if (!file) return NextResponse.json({ error: "Fichier manquant." }, { status: 400 });
-    if (!eventId) return NextResponse.json({ error: "Événement manquant." }, { status: 400 });
 
     let durationMin = durationRaw ? parseInt(durationRaw, 10) : NaN;
 
@@ -128,11 +127,13 @@ export async function POST(req: Request) {
     const toUpdate = enriched.filter((e) => e.foundInDb);
     const updatedPlayers = toUpdate.length;
 
-    // Fetch event track info for track records before transaction
-    const eventData = await prisma.event.findUnique({
+    // Fetch event track info for track records before transaction (optional)
+    const eventData = eventId ? await prisma.event.findUnique({
       where: { id: eventId },
       select: { track: true },
-    });
+    }) : null;
+    // Fall back to XML metadata for circuit name
+    const circuitName = eventData?.track ?? parsed.meta.trackVenue ?? null;
 
     // ── Prisma transaction ────────────────────────────────────────────────────
     await prisma.$transaction(async (tx) => {
@@ -256,7 +257,7 @@ export async function POST(req: Request) {
       }
 
       // ── Track Records (all classes with valid best lap time) ───────────────
-      if (eventData?.track) {
+      if (circuitName) {
         for (const entry of parsed.extended) {
           const constructorName = entry["constructor" as keyof typeof entry] as string | undefined;
           if (entry.carClass && entry.bestLapTimeSec && entry.bestLapTimeSec > 0 && constructorName) {
@@ -264,7 +265,7 @@ export async function POST(req: Request) {
               where: {
                 carClass_circuit: {
                   carClass: entry.carClass,
-                  circuit: eventData.track,
+                  circuit: circuitName,
                 },
               },
             });
@@ -274,7 +275,7 @@ export async function POST(req: Request) {
                 where: {
                   carClass_circuit: {
                     carClass: entry.carClass,
-                    circuit: eventData.track,
+                    circuit: circuitName,
                   },
                 },
                 update: {
@@ -285,7 +286,7 @@ export async function POST(req: Request) {
                 },
                 create: {
                   carClass: entry.carClass,
-                  circuit: eventData.track,
+                  circuit: circuitName,
                   constructorName,
                   piloteName: entry.username,
                   bestLapTime: entry.bestLapTimeSec,
@@ -298,37 +299,41 @@ export async function POST(req: Request) {
       }
 
       // ── Create RaceHistory entry ──────────────────────────────────────────
-      const event = await tx.event.findUnique({
+      const event = eventId ? await tx.event.findUnique({
         where: { id: eventId },
         select: { title: true, date: true, track: true },
-      });
+      }) : null;
 
-      if (event) {
+      {
+        const historyTitle = event?.title ?? parsed.meta.trackVenue ?? "Course";
+        const historyTrack = event?.track ?? parsed.meta.trackVenue ?? circuitName ?? "Circuit inconnu";
+        const historyDate  = event?.date ?? (parsed.meta.dateString ? new Date(parsed.meta.dateString.replace(/\//g, "-")) : new Date());
+        const rawResultsJson = JSON.stringify(
+          enriched.map((e, idx) => {
+            const extEntry = parsed.extended[idx];
+            const constructorName = extEntry?.["constructor" as keyof typeof extEntry] as string | undefined;
+            return {
+              position: e.position,
+              username: e.username,
+              carClass: e.carClass,
+              carNumber: extEntry?.carNumber,
+              teamName: extEntry?.teamName,
+              laps: extEntry?.laps,
+              bestLapTime: extEntry?.bestLapTimeSec,
+              incidents: e.incidents,
+              finishStatus: extEntry?.finishStatus,
+              constructor: constructorName,
+              isClean: e.isClean,
+            };
+          })
+        );
         await tx.raceHistory.create({
           data: {
-            eventId,
-            title: event.title,
-            date: event.date,
-            track: event.track,
-            rawResults: JSON.stringify(
-              enriched.map((e, idx) => {
-                const extEntry = parsed.extended[idx];
-                const constructorName = extEntry?.["constructor" as keyof typeof extEntry] as string | undefined;
-                return {
-                  position: e.position,
-                  username: e.username,
-                  carClass: e.carClass,
-                  carNumber: extEntry?.carNumber,
-                  teamName: extEntry?.teamName,
-                  laps: extEntry?.laps,
-                  bestLapTime: extEntry?.bestLapTimeSec,
-                  incidents: e.incidents,
-                  finishStatus: extEntry?.finishStatus,
-                  constructor: constructorName,
-                  isClean: e.isClean,
-                };
-              })
-            ),
+            ...(eventId ? { event: { connect: { id: eventId } } } : {}),
+            title: historyTitle,
+            date: historyDate,
+            track: historyTrack,
+            rawResults: rawResultsJson,
             createdBy: session.user.discordId ?? session.user.id,
           },
         });

@@ -77,8 +77,8 @@ model Event {
 
 model RaceHistory {
   id         String   @id @default(cuid())
-  eventId    String
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    String?
+  event      Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   title      String
   date       DateTime
   track      String
