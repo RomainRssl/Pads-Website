@@ -14,7 +14,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
   const { username: rawUsername } = await params;
   const username = decodeURIComponent(rawUsername);
 
-  const [player, allPlayerIds, licenseConfigs] = await Promise.all([
+  const [player, allClassStats, licenseConfigs] = await Promise.all([
     prisma.player.findUnique({
       where: { username },
       include: {
@@ -23,7 +23,11 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
         classStats: { orderBy: { classXp: "desc" } },
       },
     }),
-    prisma.player.findMany({ orderBy: { xp: "desc" }, select: { id: true } }),
+    // Tous les classStats pour calculer le rang par classe
+    prisma.playerClassStats.findMany({
+      orderBy: { ladderPoints: "desc" },
+      select: { playerId: true, carClass: true, ladderPoints: true },
+    }),
     prisma.licenseConfig.findMany({ orderBy: { order: "asc" } }),
   ]);
 
@@ -31,11 +35,23 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
 
   if (!player) notFound();
 
-  const rank = allPlayerIds.findIndex((p) => p.id === player.id) + 1;
   const cleanRate = player.finishedRaces > 0
     ? Math.round((player.cleanRaces / player.finishedRaces) * 100)
     : 0;
   const categories = player.categories.map((pc) => pc.category);
+
+  // Rang du pilote par classe (trié par ladderPoints desc)
+  const classRankMap = new Map<string, number>();
+  const byClass = new Map<string, { playerId: string; ladderPoints: number }[]>();
+  for (const s of allClassStats) {
+    if (!byClass.has(s.carClass)) byClass.set(s.carClass, []);
+    byClass.get(s.carClass)!.push(s);
+  }
+  for (const [cls, entries] of byClass) {
+    const sorted = [...entries].sort((a, b) => b.ladderPoints - a.ladderPoints);
+    const idx = sorted.findIndex((e) => e.playerId === player.id);
+    if (idx !== -1) classRankMap.set(cls, idx + 1);
+  }
 
   // Compute per-class tiers (clamp ladderPoints ≥ 0 for display)
   const classStatsWithTiers = player.classStats.map((stat) => {
@@ -43,6 +59,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
     return {
       ...stat,
       ladderPoints: ladderPts,
+      classRank:  classRankMap.get(stat.carClass) ?? null,
       xpTier:     getClassXpTier(stat.classXp, classXpTiers),
       ladderTier: getLadderTier(ladderPts),
       nextTier:   getNextClassXpTier(stat.classXp, classXpTiers),
@@ -68,14 +85,20 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
                 <h1 className="font-heading text-3xl font-bold text-white tracking-wide">
                   {formatPilotName(player.username).toUpperCase()}
                 </h1>
-                {rank <= 3 && (
-                  <span className="text-2xl">{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}</span>
-                )}
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-brand-muted mb-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm mb-4">
                 {player.team && <span className="text-brand-text font-medium">{player.team.name}</span>}
-                {player.team && <span>·</span>}
-                <span>#{rank} au classement global</span>
+                {player.team && classStatsWithTiers.length > 0 && <span className="text-brand-muted">·</span>}
+                {classStatsWithTiers.map((stat) => stat.classRank && (
+                  <span key={stat.carClass} className="flex items-center gap-1 text-brand-muted">
+                    <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-brand-surface border border-brand-border text-white">
+                      {stat.carClass}
+                    </span>
+                    <span className="font-semibold" style={{ color: stat.ladderTier.color }}>
+                      {stat.classRank === 1 ? "🥇" : stat.classRank === 2 ? "🥈" : stat.classRank === 3 ? "🥉" : `#${stat.classRank}`}
+                    </span>
+                  </span>
+                ))}
               </div>
 
               {/* Categories */}
@@ -123,9 +146,16 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
                     >
                       {/* Class name */}
                       <div className="flex items-center justify-between mb-3">
-                        <span className="font-mono font-bold text-sm text-white px-2 py-0.5 rounded bg-brand-surface border border-brand-border">
-                          {stat.carClass}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-white px-2 py-0.5 rounded bg-brand-surface border border-brand-border">
+                            {stat.carClass}
+                          </span>
+                          {stat.classRank && (
+                            <span className="text-sm font-bold text-brand-muted">
+                              {stat.classRank === 1 ? "🥇" : stat.classRank === 2 ? "🥈" : stat.classRank === 3 ? "🥉" : `#${stat.classRank}`}
+                            </span>
+                          )}
+                        </div>
                         {/* Ladder tier badge */}
                         <span
                           className="text-xs font-bold px-2 py-0.5 rounded"
