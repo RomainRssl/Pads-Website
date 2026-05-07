@@ -165,7 +165,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
                             background: `${stat.ladderTier.color}15`,
                           }}
                         >
-                          Ladder {stat.ladderTier.name}
+                          Classement {stat.ladderTier.name}
                         </span>
                       </div>
 
@@ -209,7 +209,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
                       {/* Ladder points */}
                       <div className="pt-3 border-t border-brand-border">
                         <div className="flex items-baseline justify-between">
-                          <span className="text-xs text-brand-muted uppercase tracking-wide font-semibold">Ladder</span>
+                          <span className="text-xs text-brand-muted uppercase tracking-wide font-semibold">Classement</span>
                           <span className="font-heading font-bold text-lg text-white">
                             {stat.ladderPoints.toLocaleString("fr-FR")}
                             <span className="text-brand-muted text-xs font-normal ml-1">pts</span>
@@ -270,7 +270,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
       {/* Bottom links */}
       <div className="mt-6 flex flex-wrap gap-3">
         <Link href="/classement" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors">
-          🏆 Classement Ladder
+          🏆 Classement
         </Link>
         <Link href="/pilotes" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors">
           ← Tous les pilotes

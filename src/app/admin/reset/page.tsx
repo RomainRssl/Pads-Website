@@ -41,14 +41,14 @@ const ACTIONS: ResetAction[] = [
   },
   {
     key: "ladder",
-    label: "Reset Ladder",
-    description: "Remet les points de ladder à 0 pour toutes les classes.",
+    label: "Reset Classement",
+    description: "Remet les points de classement à 0 pour toutes les classes.",
     detail: [
-      "Ladder points → 0 pour chaque pilote/classe",
+      "Points classement → 0 pour chaque pilote/classe",
       "XP, argent, réputation et historique conservés",
     ],
     color: "blue",
-    confirmWord: "LADDER",
+    confirmWord: "CLASSEMENT",
   },
 ];
 

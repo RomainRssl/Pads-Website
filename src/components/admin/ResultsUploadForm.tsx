@@ -525,7 +525,7 @@ export default function ResultsUploadForm() {
         {/* ── Ladder ── */}
         <div>
           <h3 className="font-heading text-base font-semibold text-white mb-1">
-            Ladder <span className="text-brand-muted text-sm font-normal">(Score = ((N+1)/2) − pos · Points = Score × coeff)</span>
+            Classement <span className="text-brand-muted text-sm font-normal">(Score = ((N+1)/2) − pos · Points = Score × coeff)</span>
           </h3>
           <p className="text-brand-muted text-xs mb-4">Coefficient selon nombre de pilotes dans la même classe. Seuils : Silver 100, Gold 250, Platine 400 pts.</p>
           <div className="grid grid-cols-3 gap-4">
@@ -710,7 +710,7 @@ export default function ResultsUploadForm() {
                 <Th center>Sa</Th>
                 <Th center>XP</Th>
                 <Th center>Argent</Th>
-                {hasLadder && <Th center>Ldr Δ</Th>}
+                {hasLadder && <Th center>Cls Δ</Th>}
                 <Th center>Rép.</Th>
                 <Th center>DB</Th>
               </tr>

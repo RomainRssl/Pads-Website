@@ -12,6 +12,8 @@ const createEventSchema = z.object({
   cars: z.array(z.string().min(1)).min(1).max(5),
   description: z.string().max(500).optional(),
   imageUrl: z.string().optional().or(z.literal("")),
+  serverName: z.string().max(100).optional().or(z.literal("")),
+  serverPassword: z.string().max(100).optional().or(z.literal("")),
 });
 
 export async function GET() {
@@ -48,6 +50,8 @@ export async function POST(req: Request) {
       cars: JSON.stringify(parsed.data.cars),
       description: parsed.data.description ?? null,
       imageUrl: parsed.data.imageUrl || null,
+      serverName: parsed.data.serverName || null,
+      serverPassword: parsed.data.serverPassword || null,
       createdById: session.user.discordId,
     },
   });

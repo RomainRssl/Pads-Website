@@ -64,7 +64,7 @@ export default async function ClassementPage({
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🏆</span>
           <h1 className="font-heading text-4xl font-bold text-white tracking-wide">
-            Ladder <span className="text-brand-orange">Pilotes</span>
+            Classement <span className="text-brand-orange">Pilotes</span>
           </h1>
         </div>
         <p className="text-brand-muted">
@@ -182,8 +182,8 @@ export default async function ClassementPage({
               <div className="text-center">Pos</div>
               <div className="min-w-[150px]">Pilote</div>
               <div className="text-center hidden sm:block">Rang XP</div>
-              <div className="text-center hidden sm:block">Rang Ladder</div>
-              <div className="text-right">Ladder pts</div>
+              <div className="text-center hidden sm:block">Rang Classement</div>
+              <div className="text-right">Pts Classement</div>
               <div className="text-right hidden sm:block">XP classe</div>
               <div className="text-right hidden sm:block">Réput.</div>
             </div>
@@ -289,7 +289,7 @@ export default async function ClassementPage({
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-brand-muted">
-        <span>Score Ladder = ((N+1)/2) − position parmi même rang XP</span>
+        <span>Score Classement = ((N+1)/2) − position parmi même rang XP</span>
         <span>·</span>
         <span>Points = Score × coefficient grille</span>
       </div>

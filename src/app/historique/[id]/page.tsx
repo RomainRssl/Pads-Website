@@ -143,7 +143,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
               {hasIncidents && !hasIncidentBreakdown && <Th center>Inc.</Th>}
               <Th center>XP</Th>
               <Th center>Argent</Th>
-              {hasLadder   && <Th center>Ldr Δ</Th>}
+              {hasLadder   && <Th center>Cls Δ</Th>}
               <Th center>Rép.</Th>
             </tr>
           </thead>

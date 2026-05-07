@@ -10,6 +10,8 @@ interface FormState {
   game: string;
   track: string;
   description: string;
+  serverName: string;
+  serverPassword: string;
 }
 
 const initialState: FormState = {
@@ -18,6 +20,8 @@ const initialState: FormState = {
   game: "",
   track: "",
   description: "",
+  serverName: "",
+  serverPassword: "",
 };
 
 const LMU_CARS = [
@@ -138,6 +142,8 @@ export default function CreateEventForm() {
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
           imageUrl: imageUrl || undefined,
+          serverName: form.serverName || undefined,
+          serverPassword: form.serverPassword || undefined,
         }),
       });
 
@@ -148,6 +154,7 @@ export default function CreateEventForm() {
 
       setSuccess(true);
       setForm(initialState);
+
       setCars([""]);
       setImageFile(null);
       setImagePreview(null);
@@ -279,6 +286,32 @@ export default function CreateEventForm() {
           placeholder="Règles, informations importantes sur la course..."
           className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors resize-none"
         />
+      </div>
+
+      {/* Server info */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="serverName" className="block text-sm font-medium text-brand-text mb-1.5">
+            Nom du serveur <span className="text-brand-muted font-normal">(optionnel)</span>
+          </label>
+          <input
+            id="serverName" name="serverName" type="text"
+            value={form.serverName} onChange={handleChange}
+            placeholder="PADS Open #12"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          />
+        </div>
+        <div>
+          <label htmlFor="serverPassword" className="block text-sm font-medium text-brand-text mb-1.5">
+            Mot de passe <span className="text-brand-muted font-normal">(optionnel)</span>
+          </label>
+          <input
+            id="serverPassword" name="serverPassword" type="text"
+            value={form.serverPassword} onChange={handleChange}
+            placeholder="pads2025"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          />
+        </div>
       </div>
 
       {/* Image */}
