@@ -312,6 +312,7 @@ export async function POST(req: Request) {
           enriched.map((e, idx) => {
             const extEntry = parsed.extended[idx];
             const constructorName = extEntry?.["constructor" as keyof typeof extEntry] as string | undefined;
+            const extEnt = extendedEntries.find(x => x.username.toLowerCase() === e.username.toLowerCase());
             return {
               position: e.position,
               username: e.username,
@@ -324,6 +325,10 @@ export async function POST(req: Request) {
               finishStatus: extEntry?.finishStatus,
               constructor: constructorName,
               isClean: e.isClean,
+              offtrackCount: extEnt?.offtrackCount ?? null,
+              contactCount:  extEnt?.contactCount  ?? null,
+              avertCount:    extEnt?.avertCount     ?? null,
+              sanctionCount: extEnt?.sanctionCount  ?? null,
             };
           })
         );
