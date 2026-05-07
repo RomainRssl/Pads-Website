@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { formatPilotName } from "@/lib/format";
 
 function formatLapTime(sec: number | null | undefined): string {
   if (sec == null || sec <= 0) return "—";
@@ -157,7 +158,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
                     {medals.get(`${result.player.username}__${result.carClass}`) ?? `#${result.position}`}
                   </td>
                   <td className="px-2 py-2 overflow-hidden">
-                    <p className="font-medium text-brand-text truncate">{result.player.username}</p>
+                    <p className="font-medium text-brand-text truncate">{formatPilotName(result.player.username)}</p>
                     {result.teamName && <p className="text-brand-muted truncate">{result.teamName}</p>}
                   </td>
                   {hasClass && (

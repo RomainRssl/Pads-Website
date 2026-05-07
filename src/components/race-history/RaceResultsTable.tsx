@@ -1,3 +1,5 @@
+import { formatPilotName } from "@/lib/format";
+
 interface RaceResult {
   position: number;
   username: string;
@@ -90,7 +92,7 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
               <tr key={idx} className={`border-b border-brand-border last:border-0 hover:bg-brand-surface/50 transition-colors ${isDnf ? "bg-red-500/5" : ""}`}>
                 <td className="px-1 py-2 font-bold text-brand-text text-center">{medal}</td>
                 <td className="px-2 py-2 overflow-hidden">
-                  <p className="font-medium text-brand-text truncate">{result.username}</p>
+                  <p className="font-medium text-brand-text truncate">{formatPilotName(result.username)}</p>
                   {result.teamName && <p className="text-brand-muted truncate">{result.teamName}</p>}
                 </td>
                 {hasClass && (
