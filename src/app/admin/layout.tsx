@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { href: "/admin/players", label: "👤 Pilotes" },
   { href: "/admin/categories", label: "🏁 Catégories" },
   { href: "/admin/licenses", label: "🎖️ Licences (DB)" },
+  { href: "/admin/reset", label: "🗑️ Reset" },
 ];
 
 export default async function AdminLayout({
