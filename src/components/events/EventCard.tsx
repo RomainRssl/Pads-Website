@@ -19,9 +19,10 @@ function formatDate(date: Date) {
 
 function getDaysUntil(date: Date): number {
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(date);
-  const diff = target.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  return Math.round((targetDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export default function EventCard({ event }: EventCardProps) {
