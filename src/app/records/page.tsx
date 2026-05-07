@@ -111,7 +111,7 @@ export default function RecordsPage() {
             ← Accueil
           </Link>
           <h1 className="text-4xl font-bold text-white font-heading tracking-wide">
-            Records Mondiaux
+            Records des Opens
           </h1>
           <p className="text-brand-muted mt-2">
             Meilleur temps par classe et circuit

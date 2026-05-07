@@ -23,6 +23,31 @@ function sessionLabel(type: string | null) {
   return "Session";
 }
 
+type SessionResult = {
+  id: string;
+  position: number;
+  carClass: string | null;
+  player: { username: string };
+  [key: string]: unknown;
+};
+
+function podiumByClass(results: SessionResult[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const byClass = new Map<string, SessionResult[]>();
+  for (const r of [...results].sort((a, b) => a.position - b.position)) {
+    const cls = r.carClass ?? "__overall__";
+    if (!byClass.has(cls)) byClass.set(cls, []);
+    byClass.get(cls)!.push(r);
+  }
+  for (const [, group] of Array.from(byClass.entries())) {
+    group.forEach((r, i) => {
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${r.position}`;
+      map.set(`${r.player.username}__${r.carClass}`, medal);
+    });
+  }
+  return map;
+}
+
 export default async function HistoriqueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -48,6 +73,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
     (r) => (r.offtrackCount ?? 0) + (r.contactCount ?? 0) + (r.avertCount ?? 0) + (r.sanctionCount ?? 0) > 0
   );
   const classes       = Array.from(new Set(session.results.map((r) => r.carClass).filter(Boolean)));
+  const medals        = podiumByClass(session.results as SessionResult[]);
 
   return (
     <main className="w-full px-4 sm:px-6 py-16">
@@ -128,7 +154,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
                 <tr key={result.id}
                   className={`border-b border-brand-border last:border-0 hover:bg-brand-surface/50 transition-colors ${isDnf ? "bg-red-500/5" : ""}`}>
                   <td className="px-1 py-2 font-bold text-brand-text text-center">
-                    {result.position === 1 ? "🥇" : result.position === 2 ? "🥈" : result.position === 3 ? "🥉" : `#${result.position}`}
+                    {medals.get(`${result.player.username}__${result.carClass}`) ?? `#${result.position}`}
                   </td>
                   <td className="px-2 py-2 overflow-hidden">
                     <p className="font-medium text-brand-text truncate">{result.player.username}</p>

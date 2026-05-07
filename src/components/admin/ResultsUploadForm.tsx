@@ -112,6 +112,23 @@ function formatLapTime(sec: number | null | undefined): string {
   return `${m}:${s}`;
 }
 
+function podiumByClass(results: PreviewEntry[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const byClass = new Map<string, PreviewEntry[]>();
+  for (const r of [...results].sort((a, b) => a.position - b.position)) {
+    const cls = r.carClass ?? "__overall__";
+    if (!byClass.has(cls)) byClass.set(cls, []);
+    byClass.get(cls)!.push(r);
+  }
+  for (const [, group] of Array.from(byClass.entries())) {
+    group.forEach((r, i) => {
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${r.position}`;
+      map.set(`${r.username}__${r.carClass}`, medal);
+    });
+  }
+  return map;
+}
+
 function formatDate(raw: string | undefined): string {
   if (!raw) return "—";
   try {
@@ -699,15 +716,19 @@ export default function ResultsUploadForm() {
               </tr>
             </thead>
             <tbody>
-              {[...preview].sort((a, b) => a.position - b.position).map((entry) => {
+              {(() => {
+                const sortedPreview = [...preview].sort((a, b) => a.position - b.position);
+                const previewMedals = podiumByClass(sortedPreview);
+                return sortedPreview.map((entry) => {
                 const isDnf = entry.finishStatus && entry.finishStatus !== "Finished Normally";
+                const medal = previewMedals.get(`${entry.username}__${entry.carClass}`) ?? `#${entry.position}`;
                 return (
                   <tr key={entry.username}
                     className={`border-b border-brand-border last:border-0 transition-colors
                       ${(entry.foundInDb || entry.willBeCreated) ? "hover:bg-brand-surface/50" : "opacity-50"}
                       ${isDnf ? "bg-red-500/5" : ""}`}>
                     <td className="px-1 py-2 font-bold text-brand-text text-center">
-                      {entry.position === 1 ? "🥇" : entry.position === 2 ? "🥈" : entry.position === 3 ? "🥉" : `#${entry.position}`}
+                      {medal}
                     </td>
                     <td className="px-1 py-2 overflow-hidden">
                       <p className="font-medium text-brand-text truncate">{entry.username}</p>
@@ -788,7 +809,8 @@ export default function ResultsUploadForm() {
                     </td>
                   </tr>
                 );
-              })}
+              });
+              })()}
             </tbody>
           </table>
         </div>
