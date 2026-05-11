@@ -4,12 +4,21 @@ import { sendEventNotification } from "@/lib/discord-webhook";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+// A car entry is either a plain string (legacy) or { name, maxCars? }
+const carEntrySchema = z.union([
+  z.string().min(1),
+  z.object({
+    name: z.string().min(1),
+    maxCars: z.number().int().min(1).nullable().optional(),
+  }),
+]);
+
 const createEventSchema = z.object({
   title: z.string().min(1).max(100),
   date: z.string().datetime(),
   game: z.string().min(1).max(60),
   track: z.string().min(1).max(60),
-  cars: z.array(z.string().min(1)).min(1).max(5),
+  cars: z.array(carEntrySchema).min(1).max(5),
   description: z.string().max(500).optional(),
   imageUrl: z.string().optional().or(z.literal("")),
   serverName: z.string().max(100).optional().or(z.literal("")),
@@ -47,6 +56,7 @@ export async function POST(req: Request) {
       date: new Date(parsed.data.date),
       game: parsed.data.game,
       track: parsed.data.track,
+      // Persist as JSON — supports both legacy strings and new { name, maxCars } objects
       cars: JSON.stringify(parsed.data.cars),
       description: parsed.data.description ?? null,
       imageUrl: parsed.data.imageUrl || null,

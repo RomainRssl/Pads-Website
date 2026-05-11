@@ -14,6 +14,12 @@ interface FormState {
   serverPassword: string;
 }
 
+// Each car entry now carries an optional max-car count per class
+interface CarEntry {
+  name: string;
+  maxCars: number | "";
+}
+
 const initialState: FormState = {
   title: "",
   date: "",
@@ -80,19 +86,26 @@ export default function CreateEventForm() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>(initialState);
-  const [cars, setCars] = useState<string[]>([""]);
+  const [cars, setCars] = useState<CarEntry[]>([{ name: "", maxCars: "" }]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  function updateCar(idx: number, val: string) {
-    setCars((prev) => prev.map((c, i) => i === idx ? val : c));
+  function updateCarName(idx: number, val: string) {
+    setCars((prev) => prev.map((c, i) => i === idx ? { ...c, name: val } : c));
   }
+
+  function updateCarMax(idx: number, val: string) {
+    const parsed = val === "" ? "" : Math.max(1, parseInt(val, 10) || 1);
+    setCars((prev) => prev.map((c, i) => i === idx ? { ...c, maxCars: parsed } : c));
+  }
+
   function addCar() {
-    if (cars.length < 5) setCars((prev) => [...prev, ""]);
+    if (cars.length < 5) setCars((prev) => [...prev, { name: "", maxCars: "" }]);
   }
+
   function removeCar(idx: number) {
     setCars((prev) => prev.filter((_, i) => i !== idx));
   }
@@ -133,12 +146,17 @@ export default function CreateEventForm() {
     try {
       const imageUrl = await uploadImage();
 
+      // Serialize cars as { name, maxCars } objects — maxCars is null when not set
+      const carsPayload = cars
+        .filter((c) => c.name.trim() !== "")
+        .map((c) => ({ name: c.name, maxCars: c.maxCars === "" ? null : c.maxCars }));
+
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          cars: cars.filter(Boolean),
+          cars: carsPayload,
           date: new Date(form.date).toISOString(),
           description: form.description || undefined,
           imageUrl: imageUrl || undefined,
@@ -154,8 +172,7 @@ export default function CreateEventForm() {
 
       setSuccess(true);
       setForm(initialState);
-
-      setCars([""]);
+      setCars([{ name: "", maxCars: "" }]);
       setImageFile(null);
       setImagePreview(null);
       setTimeout(() => router.push("/admin"), 1500);
@@ -230,7 +247,7 @@ export default function CreateEventForm() {
         </div>
       </div>
 
-      {/* Car dropdown — multi-select up to 5 */}
+      {/* Car dropdown — multi-select up to 5, each with optional max cars */}
       <div>
         <label className="block text-sm font-medium text-brand-text mb-1.5">
           Voiture / Classe <span className="text-brand-red">*</span>
@@ -238,10 +255,11 @@ export default function CreateEventForm() {
         </label>
         <div className="space-y-2">
           {cars.map((car, idx) => (
-            <div key={idx} className="flex gap-2">
+            <div key={idx} className="flex gap-2 items-center">
+              {/* Class selector */}
               <select
-                value={car}
-                onChange={(e) => updateCar(idx, e.target.value)}
+                value={car.name}
+                onChange={(e) => updateCarName(idx, e.target.value)}
                 required={idx === 0}
                 className="flex-1 px-3 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors"
               >
@@ -254,11 +272,31 @@ export default function CreateEventForm() {
                   </optgroup>
                 ))}
               </select>
+
+              {/* Max cars input — only shown once a class is selected */}
+              {car.name && (
+                <div className="relative shrink-0 w-28">
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={car.maxCars}
+                    onChange={(e) => updateCarMax(idx, e.target.value)}
+                    placeholder="Max"
+                    className="w-full px-3 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-colors text-sm"
+                  />
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs">
+                    voitures
+                  </span>
+                </div>
+              )}
+
+              {/* Remove button */}
               {cars.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeCar(idx)}
-                  className="px-3 py-2 rounded-lg border border-brand-border text-brand-muted hover:text-brand-red hover:border-brand-red transition-colors text-lg leading-none"
+                  className="shrink-0 px-3 py-2 rounded-lg border border-brand-border text-brand-muted hover:text-brand-red hover:border-brand-red transition-colors text-lg leading-none"
                 >×</button>
               )}
             </div>
@@ -275,6 +313,32 @@ export default function CreateEventForm() {
         </div>
       </div>
 
+      {/* Server info */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="serverName" className="block text-sm font-medium text-brand-text mb-1.5">
+            Nom du serveur <span className="text-brand-muted font-normal">(optionnel)</span>
+          </label>
+          <input
+            id="serverName" name="serverName" type="text"
+            value={form.serverName} onChange={handleChange}
+            placeholder="PADS Racing #1"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          />
+        </div>
+        <div>
+          <label htmlFor="serverPassword" className="block text-sm font-medium text-brand-text mb-1.5">
+            Mot de passe <span className="text-brand-muted font-normal">(optionnel)</span>
+          </label>
+          <input
+            id="serverPassword" name="serverPassword" type="text"
+            value={form.serverPassword} onChange={handleChange}
+            placeholder="pads2024"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          />
+        </div>
+      </div>
+
       {/* Description */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-brand-text mb-1.5">
@@ -288,75 +352,20 @@ export default function CreateEventForm() {
         />
       </div>
 
-      {/* Server info */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="serverName" className="block text-sm font-medium text-brand-text mb-1.5">
-            Nom du serveur <span className="text-brand-muted font-normal">(optionnel)</span>
-          </label>
-          <input
-            id="serverName" name="serverName" type="text"
-            value={form.serverName} onChange={handleChange}
-            placeholder="PADS Open #12"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
-          />
-        </div>
-        <div>
-          <label htmlFor="serverPassword" className="block text-sm font-medium text-brand-text mb-1.5">
-            Mot de passe <span className="text-brand-muted font-normal">(optionnel)</span>
-          </label>
-          <input
-            id="serverPassword" name="serverPassword" type="text"
-            value={form.serverPassword} onChange={handleChange}
-            placeholder="pads2025"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* Image */}
-      <div>
-        <label className="block text-sm font-medium text-brand-text mb-1.5">
-          Image de l&apos;annonce <span className="text-brand-muted font-normal">(optionnel · JPG, PNG, WebP, GIF · max 5 Mo)</span>
-        </label>
-        {imagePreview && (
-          <div className="mb-3 relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imagePreview} alt="Aperçu" className="w-full max-h-48 object-cover rounded-lg border border-brand-border" />
-            <button
-              type="button"
-              onClick={() => { setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = ""; }}
-              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-brand-dark/80 border border-brand-border text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors"
-            >×</button>
-          </div>
-        )}
-        <div
-          className="border-2 border-dashed border-brand-border rounded-xl p-6 text-center cursor-pointer hover:border-brand-red/50 transition-colors"
-          onClick={() => fileRef.current?.click()}
-        >
-          <p className="text-brand-muted text-sm">Cliquez pour choisir une image</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={handleImageChange}
-          />
-        </div>
-      </div>
+      {/* Image upload */}
+      <ImageUpload
+        fileRef={fileRef}
+        imagePreview={imagePreview}
+        onImageChange={handleImageChange}
+        onClear={() => { setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+      />
 
       <button
         type="submit"
-        disabled={loading || success}
-        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:bg-brand-orange/50 text-white font-semibold transition-colors"
+        disabled={loading}
+        className="w-full py-3 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white font-semibold transition-colors"
       >
-        {loading && (
-          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        )}
-        {loading ? "Création en cours..." : "Créer l'événement"}
+        {loading ? "Création en cours…" : "Créer l'événement"}
       </button>
     </form>
   );

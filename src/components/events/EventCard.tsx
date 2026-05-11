@@ -5,6 +5,28 @@ interface EventCardProps {
   event: Event;
 }
 
+// A car entry can be either a plain string (legacy) or an object with optional maxCars
+interface CarEntry {
+  name: string;
+  maxCars?: number | null;
+}
+
+function parseCarClasses(raw: string | unknown): CarEntry[] {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => {
+      if (typeof item === "string") return { name: item };
+      if (typeof item === "object" && item !== null && "name" in item) {
+        return { name: String(item.name), maxCars: item.maxCars ?? null };
+      }
+      return { name: String(item) };
+    });
+  } catch {
+    return [];
+  }
+}
+
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
@@ -35,7 +57,7 @@ export default function EventCard({ event }: EventCardProps) {
   if (isToday) countdownLabel = "Aujourd'hui !";
   else if (isTomorrow) countdownLabel = "Demain !";
 
-  const carClasses: string[] = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
+  const carClasses = parseCarClasses(event.cars);
 
   return (
     <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">
@@ -75,8 +97,13 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="flex flex-wrap gap-2 mb-4">
           <EventBadge label={event.game} variant="game" />
           <EventBadge label={event.track} variant="track" />
-          {carClasses.map((carClass: string) => (
-            <EventBadge key={carClass} label={carClass} variant="car" />
+          {carClasses.map((entry) => (
+            <EventBadge
+              key={entry.name}
+              label={entry.name}
+              subLabel={entry.maxCars ? `${entry.maxCars} max` : undefined}
+              variant="car"
+            />
           ))}
         </div>
 
