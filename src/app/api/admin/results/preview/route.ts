@@ -94,6 +94,24 @@ export async function POST(req: Request) {
       );
     }
 
+    // Build ladder rank lookup: "username::carClass" → rank (position in class standings)
+    // Group all stats by carClass, sort by ladderPoints desc, assign rank
+    const ladderRankLookup = new Map<string, number>(); // "username::carClass" → rank
+    const statsByClass = new Map<string, typeof classStats>();
+    for (const stat of classStats) {
+      if (!statsByClass.has(stat.carClass)) statsByClass.set(stat.carClass, []);
+      statsByClass.get(stat.carClass)!.push(stat);
+    }
+    for (const [, group] of Array.from(statsByClass.entries())) {
+      const sorted = [...group].sort((a, b) => b.ladderPoints - a.ladderPoints);
+      sorted.forEach((stat, i) => {
+        ladderRankLookup.set(
+          `${stat.player.username.toLowerCase()}::${stat.carClass}`,
+          i + 1
+        );
+      });
+    }
+
     const perEntryLadderPointsMap = new Map<string, number>();
     for (const e of extendedEntries) {
       if (e.carClass) {
@@ -124,6 +142,9 @@ export async function POST(req: Request) {
       laps:           parsed.extended[idx]?.laps,
       bestLapTimeSec: parsed.extended[idx]?.bestLapTimeSec,
       finishStatus:   parsed.extended[idx]?.finishStatus,
+      ladderRank:     parsed.extended[idx]?.carClass
+        ? (ladderRankLookup.get(`${entry.username.toLowerCase()}::${parsed.extended[idx].carClass}`) ?? null)
+        : null,
     }));
 
     return NextResponse.json({
