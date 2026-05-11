@@ -129,6 +129,22 @@ function podiumByClass(results: PreviewEntry[]): Map<string, string> {
   return map;
 }
 
+function classRankMap(results: PreviewEntry[]): Map<string, number> {
+  const map = new Map<string, number>();
+  const byClass = new Map<string, PreviewEntry[]>();
+  for (const r of [...results].sort((a, b) => a.position - b.position)) {
+    const cls = r.carClass ?? "__overall__";
+    if (!byClass.has(cls)) byClass.set(cls, []);
+    byClass.get(cls)!.push(r);
+  }
+  for (const [, group] of Array.from(byClass.entries())) {
+    group.forEach((r, i) => {
+      map.set(`${r.username}__${r.carClass}`, i + 1);
+    });
+  }
+  return map;
+}
+
 function formatDate(raw: string | undefined): string {
   if (!raw) return "—";
   try {
@@ -680,12 +696,13 @@ export default function ResultsUploadForm() {
         </div>
 
         {/* Standings table */}
-        <div className="rounded-xl border border-brand-border overflow-hidden">
-          <table className="w-full text-xs table-fixed">
+        <div className="rounded-xl border border-brand-border overflow-x-auto">
+          <table className="w-full text-xs" style={{ minWidth: hasExtended ? "700px" : "420px" }}>
             <colgroup>
               <col className="w-10" />
               <col className="w-32" />
               {hasExtended && <col className="w-16" />}
+              {hasExtended && <col className="w-10" />}
               {hasExtended && <col className="w-10" />}
               {hasExtended && <col className="w-14" />}
               {hasExtended && <col className="w-10" />}
@@ -701,6 +718,7 @@ export default function ResultsUploadForm() {
                 <Th center>Pos</Th>
                 <Th>Pilote</Th>
                 {hasExtended && <Th>Classe</Th>}
+                {hasExtended && <Th center>Cls.</Th>}
                 {hasExtended && <Th center>Trs</Th>}
                 {hasExtended && <Th center>Tps.</Th>}
                 {hasExtended && <Th center>Arr.</Th>}
@@ -719,6 +737,7 @@ export default function ResultsUploadForm() {
               {(() => {
                 const sortedPreview = [...preview].sort((a, b) => a.position - b.position);
                 const previewMedals = podiumByClass(sortedPreview);
+                const classRanks = classRankMap(sortedPreview);
                 return sortedPreview.map((entry) => {
                 const isDnf = entry.finishStatus && entry.finishStatus !== "Finished Normally";
                 const medal = previewMedals.get(`${entry.username}__${entry.carClass}`) ?? `#${entry.position}`;
@@ -739,6 +758,18 @@ export default function ResultsUploadForm() {
                         {entry.carClass && (
                           <span className="font-mono text-brand-muted truncate block">{entry.carClass}</span>
                         )}
+                      </td>
+                    )}
+                    {hasExtended && (
+                      <td className="px-1 py-2 text-center font-bold">
+                        {(() => {
+                          const rank = classRanks.get(`${entry.username}__${entry.carClass}`);
+                          if (!rank) return <span className="text-brand-muted">—</span>;
+                          if (rank === 1) return <span className="text-yellow-400">P1</span>;
+                          if (rank === 2) return <span className="text-slate-300">P2</span>;
+                          if (rank === 3) return <span className="text-amber-600">P3</span>;
+                          return <span className="text-brand-muted">P{rank}</span>;
+                        })()}
                       </td>
                     )}
                     {hasExtended && <td className="px-1 py-2 text-brand-text text-center">{entry.laps ?? "—"}</td>}
