@@ -5,20 +5,24 @@ interface EventCardProps {
   event: Event;
 }
 
-// A car entry can be either a plain string (legacy) or an object with optional maxCars
-interface CarEntry {
+interface CarClass {
   name: string;
+  max_places?: number | null;
+  // legacy transitional field
   maxCars?: number | null;
 }
 
-function parseCarClasses(raw: string | unknown): CarEntry[] {
+function parseCarClasses(raw: string | unknown): CarClass[] {
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!Array.isArray(parsed)) return [];
     return parsed.map((item) => {
       if (typeof item === "string") return { name: item };
       if (typeof item === "object" && item !== null && "name" in item) {
-        return { name: String(item.name), maxCars: item.maxCars ?? null };
+        return {
+          name: String(item.name),
+          max_places: item.max_places ?? item.maxCars ?? null,
+        };
       }
       return { name: String(item) };
     });
@@ -61,10 +65,8 @@ export default function EventCard({ event }: EventCardProps) {
 
   return (
     <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">
-      {/* Racing stripe accent */}
       <div className="h-1 bg-gradient-to-r from-brand-orange via-brand-orange to-brand-orange" />
 
-      {/* Event image */}
       {event.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -75,7 +77,6 @@ export default function EventCard({ event }: EventCardProps) {
       )}
 
       <div className="p-5">
-        {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <h3 className="font-heading text-lg font-bold text-brand-text group-hover:text-white transition-colors leading-tight">
             {event.title}
@@ -93,28 +94,28 @@ export default function EventCard({ event }: EventCardProps) {
           </span>
         </div>
 
-        {/* Badges */}
         <div className="flex flex-wrap gap-2 mb-4">
           <EventBadge label={event.game} variant="game" />
           <EventBadge label={event.track} variant="track" />
-          {carClasses.map((entry) => (
-            <EventBadge
-              key={entry.name}
-              label={entry.name}
-              subLabel={entry.maxCars ? `${entry.maxCars} max` : undefined}
-              variant="car"
-            />
-          ))}
+          {carClasses.map((entry) => {
+            const limit = entry.max_places ?? entry.maxCars;
+            return (
+              <EventBadge
+                key={entry.name}
+                label={entry.name}
+                subLabel={limit ? `${limit} places` : undefined}
+                variant="car"
+              />
+            );
+          })}
         </div>
 
-        {/* Description */}
         {event.description && (
           <p className="text-brand-muted text-sm leading-relaxed mb-4 line-clamp-2">
             {event.description}
           </p>
         )}
 
-        {/* Date footer */}
         <div className="flex items-center gap-2 text-brand-muted text-sm border-t border-brand-border pt-3 mt-auto">
           <CalendarIcon />
           <time dateTime={new Date(event.date).toISOString()}>
@@ -128,18 +129,8 @@ export default function EventCard({ event }: EventCardProps) {
 
 function CalendarIcon() {
   return (
-    <svg
-      className="w-4 h-4 shrink-0"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-      />
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
     </svg>
   );
 }
