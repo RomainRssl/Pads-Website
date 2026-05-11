@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
 
@@ -84,11 +84,9 @@ const LMU_CARS = [
 
 export default function CreateEventForm() {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>(initialState);
   const [cars, setCars] = useState<CarEntry[]>([{ name: "", maxCars: "" }]);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -115,15 +113,6 @@ export default function CreateEventForm() {
     setError(null);
   }
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setImageFile(file);
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImagePreview(null);
-    }
-  }
 
   async function uploadImage(): Promise<string | null> {
     if (!imageFile) return null;
@@ -174,7 +163,6 @@ export default function CreateEventForm() {
       setForm(initialState);
       setCars([{ name: "", maxCars: "" }]);
       setImageFile(null);
-      setImagePreview(null);
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -354,10 +342,8 @@ export default function CreateEventForm() {
 
       {/* Image upload */}
       <ImageUpload
-        fileRef={fileRef}
-        imagePreview={imagePreview}
-        onImageChange={handleImageChange}
-        onClear={() => { setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+        onImageSelect={setImageFile}
+        preview={undefined}
       />
 
       <button
