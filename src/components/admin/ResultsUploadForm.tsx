@@ -30,7 +30,7 @@ interface PreviewEntry {
   laps?: number;
   bestLapTimeSec?: number | null;
   finishStatus?: string;
-  ladderRank?: number | null;
+  classXpTier?: { name: string; color: string } | null;
 }
 
 interface Formula {
@@ -745,15 +745,10 @@ export default function ResultsUploadForm() {
                       </td>
                     )}
                     {hasExtended && (
-                      <td className="px-1 py-2 text-center font-bold">
-                        {(() => {
-                          const rank = entry.ladderRank;
-                          if (!rank) return <span className="text-brand-muted">—</span>;
-                          if (rank === 1) return <span className="text-yellow-400">P1</span>;
-                          if (rank === 2) return <span className="text-slate-300">P2</span>;
-                          if (rank === 3) return <span className="text-amber-600">P3</span>;
-                          return <span className="text-brand-muted">P{rank}</span>;
-                        })()}
+                      <td className="px-1 py-2 text-center">
+                        {entry.classXpTier
+                          ? <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ color: entry.classXpTier.color, border: `1px solid ${entry.classXpTier.color}40`, background: `${entry.classXpTier.color}15` }}>{entry.classXpTier.name}</span>
+                          : <span className="text-brand-muted text-xs">—</span>}
                       </td>
                     )}
                     {hasExtended && <td className="px-1 py-2 text-brand-text text-center">{entry.laps ?? "—"}</td>}

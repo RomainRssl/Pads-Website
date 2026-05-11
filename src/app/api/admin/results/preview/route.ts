@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { parseFile, classifyIncidentBreakdown } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
+import { getClassXpTier, tiersFromDb } from "@/lib/class-tiers";
 import type { ExtendedRawEntry } from "@/lib/rewards";
 
 export async function POST(req: Request) {
@@ -81,6 +82,10 @@ export async function POST(req: Request) {
         .map((p) => p.username.toLowerCase())
     );
 
+    // Fetch XP tiers from DB (same as /classement page)
+    const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
+    const classXpTiers = tiersFromDb(licenseConfigs);
+
     // Fetch current ladder points per player/class (for ladder tier calculation)
     // Build perEntryLadderPointsMap: username (lowercase) → ladderPoints for this car class
     const classStats = await prisma.playerClassStats.findMany({
@@ -94,22 +99,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Build ladder rank lookup: "username::carClass" → rank (position in class standings)
-    // Group all stats by carClass, sort by ladderPoints desc, assign rank
-    const ladderRankLookup = new Map<string, number>(); // "username::carClass" → rank
-    const statsByClass = new Map<string, typeof classStats>();
+    // Build classXpTier lookup: "username::carClass" → tier name + color
+    const classXpTierLookup = new Map<string, { name: string; color: string }>();
     for (const stat of classStats) {
-      if (!statsByClass.has(stat.carClass)) statsByClass.set(stat.carClass, []);
-      statsByClass.get(stat.carClass)!.push(stat);
-    }
-    for (const [, group] of Array.from(statsByClass.entries())) {
-      const sorted = [...group].sort((a, b) => b.ladderPoints - a.ladderPoints);
-      sorted.forEach((stat, i) => {
-        ladderRankLookup.set(
-          `${stat.player.username.toLowerCase()}::${stat.carClass}`,
-          i + 1
-        );
-      });
+      const tier = getClassXpTier(stat.classXp, classXpTiers);
+      classXpTierLookup.set(
+        `${stat.player.username.toLowerCase()}::${stat.carClass}`,
+        { name: tier.name, color: tier.color }
+      );
     }
 
     const perEntryLadderPointsMap = new Map<string, number>();
@@ -142,8 +139,8 @@ export async function POST(req: Request) {
       laps:           parsed.extended[idx]?.laps,
       bestLapTimeSec: parsed.extended[idx]?.bestLapTimeSec,
       finishStatus:   parsed.extended[idx]?.finishStatus,
-      ladderRank:     parsed.extended[idx]?.carClass
-        ? (ladderRankLookup.get(`${entry.username.toLowerCase()}::${parsed.extended[idx].carClass}`) ?? null)
+      classXpTier:    parsed.extended[idx]?.carClass
+        ? (classXpTierLookup.get(`${entry.username.toLowerCase()}::${parsed.extended[idx].carClass}`) ?? null)
         : null,
     }));
 
