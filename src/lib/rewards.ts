@@ -1,5 +1,5 @@
 import type { RawEntry } from "./race-parser";
-import { CLASS_XP_TIERS, getTier, type Tier } from "./class-tiers";
+import { LADDER_TIERS, getTier, type Tier } from "./class-tiers";
 
 // ── Formula config ────────────────────────────────────────────────────────────
 
@@ -160,16 +160,18 @@ export interface ExtendedRawEntry extends RawEntry {
 
 // ── calculateAll ──────────────────────────────────────────────────────────────
 //
-// classXpMap : username (lowercase) → classXp actuel en DB (pour déterminer le
-//              tier XP de chaque pilote avant cette course).
-//              Peut être vide pour les fichiers CSV/JSON (Ladder non calculé).
+// ladderPointsMap : username (lowercase) → ladderPoints actuel en DB pour la
+//                  classe de voiture de cette course (pour déterminer le rang
+//                  Ladder de chaque pilote avant cette course).
+//                  Peut être vide pour les fichiers CSV/JSON (Ladder non calculé).
 
 export function calculateAll(
   entries: ExtendedRawEntry[],
   durationMin: number,
   formula: RewardFormula = DEFAULT_FORMULA,
-  classXpMap: Map<string, number> = new Map(),
-  classXpTiers: Tier[] = CLASS_XP_TIERS
+  ladderPointsMap: Map<string, number> = new Map(),
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _classXpTiers?: Tier[]
 ): CalculatedEntry[] {
   // Grouper par classe
   const byClass = new Map<string, ExtendedRawEntry[]>();
@@ -187,11 +189,11 @@ export function calculateAll(
     // Trier par position globale
     const sorted = [...group].sort((a, b) => a.position - b.position);
 
-    // Déterminer le tier XP actuel de chaque pilote et les regrouper
+    // Déterminer le rang Ladder actuel de chaque pilote et les regrouper
     const tierGroups = new Map<string, ExtendedRawEntry[]>();
     for (const entry of sorted) {
-      const currentXp = classXpMap.get(entry.username.toLowerCase()) ?? 0;
-      const tierName = getTier(currentXp, classXpTiers).name;
+      const currentLadder = ladderPointsMap.get(entry.username.toLowerCase()) ?? 0;
+      const tierName = getTier(currentLadder, LADDER_TIERS).name;
       if (!tierGroups.has(tierName)) tierGroups.set(tierName, []);
       tierGroups.get(tierName)!.push(entry);
     }

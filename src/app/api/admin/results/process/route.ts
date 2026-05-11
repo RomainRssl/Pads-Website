@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { parseFile } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
-import { tiersFromDb } from "@/lib/class-tiers";
 import { sendRaceResultsNotification } from "@/lib/discord-webhook";
 import type { RaceResultSummary } from "@/lib/discord-webhook";
 import type { ExtendedRawEntry } from "@/lib/rewards";
@@ -72,10 +71,6 @@ export async function POST(req: Request) {
       };
     });
 
-    // Fetch XP tiers from DB (admin-configurable)
-    const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
-    const classXpTiers = tiersFromDb(licenseConfigs);
-
     // Fetch all existing players
     const lowerUsernames = new Set(parsed.entries.map((e) => e.username.toLowerCase()));
     const allPlayers = await prisma.player.findMany({ include: { team: true } });
@@ -95,7 +90,7 @@ export async function POST(req: Request) {
       autoCreated++;
     }
 
-    // Fetch current class XP per player (for ladder tier calculation)
+    // Fetch current ladder points per player/class (for ladder tier calculation)
     const allPlayerIds = Array.from(playerMap.values()).map((p) => p.id);
     const classStats = await prisma.playerClassStats.findMany({
       where: { playerId: { in: allPlayerIds } },
@@ -109,15 +104,15 @@ export async function POST(req: Request) {
       ladderPointsLookup.set(key, stat.ladderPoints);
     }
 
-    const perEntryClassXpMap = new Map<string, number>();
+    const perEntryLadderPointsMap = new Map<string, number>();
     for (const e of extendedEntries) {
       if (e.carClass) {
         const key = `${e.username.toLowerCase()}::${e.carClass}`;
-        perEntryClassXpMap.set(e.username.toLowerCase(), classXpLookup.get(key) ?? 0);
+        perEntryLadderPointsMap.set(e.username.toLowerCase(), ladderPointsLookup.get(key) ?? 0);
       }
     }
 
-    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap, classXpTiers);
+    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryLadderPointsMap);
 
     const enriched = calculated.map((entry) => ({
       ...entry,

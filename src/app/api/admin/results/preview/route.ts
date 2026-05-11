@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { parseFile, classifyIncidentBreakdown } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
-import { tiersFromDb } from "@/lib/class-tiers";
 import type { ExtendedRawEntry } from "@/lib/rewards";
 
 export async function POST(req: Request) {
@@ -71,10 +70,6 @@ export async function POST(req: Request) {
       finishStatus: parsed.extended[idx]?.finishStatus,
     }));
 
-    // Fetch XP tiers from DB (admin-configurable)
-    const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
-    const classXpTiers = tiersFromDb(licenseConfigs);
-
     // Look up players case-insensitively
     const lowerUsernames = parsed.entries.map((e) => e.username.toLowerCase());
     const allPlayers = await prisma.player.findMany({
@@ -86,28 +81,28 @@ export async function POST(req: Request) {
         .map((p) => p.username.toLowerCase())
     );
 
-    // Fetch current class XP per player (for ladder tier calculation)
-    // Build perEntryClassXpMap: username (lowercase) → classXp for this car class
+    // Fetch current ladder points per player/class (for ladder tier calculation)
+    // Build perEntryLadderPointsMap: username (lowercase) → ladderPoints for this car class
     const classStats = await prisma.playerClassStats.findMany({
       include: { player: { select: { username: true } } },
     });
-    const classXpLookup = new Map<string, number>(); // "username::carClass" → classXp
+    const ladderPointsLookup = new Map<string, number>(); // "username::carClass" → ladderPoints
     for (const stat of classStats) {
-      classXpLookup.set(
+      ladderPointsLookup.set(
         `${stat.player.username.toLowerCase()}::${stat.carClass}`,
-        stat.classXp
+        stat.ladderPoints
       );
     }
 
-    const perEntryClassXpMap = new Map<string, number>();
+    const perEntryLadderPointsMap = new Map<string, number>();
     for (const e of extendedEntries) {
       if (e.carClass) {
         const key = `${e.username.toLowerCase()}::${e.carClass}`;
-        perEntryClassXpMap.set(e.username.toLowerCase(), classXpLookup.get(key) ?? 0);
+        perEntryLadderPointsMap.set(e.username.toLowerCase(), ladderPointsLookup.get(key) ?? 0);
       }
     }
 
-    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryClassXpMap, classXpTiers);
+    const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryLadderPointsMap);
 
     // Classify XML incident breakdown using formula thresholds
     const incidentCounts = parsed.incidentBreakdown
