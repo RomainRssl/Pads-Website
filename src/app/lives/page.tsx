@@ -6,7 +6,7 @@ import LiveMultiplex from "@/components/lives/LiveMultiplex";
 export const revalidate = 0;
 
 export default async function LivesPage() {
-  const streamers = await prisma.twitchStreamer.findMany({ orderBy:{ createdAt:"asc" } });
+  const streamers = await prisma.twitchStreamer.findMany({ orderBy:{ addedAt:"asc" } });
   return (
     <main className="min-h-screen bg-brand-navy flex flex-col">
       <Navbar />

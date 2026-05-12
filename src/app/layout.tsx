@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Rajdhani, Inter } from "next/font/google";
 import "./globals.css";
-import { SessionProvider } from "@/components/SessionProvider";
+import SessionProvider from "@/components/SessionProvider";
 
 const rajdhani = Rajdhani({
   subsets: ["latin"],
