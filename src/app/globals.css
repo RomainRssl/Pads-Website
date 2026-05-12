@@ -2,43 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
-
-:root {
-  --font-rajdhani: 'Rajdhani', sans-serif;
-  --font-inter: 'Inter', sans-serif;
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: theme("colors.brand.navy");
+    color: theme("colors.brand.text");
+    font-family: var(--font-inter), sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: theme("colors.brand.navy"); }
+  ::-webkit-scrollbar-thumb { background: theme("colors.brand.border"); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: theme("colors.brand.orange"); }
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  background-color: #0A0A0F;
-  color: #E2E8F0;
-  font-family: var(--font-inter);
-}
-
-/* Hide scrollbar for nav overflow */
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #111118;
-}
-::-webkit-scrollbar-thumb {
-  background: #1E1E2E;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #E63946;
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-brand-orange text-brand-navy font-heading font-bold text-xs uppercase tracking-widest px-5 py-2.5 rounded-sm hover:bg-brand-orange2 transition-colors cursor-pointer;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 font-heading font-bold text-xs uppercase tracking-widest text-brand-muted border border-brand-border px-5 py-2.5 rounded-sm hover:border-brand-orange hover:text-brand-orange transition-all cursor-pointer;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 font-heading font-bold text-xs uppercase tracking-widest text-red-400 border border-red-900/40 px-4 py-2 rounded-sm hover:bg-red-900/20 transition-colors cursor-pointer;
+  }
+  .section-header { @apply flex items-center gap-3 mb-6; }
+  .section-bar    { @apply w-0.5 h-5 bg-brand-orange flex-shrink-0; }
+  .section-title  { @apply font-heading font-bold text-lg uppercase tracking-widest text-brand-text; }
+  .card           { @apply bg-brand-card border border-brand-border rounded-sm; }
+  .badge-game     { @apply inline-block font-heading font-bold text-[10px] uppercase tracking-[0.18em] bg-brand-orange/10 text-brand-orange border border-brand-orange/30 px-2 py-0.5 rounded-sm; }
+  .badge-muted    { @apply inline-block font-heading font-semibold text-[11px] uppercase tracking-wide bg-brand-surface border border-brand-border text-brand-muted px-2.5 py-1 rounded-sm; }
+  .input          { @apply w-full bg-brand-surface border border-brand-border text-brand-text font-body text-sm px-4 py-2.5 rounded-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-brand-muted/50; }
+  .label          { @apply block font-heading font-semibold text-xs uppercase tracking-widest text-brand-muted mb-2; }
+  .table-racing   { @apply w-full border-collapse; }
+  .table-racing th { @apply font-heading font-bold text-xs uppercase tracking-widest text-brand-muted text-left px-4 py-3 border-b border-brand-border; }
+  .table-racing td { @apply font-body text-sm text-brand-text px-4 py-3 border-b border-brand-border/50; }
+  .table-racing tr:hover td { @apply bg-brand-surface/50; }
+  .stat-card  { @apply bg-brand-card border border-brand-border rounded-sm p-4 flex flex-col; }
+  .stat-value { @apply font-heading font-bold text-3xl text-brand-text leading-none; }
+  .stat-label { @apply font-heading text-xs uppercase tracking-widest text-brand-muted mt-1.5; }
 }

@@ -1,30 +1,30 @@
 import type { Metadata } from "next";
+import { Rajdhani, Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import SessionProvider from "@/components/SessionProvider";
-import { auth } from "@/auth";
+import { SessionProvider } from "@/components/SessionProvider";
+
+const rajdhani = Rajdhani({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-rajdhani",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Par amour du spin — Sim Racing Community",
-  description: "La communauté française de Sim Racing. Calendrier des courses, événements et bien plus.",
+  description: "La communauté française dédiée à la simulation de course.",
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await auth();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <body className="min-h-screen bg-brand-dark font-body antialiased">
-        <SessionProvider session={session}>
-          <Navbar />
-          <main className="pt-16">{children}</main>
-          <Footer />
-        </SessionProvider>
+    <html lang="fr" className={`${rajdhani.variable} ${inter.variable}`}>
+      <body className="bg-brand-navy text-brand-text antialiased font-body">
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

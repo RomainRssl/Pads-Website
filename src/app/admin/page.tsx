@@ -1,32 +1,21 @@
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import EventTable from "@/components/admin/EventTable";
 
 export default async function AdminPage() {
-  const events = await prisma.event.findMany({
-    orderBy: { date: "asc" },
-  });
-
+  const events  = await prisma.event.findMany({ orderBy:{ date:"asc" } });
+  const players = await prisma.player.count();
+  const sessions= await prisma.raceSession.count();
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-white">
-            Tableau de bord
-          </h1>
-          <p className="text-brand-muted mt-1">
-            {events.length} événement{events.length !== 1 ? "s" : ""} au total
-          </p>
+    <div className="space-y-8">
+      <div>
+        <div className="section-header"><div className="section-bar"/><h1 className="section-title">Dashboard</h1></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          {[{label:"Événements",value:events.length},{label:"Pilotes",value:players},{label:"Sessions",value:sessions},{label:"À venir",value:events.filter(e=>new Date(e.date)>new Date()).length}].map(s=>(
+            <div key={s.label} className="stat-card"><span className="stat-value text-brand-orange">{s.value}</span><span className="stat-label">{s.label}</span></div>
+          ))}
         </div>
-        <Link
-          href="/admin/create"
-          className="px-4 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 text-white font-semibold text-sm transition-colors"
-        >
-          + Nouvelle course
-        </Link>
       </div>
-
-      <EventTable initialEvents={events} />
+      <div><div className="section-header"><div className="section-bar"/><h2 className="section-title">Tous les événements</h2></div><EventTable events={events}/></div>
     </div>
   );
 }
