@@ -5,184 +5,101 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 
+const TICKER_ITEMS = ["Le Mans Ultimate","Communauté sim racing française","Spa-Francorchamps","LMGT3 · Hypercar","Rejoindre le Discord"];
+
 export default function Navbar() {
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-brand-dark/90 backdrop-blur-sm border-b border-brand-border">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Left — logo + desktop links */}
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-85 transition-opacity">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/LOGO.png" alt="PADS" className="w-10 h-10 object-contain" />
-            <span className="font-heading text-base sm:text-lg font-bold text-white tracking-wide whitespace-nowrap hidden sm:block">
-              Par amour du <span className="text-brand-red">spin</span>
+    <div className="fixed top-0 left-0 right-0 z-50">
+      {/* Ticker */}
+      <div className="bg-brand-orange overflow-hidden whitespace-nowrap py-1" style={{height:"28px"}}>
+        <div style={{display:"inline-block",animation:"ticker 25s linear infinite"}}>
+          {[...TICKER_ITEMS,...TICKER_ITEMS].map((t,i)=>(
+            <span key={i} className="inline-block">
+              <span style={{fontFamily:"var(--font-rajdhani)",fontWeight:700,fontSize:"11px",letterSpacing:"0.15em",textTransform:"uppercase",color:"#0B0D14",padding:"0 20px"}}>{t}</span>
+              <span style={{color:"rgba(11,13,20,0.3)",fontSize:"11px"}}>◆</span>
             </span>
-          </Link>
-          <Link
-            href="/pilotes"
-            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
-          >
-            Pilotes
-          </Link>
-          <Link
-            href="/lives"
-            className="hidden sm:flex items-center gap-1.5 text-sm text-brand-muted hover:text-white transition-colors"
-          >
-            <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
-            Lives
-          </Link>
-          <Link
-            href="/classement"
-            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
-          >
-            Classement
-          </Link>
-          <Link
-            href="/race-history"
-            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
-          >
-            📚 Historique
-          </Link>
-          <Link
-            href="/records"
-            className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors"
-          >
-            🏆 Records
-          </Link>
-        </div>
-
-        {/* Right — auth + hamburger */}
-        <div className="flex items-center gap-3">
-          {status === "loading" && (
-            <div className="h-8 w-24 rounded-lg bg-brand-border animate-pulse" />
-          )}
-
-          {status === "unauthenticated" && (
-            <button
-              onClick={() => signIn("discord")}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-discord hover:bg-brand-discord/80 text-white text-sm font-medium transition-colors"
-            >
-              <DiscordIcon />
-              Se connecter
-            </button>
-          )}
-
-          {status === "authenticated" && session?.user && (
-            <div className="flex items-center gap-3">
-              {session.user.role === "ADMIN" && (
-                <Link
-                  href="/admin"
-                  className="px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium hover:bg-brand-orange/20 transition-colors"
-                >
-                  Admin
-                </Link>
-              )}
-              <div className="flex items-center gap-2">
-                {session.user.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt={session.user.name ?? "Avatar"}
-                    width={32}
-                    height={32}
-                    className="rounded-full ring-2 ring-brand-border"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-brand-discord flex items-center justify-center text-white text-xs font-bold">
-                    {session.user.name?.[0]?.toUpperCase() ?? "?"}
-                  </div>
-                )}
-                <span className="text-brand-text text-sm hidden md:block">
-                  {session.user.name}
-                </span>
-              </div>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="hidden lg:block px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors"
-              >
-                Déconnexion
-              </button>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="lg:hidden p-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors"
-                aria-label="Déconnexion"
-                title="Déconnexion"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-              </button>
-            </div>
-          )}
-
-          {/* Hamburger — mobile only */}
-          <button
-            onClick={() => setMobileOpen((o) => !o)}
-            className="sm:hidden p-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-white transition-colors"
-            aria-label="Menu"
-          >
-            {mobileOpen ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            )}
-          </button>
+          ))}
         </div>
       </div>
+
+      {/* Nav */}
+      <nav className="bg-brand-dark/90 backdrop-blur-sm border-b border-brand-border">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-85 transition-opacity">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/LOGO.png" alt="PADS" className="w-10 h-10 object-contain" />
+              <span className="font-heading text-base sm:text-lg font-bold text-white tracking-wide whitespace-nowrap hidden sm:block">
+                Par amour du <span className="text-brand-orange">spin</span>
+              </span>
+            </Link>
+            <Link href="/pilotes" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">Pilotes</Link>
+            <Link href="/lives" className="hidden sm:flex items-center gap-1.5 text-sm text-brand-muted hover:text-white transition-colors">
+              <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
+              Lives
+            </Link>
+            <Link href="/classement" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">Classement</Link>
+            <Link href="/race-history" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">📚 Historique</Link>
+            <Link href="/records" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">🏆 Records</Link>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {status === "loading" && <div className="h-8 w-24 rounded-lg bg-brand-border animate-pulse" />}
+            {status === "unauthenticated" && (
+              <button onClick={() => signIn("discord")} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-discord hover:bg-brand-discord/80 text-white text-sm font-medium transition-colors">
+                <DiscordIcon />Se connecter
+              </button>
+            )}
+            {status === "authenticated" && session?.user && (
+              <div className="flex items-center gap-3">
+                {session.user.role === "ADMIN" && (
+                  <Link href="/admin" className="px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium hover:bg-brand-orange/20 transition-colors">Admin</Link>
+                )}
+                <div className="flex items-center gap-2">
+                  {session.user.image ? (
+                    <Image src={session.user.image} alt={session.user.name ?? "Avatar"} width={32} height={32} className="rounded-full ring-2 ring-brand-border" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand-discord flex items-center justify-center text-white text-xs font-bold">
+                      {session.user.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                  )}
+                  <span className="text-brand-text text-sm hidden md:block">{session.user.name}</span>
+                </div>
+                <button onClick={() => signOut({ callbackUrl: "/" })} className="hidden lg:block px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors">Déconnexion</button>
+                <button onClick={() => signOut({ callbackUrl: "/" })} className="lg:hidden p-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors" aria-label="Déconnexion">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+              </div>
+            )}
+            <button onClick={() => setMobileOpen((o) => !o)} className="sm:hidden p-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-white transition-colors" aria-label="Menu">
+              {mobileOpen ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              )}
+            </button>
+          </div>
+        </div>
+      </nav>
 
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="sm:hidden border-t border-brand-border bg-brand-dark px-4 py-3 flex flex-col gap-1">
-          <Link
-            href="/pilotes"
-            onClick={() => setMobileOpen(false)}
-            className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
-          >
-            Pilotes
+          <Link href="/pilotes" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">Pilotes</Link>
+          <Link href="/lives" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">
+            <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse" />Lives
           </Link>
-          <Link
-            href="/lives"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
-          >
-            <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
-            Lives
-          </Link>
-          <Link
-            href="/classement"
-            onClick={() => setMobileOpen(false)}
-            className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
-          >
-            Classement
-          </Link>
-          <Link
-            href="/race-history"
-            onClick={() => setMobileOpen(false)}
-            className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
-          >
-            📚 Historique
-          </Link>
-          <Link
-            href="/records"
-            onClick={() => setMobileOpen(false)}
-            className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors"
-          >
-            🏆 Records
-          </Link>
+          <Link href="/classement" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">Classement</Link>
+          <Link href="/race-history" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">📚 Historique</Link>
+          <Link href="/records" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">🏆 Records</Link>
         </div>
       )}
-    </nav>
+
+      <style>{`@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
+    </div>
   );
 }
 

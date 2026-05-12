@@ -6,9 +6,14 @@ import LiveMultiplex from "@/components/lives/LiveMultiplex";
 export const revalidate = 0;
 
 export default async function LivesPage() {
-  const streamers = await prisma.twitchStreamer.findMany({ orderBy:{ addedAt:"asc" } });
+  const raw = await prisma.twitchStreamer.findMany({ orderBy:{ addedAt:"asc" } });
+  const streamers = raw.map(s => ({
+    id: s.id,
+    twitchUsername: s.username,
+    displayName: s.displayName,
+  }));
   return (
-    <main className="min-h-screen bg-brand-navy flex flex-col">
+    <main className="min-h-screen bg-brand-navy flex flex-col pt-16">
       <Navbar />
       <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <div className="section-header mb-6">

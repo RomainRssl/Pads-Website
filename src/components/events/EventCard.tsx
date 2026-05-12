@@ -61,7 +61,7 @@ export default function EventCard({ event }: EventCardProps) {
   if (isToday) countdownLabel = "Aujourd'hui !";
   else if (isTomorrow) countdownLabel = "Demain !";
 
-  const carClasses = parseCarClasses(event.carss);
+  const carClasses = parseCarClasses(event.cars);
 
   return (
     <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">

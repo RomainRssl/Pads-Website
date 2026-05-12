@@ -12,7 +12,7 @@ export default async function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-brand-navy">
+    <main className="min-h-screen bg-brand-navy pt-16">
       <Navbar />
       <Hero />
       <section className="max-w-7xl mx-auto px-6 py-12">
