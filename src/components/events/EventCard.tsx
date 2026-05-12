@@ -5,32 +5,6 @@ interface EventCardProps {
   event: Event;
 }
 
-interface CarClass {
-  name: string;
-  max_places?: number | null;
-  // legacy transitional field
-  maxCars?: number | null;
-}
-
-function parseCarClasses(raw: string | unknown): CarClass[] {
-  try {
-    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((item) => {
-      if (typeof item === "string") return { name: item };
-      if (typeof item === "object" && item !== null && "name" in item) {
-        return {
-          name: String(item.name),
-          max_places: item.max_places ?? item.maxCars ?? null,
-        };
-      }
-      return { name: String(item) };
-    });
-  } catch {
-    return [];
-  }
-}
-
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
@@ -45,10 +19,9 @@ function formatDate(date: Date) {
 
 function getDaysUntil(date: Date): number {
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(date);
-  const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-  return Math.round((targetDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const diff = target.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
 export default function EventCard({ event }: EventCardProps) {
@@ -61,22 +34,15 @@ export default function EventCard({ event }: EventCardProps) {
   if (isToday) countdownLabel = "Aujourd'hui !";
   else if (isTomorrow) countdownLabel = "Demain !";
 
-  const carClasses = parseCarClasses(event.cars);
+  const carClasses = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
 
   return (
     <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">
+      {/* Racing stripe accent */}
       <div className="h-1 bg-gradient-to-r from-brand-orange via-brand-orange to-brand-orange" />
 
-      {event.imageUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={event.imageUrl}
-          alt={event.title}
-          className="w-full max-h-72 object-contain bg-brand-surface"
-        />
-      )}
-
       <div className="p-5">
+        {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <h3 className="font-heading text-lg font-bold text-brand-text group-hover:text-white transition-colors leading-tight">
             {event.title}
@@ -94,28 +60,23 @@ export default function EventCard({ event }: EventCardProps) {
           </span>
         </div>
 
+        {/* Badges */}
         <div className="flex flex-wrap gap-2 mb-4">
           <EventBadge label={event.game} variant="game" />
           <EventBadge label={event.track} variant="track" />
-          {carClasses.map((entry) => {
-            const limit = entry.max_places ?? entry.maxCars;
-            return (
-              <EventBadge
-                key={entry.name}
-                label={entry.name}
-                subLabel={limit ? `${limit} places` : undefined}
-                variant="car"
-              />
-            );
-          })}
+          {carClasses.map((carClass: string, idx: number) => (
+            <EventBadge key={idx} label={carClass} variant="car" />
+          ))}
         </div>
 
+        {/* Description */}
         {event.description && (
           <p className="text-brand-muted text-sm leading-relaxed mb-4 line-clamp-2">
             {event.description}
           </p>
         )}
 
+        {/* Date footer */}
         <div className="flex items-center gap-2 text-brand-muted text-sm border-t border-brand-border pt-3 mt-auto">
           <CalendarIcon />
           <time dateTime={new Date(event.date).toISOString()}>
@@ -129,8 +90,18 @@ export default function EventCard({ event }: EventCardProps) {
 
 function CalendarIcon() {
   return (
-    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+    <svg
+      className="w-4 h-4 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+      />
     </svg>
   );
 }

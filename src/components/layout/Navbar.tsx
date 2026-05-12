@@ -1,22 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 
-const TICKER_ITEMS = ["Le Mans Ultimate","Communauté sim racing française","Spa-Francorchamps","LMGT3 · Hypercar","Rejoindre le Discord"];
-
 export default function Navbar() {
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tickerItems, setTickerItems] = useState(["Le Mans Ultimate","Communauté sim racing française","Spa-Francorchamps","LMGT3 · Hypercar","Rejoindre le Discord"]);
+
+  useEffect(() => {
+    fetch("/api/ticker").then(r => r.json()).then(data => {
+      if (data && data.length > 0) setTickerItems(data.map((d: {text: string}) => d.text));
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50">
       {/* Ticker */}
       <div className="bg-brand-orange overflow-hidden whitespace-nowrap py-1" style={{height:"28px"}}>
         <div style={{display:"inline-block",animation:"ticker 25s linear infinite"}}>
-          {[...TICKER_ITEMS,...TICKER_ITEMS].map((t,i)=>(
+          {[...tickerItems,...tickerItems].map((t,i)=>(
             <span key={i} className="inline-block">
               <span style={{fontFamily:"var(--font-rajdhani)",fontWeight:700,fontSize:"11px",letterSpacing:"0.15em",textTransform:"uppercase",color:"#0B0D14",padding:"0 20px"}}>{t}</span>
               <span style={{color:"rgba(11,13,20,0.3)",fontSize:"11px"}}>◆</span>
