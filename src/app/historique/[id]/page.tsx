@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPilotName } from "@/lib/format";
+import { getClassXpTier, tiersFromDb } from "@/lib/class-tiers";
 
 function formatLapTime(sec: number | null | undefined): string {
   if (sec == null || sec <= 0) return "—";
@@ -64,6 +65,24 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
 
   if (!session) notFound();
 
+  const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
+  const classXpTiers = tiersFromDb(licenseConfigs);
+
+  const classStats = await prisma.playerClassStats.findMany({
+    where: { player: { username: { in: session.results.map((r) => r.player.username) } } },
+    include: { player: { select: { username: true } } },
+  });
+
+  const classXpTierMap = new Map<string, { name: string; color: string }>();
+  for (const stat of classStats) {
+    const tier = getClassXpTier(stat.classXp, classXpTiers);
+    classXpTierMap.set(
+      `${stat.player.username.toLowerCase()}::${stat.carClass}`,
+      { name: tier.name, color: tier.color }
+    );
+  }
+  const hasClassTier = classXpTierMap.size > 0;
+
   const hasClass      = session.results.some((r) => r.carClass);
   const hasLaps       = session.results.some((r) => r.laps != null);
   const hasBestLap    = session.results.some((r) => r.bestLapTimeSec != null);
@@ -118,6 +137,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
             <col className="w-10" />
             <col className="w-36" />
             {hasClass   && <col className="w-20" />}
+            {hasClassTier && <col className="w-20" />}
             {hasLaps    && <col className="w-12" />}
             {hasBestLap && <col className="w-16" />}
             {hasFinish  && <col className="w-12" />}
@@ -133,6 +153,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
               <Th center>Pos</Th>
               <Th>Pilote</Th>
               {hasClass    && <Th>Classe</Th>}
+              {hasClassTier && <Th center>Cls.</Th>}
               {hasLaps     && <Th center>Tours</Th>}
               {hasBestLap  && <Th>Tps.</Th>}
               {hasFinish   && <Th center>Arr.</Th>}
@@ -166,6 +187,26 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
                       {result.carClass && (
                         <span className="font-mono text-brand-muted truncate block">{result.carClass}</span>
                       )}
+                    </td>
+                  )}
+                  {hasClassTier && (
+                    <td className="px-1 py-2 text-center">
+                      {(() => {
+                        const tier = classXpTierMap.get(`${result.player.username.toLowerCase()}::${result.carClass}`);
+                        if (!tier) return <span className="text-brand-muted">—</span>;
+                        return (
+                          <span
+                            style={{
+                              color: tier.color,
+                              border: `1px solid ${tier.color}40`,
+                              background: `${tier.color}15`,
+                            }}
+                            className="text-xs px-1.5 py-0.5 rounded font-semibold"
+                          >
+                            {tier.name}
+                          </span>
+                        );
+                      })()}
                     </td>
                   )}
                   {hasLaps && <td className="px-1 py-2 text-brand-text text-center">{result.laps ?? "—"}</td>}
