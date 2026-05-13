@@ -1,30 +1,27 @@
 import type { Metadata } from "next";
-import { Rajdhani, Inter } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import SessionProvider from "@/components/SessionProvider";
-
-const rajdhani = Rajdhani({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-rajdhani",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-inter",
-});
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
   title: "Par amour du spin — Sim Racing Community",
-  description: "La communauté française dédiée à la simulation de course.",
+  description: "La communauté française de Sim Racing. Calendrier des courses, événements et bien plus.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
   return (
-    <html lang="fr" className={`${rajdhani.variable} ${inter.variable}`}>
-      <body className="bg-brand-navy text-brand-text antialiased font-body">
-        <SessionProvider>{children}</SessionProvider>
+    <html lang="fr">
+      <body className="bg-brand-dark font-body antialiased">
+        <SessionProvider session={session}>
+          <Navbar />
+          <div style={{ paddingTop: "100px" }}>
+            {children}
+            <Footer />
+          </div>
+        </SessionProvider>
       </body>
     </html>
   );

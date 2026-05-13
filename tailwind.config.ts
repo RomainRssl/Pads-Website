@@ -8,7 +8,7 @@ const config: Config = {
         brand: {
           orange:  "#F07000",
           orange2: "#F4A261",
-          navy:    "#0B0D14",
+          navy:    "#0b0d14",
           dark:    "#0A0A0F",
           surface: "#0D1020",
           card:    "#0F1120",

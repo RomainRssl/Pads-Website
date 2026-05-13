@@ -266,3 +266,11 @@ model TwitchStreamer {
   displayName String?           // Synced from Twitch API
   addedAt     DateTime @default(now())
 }
+
+model TickerItem {
+  id        String   @id @default(cuid())
+  text      String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

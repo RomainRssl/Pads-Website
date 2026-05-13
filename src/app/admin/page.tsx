@@ -15,7 +15,10 @@ export default async function AdminPage() {
           ))}
         </div>
       </div>
-      <div><div className="section-header"><div className="section-bar"/><h2 className="section-title">Tous les événements</h2></div><EventTable events={events}/></div>
+      <div>
+        <div className="section-header"><div className="section-bar"/><h2 className="section-title">Tous les événements</h2></div>
+        <EventTable initialEvents={events} />
+      </div>
     </div>
   );
 }
