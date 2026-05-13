@@ -14,6 +14,7 @@ interface RaceResult {
   contactCount?: number;
   avertCount?: number;
   sanctionCount?: number;
+  classXpTier?: { name: string; color: string } | null;
 }
 
 interface RaceResultsTableProps {
@@ -51,6 +52,7 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
   const medals = podiumByClass(parsedResults);
 
   const hasClass    = parsedResults.some((r) => r.carClass);
+  const hasClassTier = parsedResults.some((r) => r.classXpTier);
   const hasLaps     = parsedResults.some((r) => r.laps);
   const hasBestLap  = parsedResults.some((r) => r.bestLapTime);
   const hasFinish   = parsedResults.some((r) => r.finishStatus);
@@ -66,6 +68,7 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
           <col className="w-10" />
           <col className="w-36" />
           {hasClass   && <col className="w-20" />}
+          {hasClassTier && <col className="w-20" />}
           {hasLaps    && <col className="w-12" />}
           {hasBestLap && <col className="w-16" />}
           {hasFinish  && <col className="w-12" />}
@@ -77,6 +80,7 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
             <Th center>Pos</Th>
             <Th>Pilote</Th>
             {hasClass   && <Th>Classe</Th>}
+            {hasClassTier && <Th center>Cls.</Th>}
             {hasLaps    && <Th center>Trs</Th>}
             {hasBestLap && <Th center>Tps.</Th>}
             {hasFinish  && <Th center>Arr.</Th>}
@@ -98,6 +102,24 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
                 {hasClass && (
                   <td className="px-1 py-2 overflow-hidden">
                     <span className="font-mono text-brand-muted truncate block">{result.carClass ?? "—"}</span>
+                  </td>
+                )}
+                {hasClassTier && (
+                  <td className="px-1 py-2 text-center">
+                    {result.classXpTier ? (
+                      <span
+                        style={{
+                          color: result.classXpTier.color,
+                          border: `1px solid ${result.classXpTier.color}40`,
+                          background: `${result.classXpTier.color}15`,
+                        }}
+                        className="text-xs px-1.5 py-0.5 rounded font-semibold"
+                      >
+                        {result.classXpTier.name}
+                      </span>
+                    ) : (
+                      <span className="text-brand-muted">—</span>
+                    )}
                   </td>
                 )}
                 {hasLaps    && <td className="px-1 py-2 text-brand-text text-center">{result.laps ?? "—"}</td>}
