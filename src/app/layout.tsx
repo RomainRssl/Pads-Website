@@ -10,20 +10,17 @@ export const metadata: Metadata = {
   description: "La communauté française de Sim Racing. Calendrier des courses, événements et bien plus.",
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-
   return (
     <html lang="fr">
-      <body className="min-h-screen bg-brand-navy font-body antialiased">
+      <body className="bg-brand-dark font-body antialiased">
         <SessionProvider session={session}>
           <Navbar />
-          <main className="pt-16">{children}</main>
-          <Footer />
+          <div style={{ paddingTop: "100px" }}>
+            {children}
+            <Footer />
+          </div>
         </SessionProvider>
       </body>
     </html>
