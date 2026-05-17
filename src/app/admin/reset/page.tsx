@@ -53,10 +53,10 @@ const ACTIONS: ResetAction[] = [
   {
     key: "season",
     label: "Réinit. Saison",
-    description: "Réinitialise le ladder et ramène l'XP de classe au plancher du tier actuel.",
+    description: "Ramène les points classement au minimum du tier actuel sans toucher l'XP.",
     detail: [
-      "Points classement → 0 pour chaque pilote/classe",
-      "XP de classe → minimum du tier actuel (ex : Gold 2345 XP → 2000 XP)",
+      "Points classement → minimum du tier ladder actuel (ex : Gold 350 pts → 250 pts)",
+      "XP de classe → inchangé",
       "Argent, réputation, historique et résultats conservés",
       "Le tier (Bronze/Silver/Gold…) ne change pas",
     ],

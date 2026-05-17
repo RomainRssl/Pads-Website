@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { tiersFromDb, CLASS_XP_TIERS, getTier } from "@/lib/class-tiers";
+import { LADDER_TIERS, getLadderTier } from "@/lib/class-tiers";
 
 // POST /api/admin/reset?action=all|players|ladder
 export async function POST(req: Request) {
@@ -60,15 +60,13 @@ export async function POST(req: Request) {
     }
 
     if (action === "season") {
-      // Réinit. saison : ladder → 0 + classXp ramené au plancher du tier actuel
-      const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
-      const tiers = licenseConfigs.length ? tiersFromDb(licenseConfigs) : CLASS_XP_TIERS;
-      const allStats = await prisma.playerClassStats.findMany({ select: { id: true, classXp: true } });
+      // Réinit. saison : ladderPoints → plancher du tier ladder actuel, classXp inchangé
+      const allStats = await prisma.playerClassStats.findMany({ select: { id: true, ladderPoints: true } });
 
-      // Regroupe les stats par tier pour limiter le nombre d'updateMany
+      // Regroupe par plancher de tier ladder pour minimiser le nombre d'updateMany
       const tierGroups = new Map<number, string[]>();
       for (const stat of allStats) {
-        const floor = getTier(stat.classXp, tiers).min;
+        const floor = getLadderTier(stat.ladderPoints).min;
         if (!tierGroups.has(floor)) tierGroups.set(floor, []);
         tierGroups.get(floor)!.push(stat.id);
       }
@@ -77,7 +75,7 @@ export async function POST(req: Request) {
         Array.from(tierGroups.entries()).map(([floor, ids]) =>
           prisma.playerClassStats.updateMany({
             where: { id: { in: ids } },
-            data: { classXp: floor, ladderPoints: 0 },
+            data: { ladderPoints: floor },
           })
         )
       );
