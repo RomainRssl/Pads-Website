@@ -3,11 +3,11 @@
 import { useState } from "react";
 
 interface ResetAction {
-  key: "all" | "players" | "ladder";
+  key: "all" | "players" | "ladder" | "season";
   label: string;
   description: string;
   detail: string[];
-  color: "red" | "orange" | "blue";
+  color: "red" | "orange" | "blue" | "purple";
   confirmWord: string;
 }
 
@@ -50,12 +50,26 @@ const ACTIONS: ResetAction[] = [
     color: "blue",
     confirmWord: "CLASSEMENT",
   },
+  {
+    key: "season",
+    label: "Réinit. Saison",
+    description: "Réinitialise le ladder et ramène l'XP de classe au plancher du tier actuel.",
+    detail: [
+      "Points classement → 0 pour chaque pilote/classe",
+      "XP de classe → minimum du tier actuel (ex : Gold 2345 XP → 2000 XP)",
+      "Argent, réputation, historique et résultats conservés",
+      "Le tier (Bronze/Silver/Gold…) ne change pas",
+    ],
+    color: "purple",
+    confirmWord: "SAISON",
+  },
 ];
 
 const COLOR = {
-  red:    { border: "border-red-500/40",    bg: "bg-red-500/10",    badge: "bg-red-500/20 text-red-400 border-red-500/30",    btn: "bg-red-600 hover:bg-red-500",    ring: "ring-red-500/30" },
+  red:    { border: "border-red-500/40",    bg: "bg-red-500/10",    badge: "bg-red-500/20 text-red-400 border-red-500/30",       btn: "bg-red-600 hover:bg-red-500",       ring: "ring-red-500/30" },
   orange: { border: "border-orange-500/40", bg: "bg-orange-500/10", badge: "bg-orange-500/20 text-orange-400 border-orange-500/30", btn: "bg-orange-600 hover:bg-orange-500", ring: "ring-orange-500/30" },
-  blue:   { border: "border-blue-500/40",   bg: "bg-blue-500/10",   badge: "bg-blue-500/20 text-blue-400 border-blue-500/30",   btn: "bg-blue-600 hover:bg-blue-500",   ring: "ring-blue-500/30" },
+  blue:   { border: "border-blue-500/40",   bg: "bg-blue-500/10",   badge: "bg-blue-500/20 text-blue-400 border-blue-500/30",     btn: "bg-blue-600 hover:bg-blue-500",     ring: "ring-blue-500/30" },
+  purple: { border: "border-purple-500/40", bg: "bg-purple-500/10", badge: "bg-purple-500/20 text-purple-400 border-purple-500/30", btn: "bg-purple-600 hover:bg-purple-500", ring: "ring-purple-500/30" },
 };
 
 export default function ResetPage() {

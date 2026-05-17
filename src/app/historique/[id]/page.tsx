@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPilotName } from "@/lib/format";
-import { getClassXpTier, tiersFromDb } from "@/lib/class-tiers";
+import { getLadderTier } from "@/lib/class-tiers";
 
 function formatLapTime(sec: number | null | undefined): string {
   if (sec == null || sec <= 0) return "—";
@@ -65,9 +65,6 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
 
   if (!session) notFound();
 
-  const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
-  const classXpTiers = tiersFromDb(licenseConfigs);
-
   const classStats = await prisma.playerClassStats.findMany({
     where: { player: { username: { in: session.results.map((r) => r.player.username) } } },
     include: { player: { select: { username: true } } },
@@ -75,7 +72,7 @@ export default async function HistoriqueDetailPage({ params }: { params: Promise
 
   const classXpTierMap = new Map<string, { name: string; color: string }>();
   for (const stat of classStats) {
-    const tier = getClassXpTier(stat.classXp, classXpTiers);
+    const tier = getLadderTier(stat.ladderPoints);
     classXpTierMap.set(
       `${stat.player.username.toLowerCase()}::${stat.carClass}`,
       { name: tier.name, color: tier.color }

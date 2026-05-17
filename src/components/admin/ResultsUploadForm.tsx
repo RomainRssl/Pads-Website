@@ -186,6 +186,7 @@ export default function ResultsUploadForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [incidentTypes, setIncidentTypes] = useState<Record<string, IncidentCounts>>({});
+  const [mode, setMode] = useState<"career" | "others">("career");
 
   // Load saved formula defaults on mount
   useEffect(() => {
@@ -237,6 +238,7 @@ export default function ResultsUploadForm() {
     fd.append("ladderCoeff_sm", String(formula.ladderCoeff_sm));
     fd.append("ladderCoeff_md", String(formula.ladderCoeff_md));
     fd.append("ladderCoeff_lg", String(formula.ladderCoeff_lg));
+    fd.append("mode", mode);
     // Compteurs par pilote (saisis dans l'aperçu)
     for (const [username, counts] of Object.entries(incidentTypes)) {
       fd.append(`offtrack_${username}`, String(counts.offtrack));
@@ -268,6 +270,7 @@ export default function ResultsUploadForm() {
     setDurationUsed(0);
     setDurationAutoDetected(false);
     setIncidentTypes({});
+    setMode("career");
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -323,8 +326,7 @@ export default function ResultsUploadForm() {
       if (!res.ok) throw new Error((data.error as string) ?? "Erreur serveur.");
       setResult(data as unknown as ProcessResult);
       setStep("done");
-      // Save formula as new defaults after successful processing
-      await saveDefaults();
+      if (mode !== "others") await saveDefaults();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
@@ -341,6 +343,37 @@ export default function ResultsUploadForm() {
     return (
       <form onSubmit={handlePreview} className="space-y-8">
         {error && <ErrorBanner message={error} />}
+
+        {/* ── Sélecteur de mode ── */}
+        <div>
+          <h3 className="font-heading text-base font-semibold text-white mb-3">Type de course</h3>
+          <div className="flex gap-2 mb-3">
+            {(["career", "others"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                  mode === m
+                    ? "bg-brand-red border-brand-red text-white"
+                    : "border-brand-border text-brand-muted hover:text-white"
+                }`}
+              >
+                {m === "career" ? "Carrière" : "Autres"}
+              </button>
+            ))}
+          </div>
+          {mode === "others" && (
+            <p className="text-xs text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded-lg px-3 py-2">
+              Mode <strong>Autres</strong> — La course sera visible dans l&apos;historique mais ne mettra pas à jour les classements, l&apos;XP, l&apos;argent, la réputation ou le ladder.
+            </p>
+          )}
+          {mode === "career" && (
+            <p className="text-xs text-brand-muted">
+              Mode <strong>Carrière</strong> — XP, argent, réputation et classements seront mis à jour.
+            </p>
+          )}
+        </div>
 
         {/* ── XP de classe ── */}
         <div>
@@ -644,6 +677,13 @@ export default function ResultsUploadForm() {
     return (
       <div className="space-y-6">
         {error && <ErrorBanner message={error} />}
+
+        {mode === "others" && (
+          <div className="flex items-center gap-3 text-sm text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded-lg px-4 py-3">
+            <span className="font-bold shrink-0">Mode Autres</span>
+            <span className="text-amber-300/80">Cette course sera archivée dans l&apos;historique uniquement — aucune mise à jour des classements, XP, argent ou réputation.</span>
+          </div>
+        )}
 
         {/* Race summary */}
         <div className="bg-brand-dark border border-brand-border rounded-xl overflow-hidden">

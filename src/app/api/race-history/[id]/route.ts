@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { getClassXpTier, tiersFromDb } from "@/lib/class-tiers";
+import { getLadderTier } from "@/lib/class-tiers";
 
 interface RouteParams {
   id: string;
@@ -31,9 +31,6 @@ export async function GET(
 
   const parsed: Array<{ username?: string; carClass?: string }> = JSON.parse(race.rawResults);
 
-  const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
-  const classXpTiers = tiersFromDb(licenseConfigs);
-
   const usernames = parsed.map((r) => r.username).filter(Boolean) as string[];
   const classStats = await prisma.playerClassStats.findMany({
     where: { player: { username: { in: usernames } } },
@@ -42,7 +39,7 @@ export async function GET(
 
   const tierMap = new Map<string, { name: string; color: string }>();
   for (const stat of classStats) {
-    const tier = getClassXpTier(stat.classXp, classXpTiers);
+    const tier = getLadderTier(stat.ladderPoints);
     tierMap.set(`${stat.player.username.toLowerCase()}::${stat.carClass}`, { name: tier.name, color: tier.color });
   }
 

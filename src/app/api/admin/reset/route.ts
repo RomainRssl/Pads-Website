@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { tiersFromDb, CLASS_XP_TIERS, getTier } from "@/lib/class-tiers";
 
 // POST /api/admin/reset?action=all|players|ladder
 export async function POST(req: Request) {
@@ -56,6 +57,31 @@ export async function POST(req: Request) {
       // Remet les ladder points à 0 pour tous les joueurs/classes
       await prisma.playerClassStats.updateMany({ data: { ladderPoints: 0 } });
       return NextResponse.json({ ok: true, action: "ladder" });
+    }
+
+    if (action === "season") {
+      // Réinit. saison : ladder → 0 + classXp ramené au plancher du tier actuel
+      const licenseConfigs = await prisma.licenseConfig.findMany({ orderBy: { order: "asc" } });
+      const tiers = licenseConfigs.length ? tiersFromDb(licenseConfigs) : CLASS_XP_TIERS;
+      const allStats = await prisma.playerClassStats.findMany({ select: { id: true, classXp: true } });
+
+      // Regroupe les stats par tier pour limiter le nombre d'updateMany
+      const tierGroups = new Map<number, string[]>();
+      for (const stat of allStats) {
+        const floor = getTier(stat.classXp, tiers).min;
+        if (!tierGroups.has(floor)) tierGroups.set(floor, []);
+        tierGroups.get(floor)!.push(stat.id);
+      }
+
+      await prisma.$transaction(
+        Array.from(tierGroups.entries()).map(([floor, ids]) =>
+          prisma.playerClassStats.updateMany({
+            where: { id: { in: ids } },
+            data: { classXp: floor, ladderPoints: 0 },
+          })
+        )
+      );
+      return NextResponse.json({ ok: true, action: "season" });
     }
 
     return NextResponse.json({ error: "Action invalide." }, { status: 400 });

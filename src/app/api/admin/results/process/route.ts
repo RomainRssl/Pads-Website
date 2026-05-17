@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     const file = formData.get("file") as File | null;
     const durationRaw = formData.get("duration") as string | null;
     const eventId = formData.get("eventId") as string | null;
+    const isOthers = (formData.get("mode") as string) === "others";
 
     if (!file) return NextResponse.json({ error: "Fichier manquant." }, { status: 400 });
 
@@ -131,6 +132,50 @@ export async function POST(req: Request) {
     const circuitName = eventData?.track ?? parsed.meta.trackVenue ?? null;
 
     // ── Prisma transaction ────────────────────────────────────────────────────
+    if (isOthers) {
+      // Mode "Autres" : uniquement archiver dans RaceHistory, sans toucher les classements
+      const event = eventId ? await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { title: true, date: true, track: true },
+      }) : null;
+      const historyTitle = event?.title ?? parsed.meta.trackVenue ?? "Course";
+      const historyTrack = event?.track ?? parsed.meta.trackVenue ?? circuitName ?? "Circuit inconnu";
+      const historyDate  = event?.date ?? (parsed.meta.dateString ? new Date(parsed.meta.dateString.replace(/\//g, "-")) : new Date());
+      const rawResultsJson = JSON.stringify(
+        enriched.map((e, idx) => {
+          const extEntry = parsed.extended[idx];
+          const constructorName = extEntry?.["constructor" as keyof typeof extEntry] as string | undefined;
+          const extEnt = extendedEntries.find(x => x.username.toLowerCase() === e.username.toLowerCase());
+          return {
+            position: e.position,
+            username: e.username,
+            carClass: e.carClass,
+            carNumber: extEntry?.carNumber,
+            teamName: extEntry?.teamName,
+            laps: extEntry?.laps,
+            bestLapTime: extEntry?.bestLapTimeSec,
+            incidents: e.incidents,
+            finishStatus: extEntry?.finishStatus,
+            constructor: constructorName,
+            isClean: e.isClean,
+            offtrackCount: extEnt?.offtrackCount ?? null,
+            contactCount:  extEnt?.contactCount  ?? null,
+            avertCount:    extEnt?.avertCount     ?? null,
+            sanctionCount: extEnt?.sanctionCount  ?? null,
+          };
+        })
+      );
+      await prisma.raceHistory.create({
+        data: {
+          ...(eventId ? { event: { connect: { id: eventId } } } : {}),
+          title: historyTitle,
+          date: historyDate,
+          track: historyTrack,
+          rawResults: rawResultsJson,
+          createdBy: session.user.discordId ?? session.user.id,
+        },
+      });
+    } else {
     await prisma.$transaction(async (tx) => {
       const raceSession = await tx.raceSession.create({
         data: {
@@ -339,28 +384,31 @@ export async function POST(req: Request) {
         });
       }
     });
+    } // end else (mode "career")
 
-    // ── Discord notification ──────────────────────────────────────────────────
-    const top3 = enriched
-      .filter((e) => e.foundInDb)
-      .sort((a, b) => a.position - b.position)
-      .slice(0, 3);
+    // ── Discord notification (mode Carrière uniquement) ───────────────────────
+    if (!isOthers) {
+      const top3 = enriched
+        .filter((e) => e.foundInDb)
+        .sort((a, b) => a.position - b.position)
+        .slice(0, 3);
 
-    const biggestXpGain = [...enriched]
-      .filter((e) => e.foundInDb)
-      .sort((a, b) => b.xpGained - a.xpGained)[0] ?? top3[0];
+      const biggestXpGain = [...enriched]
+        .filter((e) => e.foundInDb)
+        .sort((a, b) => b.xpGained - a.xpGained)[0] ?? top3[0];
 
-    const summary: RaceResultSummary = {
-      durationMin,
-      totalPlayers: calculated.length,
-      updatedPlayers,
-      top3,
-      biggestXpGain,
-    };
+      const summary: RaceResultSummary = {
+        durationMin,
+        totalPlayers: calculated.length,
+        updatedPlayers,
+        top3,
+        biggestXpGain,
+      };
 
-    sendRaceResultsNotification(summary).catch((err) =>
-      console.error("[results] Webhook notification failed:", err)
-    );
+      sendRaceResultsNotification(summary).catch((err) =>
+        console.error("[results] Webhook notification failed:", err)
+      );
+    }
 
     return NextResponse.json({
       ok: true,
