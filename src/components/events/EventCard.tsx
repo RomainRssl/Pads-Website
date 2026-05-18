@@ -34,7 +34,13 @@ export default function EventCard({ event }: EventCardProps) {
   if (isToday) countdownLabel = "Aujourd'hui !";
   else if (isTomorrow) countdownLabel = "Demain !";
 
-  const carClasses = typeof event.cars === 'string' ? JSON.parse(event.cars) : event.cars;
+  let rawCars: unknown[] = [];
+  try {
+    rawCars = typeof event.cars === 'string' ? JSON.parse(event.cars) : (event.cars ?? []);
+  } catch { rawCars = []; }
+  const carClasses = rawCars.map((c) =>
+    typeof c === 'string' ? c : (c as { name?: string })?.name ?? ''
+  ).filter(Boolean);
 
   return (
     <article className="group relative bg-brand-card border border-brand-border rounded-xl overflow-hidden hover:border-brand-orange/40 hover:shadow-orange-glow transition-all duration-300 animate-fade-in">
