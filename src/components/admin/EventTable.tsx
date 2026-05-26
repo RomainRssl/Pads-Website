@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import type { Event } from "@prisma/client";
 import EventBadge from "@/components/events/EventBadge";
+import { LMU_TRACKS } from "@/lib/tracks";
 
 interface EventTableProps {
   initialEvents: Event[];
@@ -196,12 +197,20 @@ export default function EventTable({ initialEvents }: EventTableProps) {
                         </div>
                         <div>
                           <label className="text-xs text-brand-muted mb-1 block">Circuit</label>
-                          <input
-                            type="text"
+                          <select
                             value={editData.track ?? ""}
                             onChange={(e) => setEditData((p) => ({ ...p, track: e.target.value }))}
                             className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-red"
-                          />
+                          >
+                            <option value="">— Choisir un circuit —</option>
+                            {LMU_TRACKS.map((group) => (
+                              <optgroup key={group.group} label={group.group}>
+                                {group.options.map((opt) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="text-xs text-brand-muted mb-1 block">Voiture(s)</label>

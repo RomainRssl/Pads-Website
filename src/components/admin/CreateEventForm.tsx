@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
+import { LMU_TRACKS } from "@/lib/tracks";
 
 interface FormState {
   title: string;
@@ -229,12 +230,20 @@ export default function CreateEventForm() {
           <label htmlFor="track" className="block text-sm font-medium text-brand-text mb-1.5">
             Circuit <span className="text-brand-orange">*</span>
           </label>
-          <input
-            id="track" name="track" type="text" required
+          <select
+            id="track" name="track" required
             value={form.track} onChange={handleChange}
-            placeholder="Spa-Francorchamps"
-            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
-          />
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          >
+            <option value="">— Choisir un circuit —</option>
+            {LMU_TRACKS.map((group) => (
+              <optgroup key={group.group} label={group.group}>
+                {group.options.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </div>
       </div>
 
