@@ -112,7 +112,7 @@ export default function CreateEventForm() {
     setCars((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError(null);
   }
