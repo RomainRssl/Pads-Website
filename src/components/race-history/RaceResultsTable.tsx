@@ -84,7 +84,7 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
             {hasLaps    && <Th center>Trs</Th>}
             {hasBestLap && <Th center>Tps.</Th>}
             {hasFinish  && <Th center>Arr.</Th>}
-            {hasBreakdown && <><Th center>Off</Th><Th center>Co</Th><Th center>Av</Th><Th center>Sa</Th></>}
+            {hasBreakdown && <><Th center title="Sorties de piste">Off</Th><Th center title="Contacts avec d'autres voitures">Co</Th><Th center title="Avertissements">Av</Th><Th center title="Sanctions">Sa</Th></>}
             {hasIncidents && !hasBreakdown && <Th center>Inc.</Th>}
           </tr>
         </thead>
@@ -155,6 +155,13 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
   );
 }
 
-function Th({ children, center }: { children: React.ReactNode; center?: boolean }) {
-  return <th className={`px-1 py-2 font-semibold text-brand-muted text-xs uppercase tracking-wide truncate ${center ? "text-center" : "text-left"}`}>{children}</th>;
+function Th({ children, center, title }: { children: React.ReactNode; center?: boolean; title?: string }) {
+  return (
+    <th
+      title={title}
+      className={`px-1 py-2 font-semibold text-brand-muted text-xs uppercase tracking-wide truncate ${center ? "text-center" : "text-left"} ${title ? "cursor-help underline decoration-dotted decoration-brand-muted/50 underline-offset-2" : ""}`}
+    >
+      {children}
+    </th>
+  );
 }
