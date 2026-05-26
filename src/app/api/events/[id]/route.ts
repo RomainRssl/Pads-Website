@@ -51,6 +51,8 @@ const updateEventSchema = z.object({
   cars: z.array(carEntrySchema).min(1).max(5).optional(),
   description: z.string().max(500).optional().nullable(),
   imageUrl: z.string().url().optional().nullable().or(z.literal("")),
+  serverName: z.string().max(100).optional().nullable(),
+  serverPassword: z.string().max(100).optional().nullable(),
 });
 
 export async function GET(

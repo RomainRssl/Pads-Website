@@ -80,6 +80,9 @@ const LMU_CARS = [
     "Ferrari 488 GTE Evo",
     "Porsche 911 RSR-19",
   ]},
+  { group: "Mystère", options: [
+    "Mystère",
+  ]},
 ];
 
 export default function CreateEventForm() {

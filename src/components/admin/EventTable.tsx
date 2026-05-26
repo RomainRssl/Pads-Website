@@ -91,13 +91,15 @@ export default function EventTable({ initialEvents }: EventTableProps) {
       }
 
       const body = {
-        title:       editData.title,
-        date:        editData.dateLocal ? new Date(editData.dateLocal).toISOString() : undefined,
-        game:        editData.game,
-        track:       editData.track,
-        cars:        editData.cars,
-        description: editData.description,
-        imageUrl:    imageUrl ?? null,
+        title:          editData.title,
+        date:           editData.dateLocal ? new Date(editData.dateLocal).toISOString() : undefined,
+        game:           editData.game,
+        track:          editData.track,
+        cars:           editData.cars,
+        description:    editData.description,
+        imageUrl:       imageUrl ?? null,
+        serverName:     editData.serverName ?? null,
+        serverPassword: editData.serverPassword ?? null,
       };
 
       const res = await fetch(`/api/events/${id}`, {
@@ -216,6 +218,24 @@ export default function EventTable({ initialEvents }: EventTableProps) {
                             type="text"
                             value={editData.description ?? ""}
                             onChange={(e) => setEditData((p) => ({ ...p, description: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-red"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-brand-muted mb-1 block">Nom du serveur</label>
+                          <input
+                            type="text"
+                            value={editData.serverName ?? ""}
+                            onChange={(e) => setEditData((p) => ({ ...p, serverName: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-red"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-brand-muted mb-1 block">Mot de passe</label>
+                          <input
+                            type="text"
+                            value={editData.serverPassword ?? ""}
+                            onChange={(e) => setEditData((p) => ({ ...p, serverPassword: e.target.value }))}
                             className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-red"
                           />
                         </div>
