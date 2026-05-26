@@ -2,16 +2,37 @@ import { prisma } from "@/lib/prisma";
 import EventTable from "@/components/admin/EventTable";
 
 export default async function AdminPage() {
-  const [events, players, sessions, circuitStats] = await Promise.all([
+  const [events, players, sessionRows, historyRows] = await Promise.all([
     prisma.event.findMany({ orderBy: { date: "asc" } }),
     prisma.player.count(),
-    prisma.raceSession.count(),
+    // Courses "Carrière" (RaceSession)
     prisma.raceSession.groupBy({
       by: ["trackVenue"],
       _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
+    }),
+    // Courses "Autres" (RaceHistory)
+    prisma.raceHistory.groupBy({
+      by: ["track"],
+      _count: { id: true },
     }),
   ]);
+
+  // Fusionner les deux sources par nom de circuit
+  const circuitMap = new Map<string, number>();
+  for (const row of sessionRows) {
+    const name = row.trackVenue ?? "Circuit inconnu";
+    circuitMap.set(name, (circuitMap.get(name) ?? 0) + row._count.id);
+  }
+  for (const row of historyRows) {
+    const name = row.track ?? "Circuit inconnu";
+    circuitMap.set(name, (circuitMap.get(name) ?? 0) + row._count.id);
+  }
+  const circuitStats = Array.from(circuitMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const totalCourses = circuitStats.reduce((s, r) => s + r.count, 0);
+  const sessions = sessionRows.reduce((s, r) => s + r._count.id, 0);
 
   return (
     <div className="space-y-8">
@@ -47,22 +68,17 @@ export default async function AdminPage() {
               </thead>
               <tbody>
                 {circuitStats.map((row) => {
-                  const pct = Math.round((row._count.id / sessions) * 100);
+                  const pct = totalCourses > 0 ? Math.round((row.count / totalCourses) * 100) : 0;
                   return (
-                    <tr key={row.trackVenue ?? "__null__"} className="border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/40 transition-colors">
-                      <td className="px-4 py-3 font-medium text-brand-text">
-                        {row.trackVenue ?? <span className="text-brand-muted italic">Circuit inconnu</span>}
-                      </td>
+                    <tr key={row.name} className="border-b border-brand-border/50 last:border-0 hover:bg-brand-dark/40 transition-colors">
+                      <td className="px-4 py-3 font-medium text-brand-text">{row.name}</td>
                       <td className="px-4 py-3 text-right font-heading font-bold text-brand-orange">
-                        {row._count.id}
+                        {row.count}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-28 h-1.5 rounded-full bg-brand-border overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-brand-orange"
-                              style={{ width: `${pct}%` }}
-                            />
+                            <div className="h-full rounded-full bg-brand-orange" style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-xs text-brand-muted w-8 text-right">{pct}%</span>
                         </div>
