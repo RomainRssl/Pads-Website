@@ -175,6 +175,37 @@ export async function POST(req: Request) {
           createdBy: session.user.discordId ?? session.user.id,
         },
       });
+
+      // ── Track Records (mode Autres — même logique que Carrière) ──────────────
+      if (historyTrack && historyTrack !== "Circuit inconnu") {
+        for (const entry of parsed.extended) {
+          const constructorName = entry["constructor" as keyof typeof entry] as string | undefined;
+          if (entry.carClass && entry.bestLapTimeSec && entry.bestLapTimeSec > 0 && constructorName) {
+            const existing = await prisma.trackRecord.findUnique({
+              where: { carClass_circuit: { carClass: entry.carClass, circuit: historyTrack } },
+            });
+            if (!existing || entry.bestLapTimeSec < existing.bestLapTime) {
+              await prisma.trackRecord.upsert({
+                where: { carClass_circuit: { carClass: entry.carClass, circuit: historyTrack } },
+                update: {
+                  constructorName,
+                  piloteName:  entry.username,
+                  bestLapTime: entry.bestLapTimeSec,
+                  raceDate:    historyDate,
+                },
+                create: {
+                  carClass:       entry.carClass,
+                  circuit:        historyTrack,
+                  constructorName,
+                  piloteName:     entry.username,
+                  bestLapTime:    entry.bestLapTimeSec,
+                  raceDate:       historyDate,
+                },
+              });
+            }
+          }
+        }
+      }
     } else {
     await prisma.$transaction(async (tx) => {
       const raceSession = await tx.raceSession.create({
