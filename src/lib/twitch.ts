@@ -87,9 +87,13 @@ export async function fetchLiveStreams(logins: string[]): Promise<TwitchLiveStre
   const params = logins.map((l) => `user_login=${encodeURIComponent(l)}`).join("&");
   const res = await fetch(`https://api.twitch.tv/helix/streams?${params}&first=100`, {
     headers: twitchHeaders(token),
+    cache: "no-store",
   });
 
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error(`[twitch] fetchLiveStreams error ${res.status}:`, await res.text().catch(() => ""));
+    return [];
+  }
 
   const data = await res.json();
   return (data.data ?? []).map((s: Record<string, string | number>) => ({

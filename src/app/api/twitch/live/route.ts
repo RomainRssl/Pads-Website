@@ -15,9 +15,15 @@ export async function GET() {
 
   const logins = dbStreamers.map((s) => s.username);
 
+  if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET) {
+    console.warn("[twitch/live] TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET is not set — all streamers will appear offline.");
+  }
+
   let statuses;
   try {
     statuses = await fetchStreamersStatus(logins);
+    const liveCount = statuses.filter((s) => s.isLive).length;
+    console.log(`[twitch/live] ${liveCount}/${logins.length} streamer(s) live: ${statuses.filter(s => s.isLive).map(s => s.login).join(", ") || "none"}`);
   } catch (err) {
     console.error("[twitch/live] API error:", err);
     // Graceful fallback: return streamers without live status
