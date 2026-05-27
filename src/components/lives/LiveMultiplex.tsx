@@ -59,6 +59,8 @@ export default function LiveMultiplex({ initialUsernames }: Props) {
   );
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState<"streamers" | "chat">("streamers");
+  const [chatLogin, setChatLogin] = useState<string | null>(null);
 
   const fetchLive = useCallback(async () => {
     try {
@@ -79,14 +81,25 @@ export default function LiveMultiplex({ initialUsernames }: Props) {
 
   function toggleStreamer(login: string) {
     setSelected((prev) => {
-      if (prev.includes(login)) return prev.filter((s) => s !== login);
-      if (prev.length >= MAX_STREAMS) return prev; // max reached
+      if (prev.includes(login)) {
+        const next = prev.filter((s) => s !== login);
+        // If the chat was showing this login, switch to next selected or null
+        if (chatLogin === login) setChatLogin(next[0] ?? null);
+        return next;
+      }
+      if (prev.length >= MAX_STREAMS) return prev;
+      // Auto-set chat to first selected stream
+      if (prev.length === 0) setChatLogin(login);
       return [...prev, login];
     });
   }
 
   function removeStream(login: string) {
-    setSelected((prev) => prev.filter((s) => s !== login));
+    setSelected((prev) => {
+      const next = prev.filter((s) => s !== login);
+      if (chatLogin === login) setChatLogin(next[0] ?? null);
+      return next;
+    });
   }
 
   const liveStreamers = streamers.filter((s) => s.isLive);
@@ -95,77 +108,115 @@ export default function LiveMultiplex({ initialUsernames }: Props) {
   return (
     <div className="flex flex-col lg:flex-row gap-0 min-h-[calc(100vh-4rem)]">
       {/* ── Sidebar ────────────────────────────────────────────────────── */}
-      <aside className="w-full lg:w-72 lg:shrink-0 bg-brand-surface border-b lg:border-b-0 lg:border-r border-brand-border">
-        <div className="p-4 border-b border-brand-border">
+      <aside className="w-full lg:w-72 lg:shrink-0 bg-brand-surface border-b lg:border-b-0 lg:border-r border-brand-border flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-brand-border shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-lg font-bold text-white">Streamers</h2>
-            <div className="flex items-center gap-2">
-              {loading ? (
-                <div className="w-16 h-4 rounded bg-brand-border animate-pulse" />
-              ) : (
-                <span className="text-xs text-brand-muted">
-                  {liveStreamers.length > 0 ? (
-                    <span className="text-green-400 font-semibold">
-                      {liveStreamers.length} en live
-                    </span>
-                  ) : (
-                    "Aucun live"
-                  )}
-                </span>
-              )}
-            </div>
+            {loading ? (
+              <div className="w-16 h-4 rounded bg-brand-border animate-pulse" />
+            ) : (
+              <span className="text-xs text-brand-muted">
+                {liveStreamers.length > 0 ? (
+                  <span className="text-green-400 font-semibold">{liveStreamers.length} en live</span>
+                ) : "Aucun live"}
+              </span>
+            )}
           </div>
           {selected.length > 0 && (
             <p className="text-xs text-brand-muted mt-1">
-              {selected.length}/{MAX_STREAMS} stream{selected.length > 1 ? "s" : ""} actif
-              {selected.length > 1 ? "s" : ""}
+              {selected.length}/{MAX_STREAMS} stream{selected.length > 1 ? "s" : ""} actif{selected.length > 1 ? "s" : ""}
             </p>
           )}
         </div>
 
-        <div className="overflow-y-auto lg:max-h-[calc(100vh-8rem)]">
-          {/* Live streamers */}
-          {liveStreamers.length > 0 && (
-            <div>
-              <p className="px-4 pt-3 pb-1 text-xs font-semibold text-brand-muted uppercase tracking-wider">
-                En live
-              </p>
-              {liveStreamers.map((s) => (
-                <StreamerRow
-                  key={s.login}
-                  streamer={s}
-                  isSelected={selected.includes(s.login)}
-                  canAdd={selected.length < MAX_STREAMS}
-                  onToggle={() => toggleStreamer(s.login)}
-                />
-              ))}
-            </div>
-          )}
+        {/* Tabs — only shown when a stream is selected */}
+        {selected.length > 0 && (
+          <div className="flex border-b border-brand-border shrink-0">
+            <button
+              onClick={() => setSidebarTab("streamers")}
+              className={`flex-1 py-2 text-xs font-semibold transition-colors
+                ${sidebarTab === "streamers"
+                  ? "text-white border-b-2 border-brand-orange -mb-px"
+                  : "text-brand-muted hover:text-white"}`}
+            >
+              Streamers
+            </button>
+            <button
+              onClick={() => setSidebarTab("chat")}
+              className={`flex-1 py-2 text-xs font-semibold transition-colors
+                ${sidebarTab === "chat"
+                  ? "text-white border-b-2 border-brand-orange -mb-px"
+                  : "text-brand-muted hover:text-white"}`}
+            >
+              💬 Chat
+            </button>
+          </div>
+        )}
 
-          {/* Offline streamers */}
-          {offlineStreamers.length > 0 && (
-            <div>
-              <p className="px-4 pt-3 pb-1 text-xs font-semibold text-brand-muted uppercase tracking-wider">
-                Hors ligne
-              </p>
-              {offlineStreamers.map((s) => (
-                <StreamerRow
-                  key={s.login}
-                  streamer={s}
-                  isSelected={selected.includes(s.login)}
-                  canAdd={selected.length < MAX_STREAMS}
-                  onToggle={() => toggleStreamer(s.login)}
-                />
-              ))}
-            </div>
-          )}
+        {/* Chat selector when multiple streams */}
+        {sidebarTab === "chat" && selected.length > 1 && (
+          <div className="px-3 py-2 border-b border-brand-border shrink-0">
+            <select
+              value={chatLogin ?? selected[0]}
+              onChange={(e) => setChatLogin(e.target.value)}
+              className="w-full px-2 py-1.5 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-xs focus:outline-none focus:border-brand-orange"
+            >
+              {selected.map((login) => {
+                const info = streamers.find((s) => s.login === login);
+                return <option key={login} value={login}>{info?.displayName ?? login}</option>;
+              })}
+            </select>
+          </div>
+        )}
 
-          {streamers.length === 0 && !loading && (
-            <p className="p-4 text-brand-muted text-sm">
-              Aucun streamer enregistré.
-            </p>
-          )}
-        </div>
+        {/* Tab content */}
+        {sidebarTab === "chat" && selected.length > 0 ? (
+          /* ── Chat iframe ── */
+          <div className="flex-1 min-h-0">
+            <iframe
+              key={chatLogin ?? selected[0]}
+              src={`https://www.twitch.tv/embed/${chatLogin ?? selected[0]}/chat?parent=${getTwitchParent()}&darkpopout`}
+              className="w-full h-full min-h-[400px] lg:min-h-0"
+              title="Chat Twitch"
+            />
+          </div>
+        ) : (
+          /* ── Streamer list ── */
+          <div className="overflow-y-auto flex-1">
+            {liveStreamers.length > 0 && (
+              <div>
+                <p className="px-4 pt-3 pb-1 text-xs font-semibold text-brand-muted uppercase tracking-wider">En live</p>
+                {liveStreamers.map((s) => (
+                  <StreamerRow
+                    key={s.login}
+                    streamer={s}
+                    isSelected={selected.includes(s.login)}
+                    canAdd={selected.length < MAX_STREAMS}
+                    onToggle={() => toggleStreamer(s.login)}
+                  />
+                ))}
+              </div>
+            )}
+            {offlineStreamers.length > 0 && (
+              <div>
+                <p className="px-4 pt-3 pb-1 text-xs font-semibold text-brand-muted uppercase tracking-wider">Hors ligne</p>
+                {offlineStreamers.map((s) => (
+                  <StreamerRow
+                    key={s.login}
+                    streamer={s}
+                    isSelected={selected.includes(s.login)}
+                    canAdd={selected.length < MAX_STREAMS}
+                    onToggle={() => toggleStreamer(s.login)}
+                  />
+                ))}
+              </div>
+            )}
+            {streamers.length === 0 && !loading && (
+              <p className="p-4 text-brand-muted text-sm">Aucun streamer enregistré.</p>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* ── Multiplex grid ─────────────────────────────────────────────── */}
