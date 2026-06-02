@@ -356,14 +356,13 @@ function StreamEmbed({ login, displayName, isLive, title, viewerCount, onClose }
       </div>
 
       {/* Twitch iframe */}
-      <div className="relative flex-1 aspect-video">
-        <iframe
-          src={src}
-          allowFullScreen
-          className="absolute inset-0 w-full h-full"
-          title={`Stream de ${displayName}`}
-        />
-      </div>
+      <iframe
+        src={src}
+        allowFullScreen
+        className="flex-1 w-full min-h-0"
+        style={{ minHeight: "180px" }}
+        title={`Stream de ${displayName}`}
+      />
     </div>
   );
 }
