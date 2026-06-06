@@ -21,6 +21,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
+  registrations EventRegistration[]
 }
 
 model Account {
@@ -71,10 +72,57 @@ model Event {
   imageUrl       String?
   serverName     String?
   serverPassword String?
+  // ── Splits / multi-serveur ────────────────────────────────────────────────
+  serverBase          String?  // ex: "Par amour du spin"
+  passwordBase        String?  // ex: "Monza"
+  closeOffsetHours    Int      @default(2)
+  registrationsClosed Boolean  @default(false)
+  registrations EventRegistration[]
+  splits        Split[]
   raceHistory RaceHistory[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdById String
+}
+
+// ── Inscriptions ──────────────────────────────────────────────────────────────
+
+model EventRegistration {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  carClass  String
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+// ── Splits calculés à la clôture ─────────────────────────────────────────────
+
+model Split {
+  id         String       @id @default(cuid())
+  eventId    String
+  event      Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  index      Int          // 1-based
+  label      String       // "Plateau 1", "Plateau 2"…
+  serverName String
+  password   String
+  total      Int
+  entries    SplitEntry[]
+
+  @@unique([eventId, index])
+}
+
+model SplitEntry {
+  id         String  @id @default(cuid())
+  splitId    String
+  split      Split   @relation(fields: [splitId], references: [id], onDelete: Cascade)
+  userId     String
+  carClass   String
+  driverName String
+  discordId  String?
 }
 
 model RaceHistory {
