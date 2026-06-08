@@ -34,7 +34,10 @@
       "Bash(git merge *)",
       "Bash(cat /tmp/ResultsUploadForm_HEAD.tsx)",
       "Bash(npm install *)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(git checkout *)",
+      "Bash(cd /var/www && find . -path \"*/Pads-Website/src/app/admin\" -type d 2>/dev/null | head -5)",
+      "Read(//f/var/www/**)"
     ]
   }
 }

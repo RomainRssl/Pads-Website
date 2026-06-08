@@ -65,6 +65,7 @@ const createEventSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
   serverName: z.string().max(100).optional().or(z.literal("")),
   serverPassword: z.string().max(100).optional().or(z.literal("")),
+  splitMode: z.enum(["RANKED", "RANDOM", "MANUAL"]).default("RANKED"),
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
       imageUrl: parsed.data.imageUrl || null,
       serverName: parsed.data.serverName || null,
       serverPassword: parsed.data.serverPassword || null,
+      splitMode: parsed.data.splitMode,
       createdById: session.user.discordId,
     },
   });

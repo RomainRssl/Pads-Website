@@ -81,6 +81,12 @@ export async function POST(
     return NextResponse.json(formatSplitsResponse(event, event.splits));
   }
 
+  // ── Manual mode: just close registrations, no auto splits ────────────────
+  if (event.splitMode === "MANUAL") {
+    await prisma.event.update({ where: { id }, data: { registrationsClosed: true } });
+    return NextResponse.json({ raceId: event.id, raceName: event.title, startTime: event.date, splits: [] });
+  }
+
   // ── Close registrations ───────────────────────────────────────────────────
   await prisma.event.update({ where: { id }, data: { registrationsClosed: true } });
 
@@ -156,7 +162,15 @@ export async function POST(
     return { className, drivers };
   });
 
-  const splitResults = buildSplits(classInputs, capacity, serverBase, passwordBase);
+  // ── Apply split mode ──────────────────────────────────────────────────────
+  const classInputsForBuild = event.splitMode === "RANDOM"
+    ? classInputs.map((c) => ({
+        ...c,
+        drivers: [...c.drivers].sort(() => Math.random() - 0.5),
+      }))
+    : classInputs;
+
+  const splitResults = buildSplits(classInputsForBuild, capacity, serverBase, passwordBase);
 
   // ── Persist splits ────────────────────────────────────────────────────────
   const createdSplits = await prisma.$transaction(

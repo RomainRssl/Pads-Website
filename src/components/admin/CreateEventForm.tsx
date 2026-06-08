@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
 import { LMU_TRACKS } from "@/lib/tracks";
 
+type SplitMode = "RANKED" | "RANDOM" | "MANUAL";
+
 interface FormState {
   title: string;
   date: string;
@@ -13,6 +15,7 @@ interface FormState {
   description: string;
   serverName: string;
   serverPassword: string;
+  splitMode: SplitMode;
 }
 
 // Each car entry now carries an optional max-car count per class
@@ -20,6 +23,12 @@ interface CarEntry {
   name: string;
   maxCars: number | "";
 }
+
+const SPLIT_MODE_OPTIONS: { value: SplitMode; label: string; description: string }[] = [
+  { value: "RANKED", label: "Par classement", description: "Les meilleurs du ladder en plateau 1" },
+  { value: "RANDOM", label: "Aléatoire", description: "Répartition aléatoire entre les plateaux" },
+  { value: "MANUAL", label: "Manuel", description: "Aucune répartition automatique" },
+];
 
 const initialState: FormState = {
   title: "",
@@ -29,6 +38,7 @@ const initialState: FormState = {
   description: "",
   serverName: "",
   serverPassword: "",
+  splitMode: "RANKED",
 };
 
 const LMU_CARS = [
@@ -155,6 +165,7 @@ export default function CreateEventForm() {
           imageUrl: imageUrl || undefined,
           serverName: form.serverName || undefined,
           serverPassword: form.serverPassword || undefined,
+          splitMode: form.splitMode,
         }),
       });
 
@@ -167,6 +178,7 @@ export default function CreateEventForm() {
       setForm(initialState);
       setCars([{ name: "", maxCars: "" }]);
       setImageFile(null);
+
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -357,6 +369,26 @@ export default function CreateEventForm() {
         onImageSelect={setImageFile}
         preview={undefined}
       />
+
+      {/* Split mode */}
+      <div>
+        <label htmlFor="splitMode" className="block text-sm font-medium text-brand-text mb-1.5">
+          Création des splits
+        </label>
+        <select
+          id="splitMode"
+          name="splitMode"
+          value={form.splitMode}
+          onChange={handleChange}
+          className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+        >
+          {SPLIT_MODE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label} — {opt.description}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <button
         type="submit"

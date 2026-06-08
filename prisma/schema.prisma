@@ -75,6 +75,7 @@ model Event {
   // ── Splits / multi-serveur ────────────────────────────────────────────────
   serverBase          String?  // ex: "Par amour du spin"
   passwordBase        String?  // ex: "Monza"
+  splitMode           String   @default("RANKED") // RANKED | RANDOM | MANUAL
   closeOffsetHours    Int      @default(2)
   registrationsClosed Boolean  @default(false)
   registrations EventRegistration[]
