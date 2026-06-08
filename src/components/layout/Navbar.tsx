@@ -9,10 +9,14 @@ export default function Navbar() {
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tickerItems, setTickerItems] = useState(["Le Mans Ultimate","Communauté sim racing française","Spa-Francorchamps","LMGT3 · Hypercar","Rejoindre le Discord"]);
+  const [boutiqueUrl, setBoutiqueUrl] = useState("https://www.etsy.com/fr/shop/ParAmourDuSpin");
 
   useEffect(() => {
     fetch("/api/ticker").then(r => r.json()).then(data => {
       if (data && data.length > 0) setTickerItems(data.map((d: {text: string}) => d.text));
+    }).catch(() => {});
+    fetch("/api/site-config?key=boutique_url").then(r => r.json()).then(d => {
+      if (d.value) setBoutiqueUrl(d.value);
     }).catch(() => {});
   }, []);
 
@@ -49,6 +53,10 @@ export default function Navbar() {
             <Link href="/classement" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">Classement</Link>
             <Link href="/race-history" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">📚 Historique</Link>
             <Link href="/records" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">🏆 Records</Link>
+            <Link href="/partenariats" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">Partenariats</Link>
+            <a href={boutiqueUrl} target="_blank" rel="noopener noreferrer" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-brand-orange hover:text-brand-orange/80 transition-colors">
+              🛒 Boutique
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -100,6 +108,10 @@ export default function Navbar() {
           <Link href="/classement" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">Classement</Link>
           <Link href="/race-history" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">📚 Historique</Link>
           <Link href="/records" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">🏆 Records</Link>
+          <Link href="/partenariats" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">Partenariats</Link>
+          <a href={boutiqueUrl} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-brand-orange hover:bg-brand-surface transition-colors">
+            🛒 Boutique PADS
+          </a>
         </div>
       )}
 

@@ -18,6 +18,8 @@ const NAV_LINKS = [
   { href: "/admin/licenses", label: "🎖️ Licences (DB)" },
   { href: "/admin/reset", label: "🗑️ Réinit." },
   { href: "/admin/ticker", label: "📢 Bandeau" },
+  { href: "/admin/boutique", label: "🛒 Boutique" },
+  { href: "/admin/partenaires", label: "🤝 Partenaires" },
 ];
 
 export default async function AdminLayout({

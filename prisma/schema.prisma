@@ -274,3 +274,22 @@ model TickerItem {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+// ── Site configuration (key-value) ────────────────────────────────────────────
+model SiteConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ── Partners / Partenaires ────────────────────────────────────────────────────
+model Partner {
+  id           String   @id @default(cuid())
+  name         String
+  url          String?
+  logoUrl      String?
+  discountCode String?
+  description  String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+}
