@@ -16,12 +16,15 @@ export interface RawPlayerContact {
   opponent: string;
   myForce: number;
   opponentForce: number;
+  etSec: number; // elapsed race time in seconds
 }
 
 export interface RawDriverIncidentData {
   offtrackWarnings: number;           // TrackLimits with WarningPoints > 0
   immovableContacts: number;          // Incidents "with Immovable"
   playerContacts: RawPlayerContact[]; // Paired: both forces known
+  offtrackTimes: number[];            // elapsed time (s) per offtrack warning (-1 if unknown)
+  immovableEvents: Array<{ etSec: number; force: number }>; // per-event detail
 }
 
 export type IncidentBreakdown = Record<string, RawDriverIncidentData>;
@@ -355,7 +358,13 @@ export function parseXML(text: string): ParseResult {
   const incidentBreakdown: IncidentBreakdown = {};
   const ensureDriver = (name: string) => {
     if (!incidentBreakdown[name]) {
-      incidentBreakdown[name] = { offtrackWarnings: 0, immovableContacts: 0, playerContacts: [] };
+      incidentBreakdown[name] = {
+        offtrackWarnings: 0,
+        immovableContacts: 0,
+        playerContacts: [],
+        offtrackTimes: [],
+        immovableEvents: [],
+      };
     }
     return incidentBreakdown[name];
   };
@@ -367,9 +376,14 @@ export function parseXML(text: string): ParseResult {
     const attrs = tlMatch[1];
     const driverAttr = attrs.match(/\bDriver="([^"]*)"/);
     const wpAttr     = attrs.match(/\bWarningPoints="([^"]*)"/);
+    const etAttr     = attrs.match(/\bet="([^"]*)"/);
     if (driverAttr && wpAttr) {
       const wp = parseFloat(wpAttr[1]);
-      if (wp > 0) ensureDriver(driverAttr[1]).offtrackWarnings++;
+      if (wp > 0) {
+        const d = ensureDriver(driverAttr[1]);
+        d.offtrackWarnings++;
+        d.offtrackTimes.push(etAttr ? parseFloat(etAttr[1]) : -1);
+      }
     }
   }
 
@@ -395,9 +409,12 @@ export function parseXML(text: string): ParseResult {
     if (immovable) {
       const driver = immovable[1].trim();
       const etSec = parseFloat(et);
+      const force = parseFloat(immovable[2]);
       const last = lastImmovableTime.get(driver);
       if (last === undefined || etSec - last >= 5) {
-        ensureDriver(driver).immovableContacts++;
+        const d = ensureDriver(driver);
+        d.immovableContacts++;
+        d.immovableEvents.push({ etSec, force });
         lastImmovableTime.set(driver, etSec);
       }
       continue;
@@ -409,7 +426,7 @@ export function parseXML(text: string): ParseResult {
       const myForce  = parseFloat(pm[2]);
       const opponent = pm[3].trim();
       const opponentForce = contactForceMap.get(`${et}::${opponent}::${driver}`) ?? myForce;
-      ensureDriver(driver).playerContacts.push({ opponent, myForce, opponentForce });
+      ensureDriver(driver).playerContacts.push({ opponent, myForce, opponentForce, etSec: parseFloat(et) });
     }
   }
 

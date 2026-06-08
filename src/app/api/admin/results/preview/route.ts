@@ -129,6 +129,96 @@ export async function POST(req: Request) {
         })
       : undefined;
 
+    // Build detailed contacts log from raw incident breakdown
+    type ContactLogEntry = {
+      type: "player" | "immovable" | "offtrack";
+      etSec: number;
+      driver: string;
+      opponent?: string;
+      forceDriver?: number;
+      forceOpponent?: number;
+      classificationDriver?: "avert" | "sanction" | "none";
+      classificationOpponent?: "avert" | "sanction" | "none";
+      force?: number;
+    };
+
+    let contactsLog: ContactLogEntry[] = [];
+
+    if (parsed.incidentBreakdown && incidentCounts) {
+      const seenPairs = new Set<string>();
+
+      for (const [driver, data] of Object.entries(parsed.incidentBreakdown)) {
+        // Offtrack events
+        for (const etSec of data.offtrackTimes) {
+          contactsLog.push({ type: "offtrack", etSec, driver });
+        }
+
+        // Immovable events
+        for (const ev of data.immovableEvents) {
+          contactsLog.push({ type: "immovable", etSec: ev.etSec, driver, force: ev.force });
+        }
+
+        // Player contacts — deduplicate pairs by canonical key
+        for (const c of data.playerContacts) {
+          const key = [driver, c.opponent].sort().join("::") + `::${c.etSec}`;
+          if (seenPairs.has(key)) continue;
+          seenPairs.add(key);
+
+          const classA = (() => {
+            const counts = incidentCounts[driver];
+            if (!counts) return "none" as const;
+            // Re-derive classification for this specific contact using force logic
+            const maxForce = Math.max(c.myForce, c.opponentForce);
+            const minForce = Math.min(c.myForce, c.opponentForce);
+            const ratio = minForce > 0 ? maxForce / minForce : 1;
+            if (maxForce > formula.forceThreshold) {
+              if (c.myForce >= c.opponentForce) {
+                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
+                if (ratio >= formula.forceRatioMin)    return "avert" as const;
+              }
+            } else {
+              if (c.myForce <= c.opponentForce && ratio >= formula.avertRatioMin) {
+                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
+                return "avert" as const;
+              }
+            }
+            return "none" as const;
+          })();
+
+          const classB = (() => {
+            const maxForce = Math.max(c.myForce, c.opponentForce);
+            const minForce = Math.min(c.myForce, c.opponentForce);
+            const ratio = minForce > 0 ? maxForce / minForce : 1;
+            if (maxForce > formula.forceThreshold) {
+              if (c.opponentForce >= c.myForce) {
+                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
+                if (ratio >= formula.forceRatioMin)    return "avert" as const;
+              }
+            } else {
+              if (c.opponentForce <= c.myForce && ratio >= formula.avertRatioMin) {
+                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
+                return "avert" as const;
+              }
+            }
+            return "none" as const;
+          })();
+
+          contactsLog.push({
+            type: "player",
+            etSec: c.etSec,
+            driver,
+            opponent: c.opponent,
+            forceDriver: c.myForce,
+            forceOpponent: c.opponentForce,
+            classificationDriver: classA,
+            classificationOpponent: classB,
+          });
+        }
+      }
+
+      contactsLog.sort((a, b) => a.etSec - b.etSec);
+    }
+
     const preview = calculated.map((entry, idx) => ({
       ...entry,
       foundInDb:      foundSet.has(entry.username.toLowerCase()),
@@ -151,6 +241,7 @@ export async function POST(req: Request) {
       meta: parsed.meta,
       formula,
       incidentCounts,
+      contactsLog,
     });
   } catch (err) {
     console.error("[preview] Unhandled error:", err);
