@@ -385,6 +385,7 @@ export function parseXML(text: string): ParseResult {
   }
 
   // Second pass — classify each incident
+  const lastImmovableTime = new Map<string, number>(); // driver → last et (seconds)
   incRegex.lastIndex = 0;
   while ((incMatch = incRegex.exec(text)) !== null) {
     const et = incMatch[1];
@@ -392,7 +393,13 @@ export function parseXML(text: string): ParseResult {
 
     const immovable = content.match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with Immovable/i);
     if (immovable) {
-      ensureDriver(immovable[1].trim()).immovableContacts++;
+      const driver = immovable[1].trim();
+      const etSec = parseFloat(et);
+      const last = lastImmovableTime.get(driver);
+      if (last === undefined || etSec - last >= 5) {
+        ensureDriver(driver).immovableContacts++;
+        lastImmovableTime.set(driver, etSec);
+      }
       continue;
     }
 

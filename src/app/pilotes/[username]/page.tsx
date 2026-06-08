@@ -14,7 +14,7 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
   const { username: rawUsername } = await params;
   const username = decodeURIComponent(rawUsername);
 
-  const [player, allClassStats, licenseConfigs] = await Promise.all([
+  const [player, allClassStats, licenseConfigs, recentResults] = await Promise.all([
     prisma.player.findUnique({
       where: { username },
       include: {
@@ -29,6 +29,16 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
       select: { playerId: true, carClass: true, ladderPoints: true },
     }),
     prisma.licenseConfig.findMany({ orderBy: { order: "asc" } }),
+    prisma.raceResult.findMany({
+      where: { player: { username } },
+      orderBy: { raceSession: { processedAt: "desc" } },
+      take: 15,
+      include: {
+        raceSession: {
+          select: { id: true, trackVenue: true, trackEvent: true, sessionType: true, processedAt: true },
+        },
+      },
+    }),
   ]);
 
   const classXpTiers = tiersFromDb(licenseConfigs);
@@ -266,6 +276,64 @@ export default async function PilotePage({ params }: { params: Promise<{ usernam
           </div>
         </div>
       </div>
+
+      {/* Race history */}
+      {recentResults.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-heading text-lg font-bold text-white mb-4">Historique des courses</h2>
+          <div className="flex flex-col gap-2">
+            {recentResults.map((result) => {
+              const date = new Date(result.raceSession.processedAt);
+              const dateStr = date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+              const track = [result.raceSession.trackVenue, result.raceSession.trackEvent].filter(Boolean).join(" – ");
+              const pos = result.position;
+              const posLabel = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : `P${pos}`;
+              const ladderSign = result.ladderDelta > 0 ? "+" : "";
+              const xpSign = result.xpGained > 0 ? "+" : "";
+              return (
+                <Link
+                  key={result.id}
+                  href={`/historique/${result.raceSession.id}`}
+                  className="flex items-center gap-3 bg-brand-surface border border-brand-border rounded-xl px-4 py-3 hover:border-brand-orange/40 transition-colors group"
+                >
+                  {/* Position */}
+                  <span className="font-heading font-bold text-lg w-10 text-center shrink-0">
+                    {posLabel}
+                  </span>
+
+                  {/* Track + date */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium text-sm truncate group-hover:text-brand-orange transition-colors">
+                      {track || "Circuit inconnu"}
+                    </p>
+                    <p className="text-brand-muted text-xs mt-0.5">{dateStr}</p>
+                  </div>
+
+                  {/* Class badge */}
+                  <span className="font-mono text-xs px-2 py-0.5 rounded border border-brand-border text-brand-muted bg-brand-dark shrink-0">
+                    {result.carClass}
+                  </span>
+
+                  {/* XP */}
+                  <span className={`font-heading font-bold text-sm w-16 text-right shrink-0 ${result.xpGained >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    {xpSign}{result.xpGained} XP
+                  </span>
+
+                  {/* Ladder delta */}
+                  <span className={`font-heading font-bold text-sm w-14 text-right shrink-0 ${result.ladderDelta > 0 ? "text-blue-400" : result.ladderDelta < 0 ? "text-red-400" : "text-brand-muted"}`}>
+                    {ladderSign}{result.ladderDelta} pts
+                  </span>
+
+                  {/* Clean indicator */}
+                  <span className={`text-xs font-bold shrink-0 ${result.isClean ? "text-green-400" : "text-brand-muted"}`}>
+                    {result.isClean ? "✓" : ""}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Bottom links */}
       <div className="mt-6 flex flex-wrap gap-3">
