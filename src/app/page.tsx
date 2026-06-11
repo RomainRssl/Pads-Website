@@ -59,7 +59,7 @@ export default async function HomePage() {
       </div>
 
       {/* DROITE */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"center", overflowY:"auto", padding:"32px 48px" }}>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"flex-start", overflowY:"auto", padding:"32px 48px" }}>
         <EventList events={events} />
       </div>
 
