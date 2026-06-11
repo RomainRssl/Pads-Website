@@ -147,6 +147,18 @@ function sessionLabel(type: RaceMeta["sessionType"]): string {
 
 type IncidentCounts = { offtrack: number; contact: number; avert: number; sanction: number };
 
+type ContactLogEntry = {
+  type: "player" | "immovable" | "offtrack";
+  etSec: number;
+  driver: string;
+  opponent?: string;
+  forceDriver?: number;
+  forceOpponent?: number;
+  classificationDriver?: "avert" | "sanction" | "none";
+  classificationOpponent?: "avert" | "sanction" | "none";
+  force?: number;
+};
+
 function classifyIncidents(incidents: number, f: Formula): IncidentCounts {
   if (incidents >= f.sanctionRatioMin) return { offtrack: 0, contact: 0, avert: 0, sanction: 1 };
   if (incidents >= f.avertRatioMin)    return { offtrack: 0, contact: 0, avert: 1, sanction: 0 };
@@ -187,6 +199,10 @@ export default function ResultsUploadForm() {
   const [error, setError] = useState<string | null>(null);
   const [incidentTypes, setIncidentTypes] = useState<Record<string, IncidentCounts>>({});
   const [mode, setMode] = useState<"career" | "others">("career");
+  const [contactsLog, setContactsLog] = useState<ContactLogEntry[]>([]);
+  const [logTypeFilter, setLogTypeFilter] = useState<"all" | "player" | "immovable" | "offtrack">("all");
+  const [logSort, setLogSort] = useState<"time" | "driver" | "type">("time");
+  const [logDriverFilter, setLogDriverFilter] = useState<string>("all");
 
   // Load saved formula defaults on mount
   useEffect(() => {
@@ -271,6 +287,10 @@ export default function ResultsUploadForm() {
     setDurationAutoDetected(false);
     setIncidentTypes({});
     setMode("career");
+    setContactsLog([]);
+    setLogTypeFilter("all");
+    setLogSort("time");
+    setLogDriverFilter("all");
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -302,6 +322,7 @@ export default function ResultsUploadForm() {
           ?? classifyIncidents(e.incidents ?? 0, formula);
       }
       setIncidentTypes(init);
+      setContactsLog((data.contactsLog as ContactLogEntry[]) ?? []);
       setStep("preview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -876,6 +897,19 @@ export default function ResultsUploadForm() {
           </p>
         )}
 
+        {/* ── Contacts log ──────────────────────────────────────────────── */}
+        {contactsLog.length > 0 && (
+          <ContactsLogPanel
+            log={contactsLog}
+            typeFilter={logTypeFilter}
+            setTypeFilter={setLogTypeFilter}
+            sortMode={logSort}
+            setSortMode={setLogSort}
+            driverFilter={logDriverFilter}
+            setDriverFilter={setLogDriverFilter}
+          />
+        )}
+
         <div className="flex gap-3 flex-wrap">
           <button onClick={handleProcess} disabled={loading || found === 0}
             className="flex items-center gap-2 px-8 py-3 rounded-lg bg-brand-red hover:bg-brand-red/80 disabled:opacity-50 text-white font-bold transition-colors">
@@ -924,6 +958,181 @@ export default function ResultsUploadForm() {
           Traiter une autre course
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── ContactsLogPanel ──────────────────────────────────────────────────────────
+
+function formatEt(etSec: number): string {
+  if (etSec < 0) return "—:——";
+  const m = Math.floor(etSec / 60);
+  const s = Math.floor(etSec % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+const CLASS_BADGE: Record<string, string> = {
+  sanction: "bg-red-900/40 text-red-400 border border-red-700/40",
+  avert:    "bg-orange-900/40 text-orange-400 border border-orange-700/40",
+  none:     "bg-brand-surface text-brand-muted border border-brand-border",
+};
+const CLASS_LABEL: Record<string, string> = {
+  sanction: "Sanction",
+  avert:    "Avert",
+  none:     "Aucun",
+};
+
+function ContactsLogPanel({
+  log, typeFilter, setTypeFilter, sortMode, setSortMode, driverFilter, setDriverFilter,
+}: {
+  log: ContactLogEntry[];
+  typeFilter: "all" | "player" | "immovable" | "offtrack";
+  setTypeFilter: (v: "all" | "player" | "immovable" | "offtrack") => void;
+  sortMode: "time" | "driver" | "type";
+  setSortMode: (v: "time" | "driver" | "type") => void;
+  driverFilter: string;
+  setDriverFilter: (v: string) => void;
+}) {
+  const TYPE_ORDER = { offtrack: 0, immovable: 1, player: 2 };
+
+  const allDrivers = Array.from(
+    new Set(log.flatMap((e) => [e.driver, ...(e.opponent ? [e.opponent] : [])]))
+  ).sort((a, b) => a.localeCompare(b, "fr"));
+
+  const filtered = log.filter((e) => {
+    if (typeFilter !== "all" && e.type !== typeFilter) return false;
+    if (driverFilter !== "all" && e.driver !== driverFilter && e.opponent !== driverFilter) return false;
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortMode === "time")   return a.etSec - b.etSec;
+    if (sortMode === "driver") {
+      const cmp = a.driver.localeCompare(b.driver, "fr");
+      return cmp !== 0 ? cmp : a.etSec - b.etSec;
+    }
+    // type
+    const ta = TYPE_ORDER[a.type] ?? 99;
+    const tb = TYPE_ORDER[b.type] ?? 99;
+    return ta !== tb ? ta - tb : a.etSec - b.etSec;
+  });
+
+  const TYPE_ICON  = { player: "⚡", immovable: "🏗️", offtrack: "🚧" };
+  const TYPE_LABEL = { player: "Pilote vs Pilote", immovable: "Immovable", offtrack: "Sortie de piste" };
+  const TYPE_COLOR = {
+    player:    "text-orange-400",
+    immovable: "text-yellow-400",
+    offtrack:  "text-brand-muted",
+  };
+
+  return (
+    <div className="rounded-xl border border-brand-border overflow-hidden">
+      {/* Header */}
+      <div className="bg-brand-surface px-4 py-3 border-b border-brand-border flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-white uppercase tracking-wider">Résumé des incidents</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-brand-dark border border-brand-border text-brand-muted">
+            {sorted.length} / {log.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-brand-dark px-4 py-3 border-b border-brand-border flex flex-wrap gap-3 items-center">
+        {/* Type filter */}
+        <div className="flex gap-1">
+          {(["all", "player", "immovable", "offtrack"] as const).map((t) => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                typeFilter === t
+                  ? "bg-brand-red text-white"
+                  : "bg-brand-surface border border-brand-border text-brand-muted hover:text-white"
+              }`}>
+              {t === "all" ? "Tous" : t === "player" ? "⚡ P vs P" : t === "immovable" ? "🏗️ Mur" : "🚧 Sortie"}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-brand-muted">Trier :</span>
+          {(["time", "driver", "type"] as const).map((s) => (
+            <button key={s} onClick={() => setSortMode(s)}
+              className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                sortMode === s
+                  ? "bg-brand-surface border border-brand-red text-brand-red"
+                  : "bg-brand-surface border border-brand-border text-brand-muted hover:text-white"
+              }`}>
+              {s === "time" ? "⏱ Temps" : s === "driver" ? "A→Z Pilote" : "◆ Type"}
+            </button>
+          ))}
+        </div>
+
+        {/* Driver filter */}
+        <select value={driverFilter} onChange={(e) => setDriverFilter(e.target.value)}
+          className="ml-auto bg-brand-surface border border-brand-border rounded px-2 py-1 text-xs text-brand-muted focus:outline-none focus:border-brand-red">
+          <option value="all">Tous les pilotes</option>
+          {allDrivers.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+
+      {/* Rows */}
+      {sorted.length === 0 ? (
+        <div className="px-4 py-6 text-center text-brand-muted text-xs">Aucun incident correspondant.</div>
+      ) : (
+        <div className="divide-y divide-brand-border/50">
+          {sorted.map((e, i) => (
+            <div key={i} className="px-4 py-3 flex flex-wrap items-start gap-x-4 gap-y-1 hover:bg-brand-surface/40 transition-colors">
+              {/* Time */}
+              <span className="w-10 text-xs font-mono text-brand-muted shrink-0 pt-0.5">{formatEt(e.etSec)}</span>
+
+              {/* Type icon + label */}
+              <span className={`w-20 text-xs font-bold shrink-0 ${TYPE_COLOR[e.type]}`}>
+                {TYPE_ICON[e.type]} {TYPE_LABEL[e.type].split(" ")[0]}
+              </span>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                {e.type === "player" && (
+                  <>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className="font-semibold text-white">{e.driver}</span>
+                      <span className="text-brand-muted">vs</span>
+                      <span className="font-semibold text-white">{e.opponent}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <span className="text-xs text-brand-muted font-mono">
+                        {e.driver}: {(e.forceDriver ?? 0).toFixed(0)} N
+                        {" · "}
+                        {e.opponent}: {(e.forceOpponent ?? 0).toFixed(0)} N
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CLASS_BADGE[e.classificationDriver ?? "none"]}`}>
+                        {e.driver}: {CLASS_LABEL[e.classificationDriver ?? "none"]}
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CLASS_BADGE[e.classificationOpponent ?? "none"]}`}>
+                        {e.opponent}: {CLASS_LABEL[e.classificationOpponent ?? "none"]}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {e.type === "immovable" && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-white">{e.driver}</span>
+                    <span className="text-brand-muted">—</span>
+                    <span className="text-yellow-400">Immovable</span>
+                    {e.force !== undefined && (
+                      <span className="font-mono text-brand-muted">{e.force.toFixed(0)} N</span>
+                    )}
+                  </div>
+                )}
+                {e.type === "offtrack" && (
+                  <span className="text-xs font-semibold text-white">{e.driver}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
