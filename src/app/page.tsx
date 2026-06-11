@@ -10,7 +10,7 @@ export default async function HomePage() {
     orderBy: { date: "asc" },
   });
   return (
-    <div style={{ display:"flex", flexDirection:"row", height:"calc(100vh - 164px)", marginTop:"-50px", overflow:"hidden", background:"#0A0A0F" }}>
+    <div style={{ display:"flex", flexDirection:"row", height:"calc(100vh - 100px)", overflow:"hidden", background:"#0A0A0F" }}>
 
       {/* GAUCHE */}
       <div style={{ width:"50%", flexShrink:0, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", padding:"0 48px" }}>
