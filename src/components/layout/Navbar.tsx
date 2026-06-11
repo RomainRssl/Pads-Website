@@ -10,6 +10,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tickerItems, setTickerItems] = useState(["Le Mans Ultimate","Communauté sim racing française","Spa-Francorchamps","LMGT3 · Hypercar","Rejoindre le Discord"]);
   const [boutiqueUrl, setBoutiqueUrl] = useState("https://www.etsy.com/fr/shop/ParAmourDuSpin");
+  const [playerUsername, setPlayerUsername] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/ticker").then(r => r.json()).then(data => {
@@ -19,6 +20,14 @@ export default function Navbar() {
       if (d.value) setBoutiqueUrl(d.value);
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/me/player").then(r => r.json()).then(d => {
+        setPlayerUsername(d.username ?? null);
+      }).catch(() => {});
+    }
+  }, [status]);
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50">
@@ -71,7 +80,7 @@ export default function Navbar() {
                 {session.user.role === "ADMIN" && (
                   <Link href="/admin" className="px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium hover:bg-brand-orange/20 transition-colors">Admin</Link>
                 )}
-                <Link href={`/pilotes/${encodeURIComponent(session.user.name ?? "")}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <Link href={playerUsername ? `/pilotes/${encodeURIComponent(playerUsername)}` : "/pilotes"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   {session.user.image ? (
                     <Image src={session.user.image} alt={session.user.name ?? "Avatar"} width={32} height={32} className="rounded-full ring-2 ring-brand-border" />
                   ) : (
