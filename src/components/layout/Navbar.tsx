@@ -71,7 +71,7 @@ export default function Navbar() {
                 {session.user.role === "ADMIN" && (
                   <Link href="/admin" className="px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium hover:bg-brand-orange/20 transition-colors">Admin</Link>
                 )}
-                <div className="flex items-center gap-2">
+                <Link href={`/pilotes/${encodeURIComponent(session.user.name ?? "")}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   {session.user.image ? (
                     <Image src={session.user.image} alt={session.user.name ?? "Avatar"} width={32} height={32} className="rounded-full ring-2 ring-brand-border" />
                   ) : (
@@ -80,7 +80,7 @@ export default function Navbar() {
                     </div>
                   )}
                   <span className="text-brand-text text-sm hidden md:block">{session.user.name}</span>
-                </div>
+                </Link>
                 <button onClick={() => signOut({ callbackUrl: "/" })} className="hidden lg:block px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-sm hover:border-brand-text hover:text-brand-text transition-colors">Déconnexion</button>
                 <button onClick={() => signOut({ callbackUrl: "/" })} className="lg:hidden p-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors" aria-label="Déconnexion">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
