@@ -426,11 +426,13 @@ export function parseXML(text: string): ParseResult {
       const driver   = pm[1].trim();
       const myForce  = parseFloat(pm[2]);
       const opponent = pm[3].trim();
-      const contactKey = `${et}::${driver}::${opponent}`;
+      const etSec    = parseFloat(et);
+      // Use numeric etSec (not raw string) to normalize "2594.1" vs "2594.10" formatting differences
+      const contactKey = `${etSec}::${driver}::${opponent}`;
       if (seenPlayerContacts.has(contactKey)) continue;
       seenPlayerContacts.add(contactKey);
       const opponentForce = contactForceMap.get(`${et}::${opponent}::${driver}`) ?? myForce;
-      ensureDriver(driver).playerContacts.push({ opponent, myForce, opponentForce, etSec: parseFloat(et) });
+      ensureDriver(driver).playerContacts.push({ opponent, myForce, opponentForce, etSec });
     }
   }
 
