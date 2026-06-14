@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { parseFile, classifyIncidentBreakdown } from "@/lib/race-parser";
+import { parseFile } from "@/lib/race-parser";
 import { calculateAll, parseFormulaFromForm } from "@/lib/rewards";
 import { prisma } from "@/lib/prisma";
 import { getClassXpTier, tiersFromDb } from "@/lib/class-tiers";
@@ -119,16 +119,6 @@ export async function POST(req: Request) {
 
     const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryLadderPointsMap);
 
-    // Classify XML incident breakdown using formula thresholds
-    const incidentCounts = parsed.incidentBreakdown
-      ? classifyIncidentBreakdown(parsed.incidentBreakdown, {
-          avertRatioMin:    formula.avertRatioMin,
-          sanctionRatioMin: formula.sanctionRatioMin,
-          forceThreshold:   formula.forceThreshold,
-          forceRatioMin:    formula.forceRatioMin,
-        })
-      : undefined;
-
     // Build detailed contacts log from raw incident breakdown
     type ContactLogEntry = {
       type: "player" | "immovable" | "offtrack";
@@ -143,11 +133,13 @@ export async function POST(req: Request) {
     };
 
     let contactsLog: ContactLogEntry[] = [];
+    let incidentCounts: Record<string, { offtrack: number; contact: number; avert: number; sanction: number }> | undefined;
 
-    if (parsed.incidentBreakdown && incidentCounts) {
+    if (parsed.incidentBreakdown) {
       const seenPairs = new Set<string>();
+      const breakdown = parsed.incidentBreakdown;
 
-      for (const [driver, data] of Object.entries(parsed.incidentBreakdown)) {
+      for (const [driver, data] of Object.entries(breakdown)) {
         // Offtrack events
         for (const etSec of data.offtrackTimes) {
           contactsLog.push({ type: "offtrack", etSec, driver });
@@ -165,9 +157,6 @@ export async function POST(req: Request) {
           seenPairs.add(key);
 
           const classA = (() => {
-            const counts = incidentCounts[driver];
-            if (!counts) return "none" as const;
-            // Re-derive classification for this specific contact using force logic
             const maxForce = Math.max(c.myForce, c.opponentForce);
             const minForce = Math.min(c.myForce, c.opponentForce);
             const ratio = minForce > 0 ? maxForce / minForce : 1;
@@ -217,6 +206,28 @@ export async function POST(req: Request) {
       }
 
       contactsLog.sort((a, b) => a.etSec - b.etSec);
+
+      // Derive incidentCounts from contactsLog — guarantees the table matches the panel exactly
+      incidentCounts = {};
+      const ensure = (name: string) => {
+        if (!incidentCounts![name]) incidentCounts![name] = { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
+        return incidentCounts![name];
+      };
+
+      for (const [driver, data] of Object.entries(breakdown)) {
+        ensure(driver).offtrack = data.offtrackWarnings;
+        ensure(driver).contact  = data.immovableContacts;
+      }
+
+      for (const entry of contactsLog) {
+        if (entry.type !== "player") continue;
+        if (entry.classificationDriver === "avert")         ensure(entry.driver).avert++;
+        else if (entry.classificationDriver === "sanction") ensure(entry.driver).sanction++;
+        if (entry.opponent) {
+          if (entry.classificationOpponent === "avert")         ensure(entry.opponent).avert++;
+          else if (entry.classificationOpponent === "sanction") ensure(entry.opponent).sanction++;
+        }
+      }
     }
 
     const preview = calculated.map((entry, idx) => ({
