@@ -319,7 +319,7 @@ export default function ResultsUploadForm() {
       const init: Record<string, IncidentCounts> = {};
       for (const e of entries) {
         init[e.username] = serverCounts[e.username]
-          ?? classifyIncidents(e.incidents ?? 0, formula);
+          ?? { offtrack: 0, contact: 0, avert: 0, sanction: 0 };
       }
       setIncidentTypes(init);
       setContactsLog((data.contactsLog as ContactLogEntry[]) ?? []);
