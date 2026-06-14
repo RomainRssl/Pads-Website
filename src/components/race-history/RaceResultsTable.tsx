@@ -57,13 +57,13 @@ export default function RaceResultsTable({ results }: RaceResultsTableProps) {
   const hasBestLap  = parsedResults.some((r) => r.bestLapTime);
   const hasFinish   = parsedResults.some((r) => r.finishStatus);
   const hasBreakdown = parsedResults.some(
-    (r) => (r.offtrackCount ?? 0) + (r.contactCount ?? 0) + (r.avertCount ?? 0) + (r.sanctionCount ?? 0) > 0
+    (r) => r.offtrackCount !== undefined || r.contactCount !== undefined || r.avertCount !== undefined || r.sanctionCount !== undefined
   );
   const hasIncidents = parsedResults.some((r) => (r.incidents ?? 0) > 0);
 
   return (
-    <div className="rounded-xl border border-brand-border overflow-hidden">
-      <table className="w-full text-xs table-fixed">
+    <div className="rounded-xl border border-brand-border overflow-hidden overflow-x-auto">
+      <table className="w-full min-w-max text-xs table-fixed">
         <colgroup>
           <col className="w-10" />
           <col className="w-36" />
