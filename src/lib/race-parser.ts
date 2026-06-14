@@ -400,6 +400,7 @@ export function parseXML(text: string): ParseResult {
 
   // Second pass — classify each incident
   const lastImmovableTime = new Map<string, number>(); // driver → last et (seconds)
+  const seenPlayerContacts = new Set<string>(); // deduplicate duplicate XML incidents: et::driver::opponent
   incRegex.lastIndex = 0;
   while ((incMatch = incRegex.exec(text)) !== null) {
     const et = incMatch[1];
@@ -425,6 +426,9 @@ export function parseXML(text: string): ParseResult {
       const driver   = pm[1].trim();
       const myForce  = parseFloat(pm[2]);
       const opponent = pm[3].trim();
+      const contactKey = `${et}::${driver}::${opponent}`;
+      if (seenPlayerContacts.has(contactKey)) continue;
+      seenPlayerContacts.add(contactKey);
       const opponentForce = contactForceMap.get(`${et}::${opponent}::${driver}`) ?? myForce;
       ensureDriver(driver).playerContacts.push({ opponent, myForce, opponentForce, etSec: parseFloat(et) });
     }
