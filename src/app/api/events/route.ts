@@ -56,10 +56,10 @@ const carEntrySchema = z.union([
 ]);
 
 const createEventSchema = z.object({
-  title: z.string().min(1).max(100),
+  title: z.string().min(1).max(200),
   date: z.string().datetime(),
-  game: z.string().min(1).max(60),
-  track: z.string().min(1).max(60),
+  game: z.string().min(1).max(100),
+  track: z.string().min(1).max(100),
   cars: z.array(carEntrySchema).min(1).max(5),
   description: z.string().max(500).optional(),
   imageUrl: z.string().optional().or(z.literal("")),
