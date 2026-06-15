@@ -66,6 +66,8 @@ const createEventSchema = z.object({
   serverName: z.string().max(100).optional().or(z.literal("")),
   serverPassword: z.string().max(100).optional().or(z.literal("")),
   splitMode: z.enum(["RANKED", "RANDOM", "MANUAL"]).default("RANKED"),
+  trackCapacity: z.number().int().min(1).nullable().optional(),
+  freeSlots: z.number().int().min(0).default(0),
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -116,6 +118,8 @@ export async function POST(req: Request) {
       serverName: parsed.data.serverName || null,
       serverPassword: parsed.data.serverPassword || null,
       splitMode: parsed.data.splitMode,
+      trackCapacity: parsed.data.trackCapacity ?? null,
+      freeSlots: parsed.data.freeSlots,
       createdById: session.user.discordId,
     },
   });

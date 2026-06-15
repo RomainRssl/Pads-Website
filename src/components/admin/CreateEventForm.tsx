@@ -16,6 +16,8 @@ interface FormState {
   serverName: string;
   serverPassword: string;
   splitMode: SplitMode;
+  trackCapacity: string;
+  freeSlots: string;
 }
 
 // Each car entry now carries an optional max-car count per class
@@ -39,6 +41,8 @@ const initialState: FormState = {
   serverName: "",
   serverPassword: "",
   splitMode: "RANKED",
+  trackCapacity: "",
+  freeSlots: "0",
 };
 
 const LMU_CARS = [
@@ -166,6 +170,8 @@ export default function CreateEventForm() {
           serverName: form.serverName || undefined,
           serverPassword: form.serverPassword || undefined,
           splitMode: form.splitMode,
+          trackCapacity: form.trackCapacity ? parseInt(form.trackCapacity, 10) : null,
+          freeSlots: parseInt(form.freeSlots, 10) || 0,
         }),
       });
 
@@ -388,6 +394,37 @@ export default function CreateEventForm() {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Capacité circuit / Places libres */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="trackCapacity" className="block text-sm font-medium text-brand-text mb-1.5">
+            Capacité du circuit <span className="text-brand-muted font-normal">(pilotes max)</span>
+          </label>
+          <input
+            id="trackCapacity" name="trackCapacity" type="number" min={1}
+            value={form.trackCapacity} onChange={handleChange}
+            placeholder="ex: 30"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          />
+        </div>
+        <div>
+          <label htmlFor="freeSlots" className="block text-sm font-medium text-brand-text mb-1.5">
+            Places libres à réserver
+          </label>
+          <input
+            id="freeSlots" name="freeSlots" type="number" min={0}
+            value={form.freeSlots} onChange={handleChange}
+            placeholder="ex: 5"
+            className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+          />
+          {form.trackCapacity && (
+            <p className="text-xs text-brand-muted mt-1">
+              → {Math.max(0, parseInt(form.trackCapacity, 10) - (parseInt(form.freeSlots, 10) || 0))} pilotes max par split
+            </p>
+          )}
+        </div>
       </div>
 
       <button

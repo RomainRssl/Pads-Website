@@ -76,6 +76,8 @@ model Event {
   serverBase          String?  // ex: "Par amour du spin"
   passwordBase        String?  // ex: "Monza"
   splitMode           String   @default("RANKED") // RANKED | RANDOM | MANUAL
+  trackCapacity       Int?     // Nombre max de voitures que le circuit peut accueillir
+  freeSlots           Int?     @default(0) // Places libres à réserver (non attribuées)
   closeOffsetHours    Int      @default(2)
   registrationsClosed Boolean  @default(false)
   registrations EventRegistration[]
