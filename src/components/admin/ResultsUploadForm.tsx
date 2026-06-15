@@ -556,9 +556,9 @@ export default function ResultsUploadForm() {
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <FormulaField label="Ratio min. avertissement" value={formula.avertRatioMin} onChange={(v) => setF("avertRatioMin", v)}
-              min={1} max={20} step={0.5} hint={`Ratio force ≥ ${formula.avertRatioMin} → avertissement`} />
+              min={0} max={100} step={0.01} hint={`Ratio force ≥ ${formula.avertRatioMin} → avertissement`} />
             <FormulaField label="Ratio min. sanction" value={formula.sanctionRatioMin} onChange={(v) => setF("sanctionRatioMin", v)}
-              min={1} max={20} step={0.5} danger hint={`Ratio force ≥ ${formula.sanctionRatioMin} → sanction`} />
+              min={0} max={100} step={0.01} danger hint={`Ratio force ≥ ${formula.sanctionRatioMin} → sanction`} />
           </div>
 
           <div className="bg-brand-surface/50 border border-orange-500/20 rounded-xl p-4">
@@ -568,9 +568,9 @@ export default function ResultsUploadForm() {
             </p>
             <div className="grid grid-cols-2 gap-4">
               <FormulaField label="Seuil force élevée" value={formula.forceThreshold} onChange={(v) => setF("forceThreshold", v)}
-                min={100} max={10000} step={100} hint="Force max (N) à partir de laquelle ce mode s'active. Défaut : 800." />
+                min={0} max={100000} step={1} hint="Force max (N) à partir de laquelle ce mode s'active. Défaut : 800." />
               <FormulaField label="Ratio min. (haute force)" value={formula.forceRatioMin} onChange={(v) => setF("forceRatioMin", v)}
-                min={1} max={5} step={0.05} hint="Ratio minimum pour avertissement lors d'un impact haute force. Défaut : 1.05." />
+                min={0} max={100} step={0.01} hint="Ratio minimum pour avertissement lors d'un impact haute force. Défaut : 1.05." />
             </div>
           </div>
         </div>
