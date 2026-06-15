@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
 import { LMU_TRACKS } from "@/lib/tracks";
@@ -108,6 +108,13 @@ export default function CreateEventForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [trackCapacities, setTrackCapacities] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch("/api/admin/track-capacities")
+      .then((r) => r.json())
+      .then((data: Record<string, number>) => setTrackCapacities(data));
+  }, []);
 
   function updateCarName(idx: number, val: string) {
     setCars((prev) => prev.map((c, i) => i === idx ? { ...c, name: val } : c));
@@ -127,7 +134,15 @@ export default function CreateEventForm() {
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => {
+      const next = { ...prev, [name]: value };
+      // Auto-fill trackCapacity when a track is selected and a capacity is stored
+      if (name === "track" && trackCapacities[value]) {
+        next.trackCapacity = String(trackCapacities[value]);
+      }
+      return next;
+    });
     setError(null);
   }
 

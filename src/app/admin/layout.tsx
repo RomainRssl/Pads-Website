@@ -9,6 +9,7 @@ export const metadata = {
 const NAV_LINKS = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/create", label: "+ Course" },
+  { href: "/admin/circuits", label: "🏟️ Circuits" },
   { href: "/admin/results", label: "🏁 Résultats" },
   { href: "/race-history", label: "📚 Historique" },
   { href: "/admin/streamers", label: "📺 Streamers" },

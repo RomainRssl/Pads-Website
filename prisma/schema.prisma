@@ -344,3 +344,10 @@ model Partner {
   order        Int      @default(0)
   createdAt    DateTime @default(now())
 }
+
+// ── Track capacities ──────────────────────────────────────────────────────────
+model TrackCapacity {
+  track     String   @id  // Nom exact du circuit (clé)
+  capacity  Int
+  updatedAt DateTime @updatedAt
+}
