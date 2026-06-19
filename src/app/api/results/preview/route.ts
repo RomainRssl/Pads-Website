@@ -61,6 +61,9 @@ interface InBody {
   drivers?: InDriver[];
   sanctions?: InSanction[];
   contacts?: InContact[];
+  // Formule de récompenses personnalisée (« param carrière »). Fusionnée avec
+  // DEFAULT_FORMULA ; les champs absents prennent la valeur par défaut.
+  formula?: Record<string, number>;
 }
 
 function normalizeCarClass(raw?: string): string | undefined {
@@ -239,10 +242,11 @@ export async function POST(req: Request) {
   }
 
   // ── Calcul (sans persistance) ───────────────────────────────────────────────
+  const formula = { ...DEFAULT_FORMULA, ...(body.formula ?? {}) } as typeof DEFAULT_FORMULA;
   const calculated = calculateAll(
     extendedEntries,
     durationMin,
-    DEFAULT_FORMULA,
+    formula,
     perEntryLadderPointsMap
   );
 

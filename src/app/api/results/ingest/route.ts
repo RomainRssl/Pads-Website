@@ -69,6 +69,8 @@ interface InBody {
   drivers?: InDriver[];
   sanctions?: InSanction[];
   contacts?: InContact[];
+  // Formule personnalisée (« param carrière »), fusionnée avec DEFAULT_FORMULA.
+  formula?: Record<string, number>;
 }
 
 // Normalisation classe → valeurs CAR_CLASSES (cf. race-parser.normalizeCarClass)
@@ -259,7 +261,8 @@ export async function POST(req: Request) {
   }
 
   // ── Calcul (source de vérité unique) ────────────────────────────────────────
-  const calculated = calculateAll(extendedEntries, durationMin, DEFAULT_FORMULA, perEntryLadderPointsMap);
+  const formula = { ...DEFAULT_FORMULA, ...(body.formula ?? {}) } as typeof DEFAULT_FORMULA;
+  const calculated = calculateAll(extendedEntries, durationMin, formula, perEntryLadderPointsMap);
 
   // ── Persistance ─────────────────────────────────────────────────────────────
   const ingestEntries: IngestEntry[] = calculated.map((calc) => {
