@@ -150,47 +150,14 @@ export async function POST(req: Request) {
           contactsLog.push({ type: "immovable", etSec: ev.etSec, driver, force: ev.force });
         }
 
-        // Player contacts — deduplicate pairs by canonical key
+        // Player contacts — affichés UNIQUEMENT si la force max dépasse le
+        // seuil. Plus de classement auto (avert/sanction manuel). Dédup paires.
         for (const c of data.playerContacts) {
+          const maxForce = Math.max(c.myForce, c.opponentForce);
+          if (maxForce <= formula.forceThreshold) continue; // sous le seuil → masqué
           const key = [driver, c.opponent].sort().join("::") + `::${c.etSec}`;
           if (seenPairs.has(key)) continue;
           seenPairs.add(key);
-
-          const classA = (() => {
-            const maxForce = Math.max(c.myForce, c.opponentForce);
-            const minForce = Math.min(c.myForce, c.opponentForce);
-            const ratio = minForce > 0 ? maxForce / minForce : 1;
-            if (maxForce > formula.forceThreshold) {
-              if (c.myForce >= c.opponentForce) {
-                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
-                if (ratio >= formula.forceRatioMin)    return "avert" as const;
-              }
-            } else {
-              if (c.myForce <= c.opponentForce && ratio >= formula.avertRatioMin) {
-                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
-                return "avert" as const;
-              }
-            }
-            return "none" as const;
-          })();
-
-          const classB = (() => {
-            const maxForce = Math.max(c.myForce, c.opponentForce);
-            const minForce = Math.min(c.myForce, c.opponentForce);
-            const ratio = minForce > 0 ? maxForce / minForce : 1;
-            if (maxForce > formula.forceThreshold) {
-              if (c.opponentForce >= c.myForce) {
-                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
-                if (ratio >= formula.forceRatioMin)    return "avert" as const;
-              }
-            } else {
-              if (c.opponentForce <= c.myForce && ratio >= formula.avertRatioMin) {
-                if (ratio >= formula.sanctionRatioMin) return "sanction" as const;
-                return "avert" as const;
-              }
-            }
-            return "none" as const;
-          })();
 
           contactsLog.push({
             type: "player",
@@ -199,8 +166,8 @@ export async function POST(req: Request) {
             opponent: c.opponent,
             forceDriver: c.myForce,
             forceOpponent: c.opponentForce,
-            classificationDriver: classA,
-            classificationOpponent: classB,
+            classificationDriver: "none",
+            classificationOpponent: "none",
           });
         }
       }

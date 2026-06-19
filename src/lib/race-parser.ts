@@ -43,34 +43,13 @@ export function classifyIncidentBreakdown(
     return result[name];
   };
 
+  // Auto : seuls offtrack (TrackLimits WarningPoints>0) et contact immovable
+  // comptent. Les contacts pilote-vs-pilote NE sont PLUS classés
+  // automatiquement (plus de ratio) — l'avert/sanction est attribué à la main.
+  // `thresholds.forceThreshold` sert uniquement au filtrage d'affichage.
   for (const [driver, data] of Object.entries(breakdown)) {
     ensure(driver).offtrack = data.offtrackWarnings;
-    ensure(driver).contact  = data.immovableContacts;
-
-    for (const c of data.playerContacts) {
-      const maxForce = Math.max(c.myForce, c.opponentForce);
-      const minForce = Math.min(c.myForce, c.opponentForce);
-      const ratio = minForce > 0 ? maxForce / minForce : 1;
-
-      let severity: "avert" | "sanction" | "none" = "none";
-
-      if (maxForce > thresholds.forceThreshold) {
-        // High-force contact: higher force = at fault
-        if (c.myForce >= c.opponentForce) {
-          if (ratio >= thresholds.sanctionRatioMin) severity = "sanction";
-          else if (ratio >= thresholds.forceRatioMin) severity = "avert";
-        }
-      } else {
-        // Normal contact: lower force = at fault
-        if (c.myForce <= c.opponentForce && ratio >= thresholds.avertRatioMin) {
-          if (ratio >= thresholds.sanctionRatioMin) severity = "sanction";
-          else severity = "avert";
-        }
-      }
-
-      if (severity === "sanction") ensure(driver).sanction++;
-      else if (severity === "avert") ensure(driver).avert++;
-    }
+    ensure(driver).contact = data.immovableContacts;
   }
 
   return result;

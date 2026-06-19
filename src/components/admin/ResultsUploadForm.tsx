@@ -554,23 +554,14 @@ export default function ResultsUploadForm() {
               min={0} max={20} step={0.5} danger hint={`ratio ≥${formula.sanctionRatioMin} (sanction)`} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <FormulaField label="Ratio min. avertissement" value={formula.avertRatioMin} onChange={(v) => setF("avertRatioMin", v)}
-              min={0} max={100} step={0.01} hint={`Ratio force ≥ ${formula.avertRatioMin} → avertissement`} />
-            <FormulaField label="Ratio min. sanction" value={formula.sanctionRatioMin} onChange={(v) => setF("sanctionRatioMin", v)}
-              min={0} max={100} step={0.01} danger hint={`Ratio force ≥ ${formula.sanctionRatioMin} → sanction`} />
-          </div>
-
           <div className="bg-brand-surface/50 border border-orange-500/20 rounded-xl p-4">
-            <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">⚡ Détection haute force</p>
+            <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">⚡ Seuil de force des contacts</p>
             <p className="text-xs text-brand-muted mb-3">
-              Le ratio seul ne détecte pas les collisions violentes à forces similaires. Si la force maximale dépasse le seuil, un ratio plus faible suffit pour déclencher un avertissement.
+              Les contacts pilote-vs-pilote ne sont plus classés automatiquement par ratio. Seuls ceux dont la force max dépasse ce seuil sont affichés pour revue — l&apos;avertissement / la sanction se mettent à la main par pilote.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <FormulaField label="Seuil force élevée" value={formula.forceThreshold} onChange={(v) => setF("forceThreshold", v)}
-                min={0} max={100000} step={1} hint="Force max (N) à partir de laquelle ce mode s'active. Défaut : 800." />
-              <FormulaField label="Ratio min. (haute force)" value={formula.forceRatioMin} onChange={(v) => setF("forceRatioMin", v)}
-                min={0} max={100} step={0.01} hint="Ratio minimum pour avertissement lors d'un impact haute force. Défaut : 1.05." />
+                min={0} max={100000} step={1} hint="Force max (N) au-dessus de laquelle un contact est affiché. Défaut : 800." />
             </div>
           </div>
         </div>
