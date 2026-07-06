@@ -103,17 +103,14 @@ export function calculateReputation(
   formula: RewardFormula,
   overrideCounts?: { offtrack: number; contact: number; avert: number; sanction: number }
 ): number {
-  const { offtrack, contact, avert, sanction } = overrideCounts ?? classifyIncidents(incidents, formula);
+  const { avert, sanction } = overrideCounts ?? classifyIncidents(incidents, formula);
   const finished = !finishStatus || (
     finishStatus.toLowerCase() !== "dnf" &&
     finishStatus.toLowerCase() !== "dsq" &&
     finishStatus.toLowerCase() !== "dq"
   );
   return Math.round(
-    formula.repBase
-    + (finished ? formula.repFinishBonus : 0)
-    - offtrack * formula.offtrackPenalty
-    - contact  * formula.contactPenalty
+    (finished ? formula.repBase + formula.repFinishBonus : 0)
     - avert    * formula.avertPenalty
     - sanction * formula.sanctionPenalty
   );
@@ -143,7 +140,9 @@ export function calculateLadderDelta(
   if (nInTier === 0) return 0;
   const coeff = ladderCoefficient(totalInClass, formula);
   const score = (nInTier + 1) / 2 - positionInTier;
-  return Math.round(score * coeff);
+  // Pertes (score négatif) atténuées de moitié par rapport aux gains
+  const effectiveCoeff = score < 0 ? coeff / 2 : coeff;
+  return Math.round(score * effectiveCoeff);
 }
 
 // ── Entry étendue (union RawEntry + champs XML optionnels) ────────────────────
@@ -285,6 +284,7 @@ export function calculateAll(
         moneyGained,
         reputationDelta,
         ladderDelta,
+        isClean: entry.isClean && reputationDelta >= 0,
       });
     });
   }

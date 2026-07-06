@@ -154,7 +154,7 @@ sévérité. Matching par `carNumber` si présent, sinon par nom normalisé.
 
 - `offtrack` : non transmis par le desktop → toujours `0`.
 - `incidents` (malus XP) = `offtrack + contact + avert + sanction`.
-- `isClean` = vrai si `contact + avert + sanction == 0`.
+- `isClean` = vrai si `avert + sanction == 0` (offtrack et contact immovable ne comptent plus).
 
 > Le `verdict` du contact (calculé par le desktop) prime. Les `forceA/forceB/ratio`
 > sont indicatifs et **ne sont pas** re-classifiés ici (contrairement au parsing XML).

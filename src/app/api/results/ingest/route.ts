@@ -203,7 +203,7 @@ export async function POST(req: Request) {
           sanction: 0,
         };
     const incidents = c.offtrack + c.contact + c.avert + c.sanction;
-    const isClean = c.contact + c.avert + c.sanction === 0;
+    const isClean = c.avert + c.sanction === 0;
 
     extendedEntries.push({
       username: player.username, // pseudo LMU stocké → matching/persist cohérent
