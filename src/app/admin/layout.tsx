@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: "/admin/streamers", label: "📺 Streamers" },
   { href: "/admin/teams", label: "🏎️ Écuries" },
   { href: "/admin/players", label: "👤 Pilotes" },
+  { href: "/admin/players/merge", label: "🔀 Fusion" },
   { href: "/admin/categories", label: "🏁 Catégories" },
   { href: "/admin/licenses", label: "🎖️ Licences (DB)" },
   { href: "/admin/reset", label: "🗑️ Réinit." },
