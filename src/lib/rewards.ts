@@ -139,6 +139,9 @@ export function calculateLadderDelta(
 ): number {
   if (nInTier === 0) return 0;
   const coeff = ladderCoefficient(totalInClass, formula);
+  // Pilote seul dans son tier : la formule donnerait toujours 0 (score nul),
+  // ce qui bloque sa progression — on lui garantit un demi-score de victoire.
+  if (nInTier === 1) return Math.max(1, Math.round(coeff / 2));
   const score = (nInTier + 1) / 2 - positionInTier;
   // Pertes (score négatif) atténuées de moitié par rapport aux gains
   const effectiveCoeff = score < 0 ? coeff / 2 : coeff;
