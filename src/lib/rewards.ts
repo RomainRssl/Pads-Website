@@ -127,22 +127,32 @@ export function ladderCoefficient(totalInClass: number, formula: RewardFormula):
 
 /**
  * Points Ladder pour un pilote.
- * @param positionInTier  classement parmi les pilotes du même tier XP dans la course (1 = premier)
- * @param nInTier         nombre de pilotes du même tier XP dans la course
- * @param totalInClass    nombre total de pilotes dans la classe (détermine le coefficient)
+ * @param positionInTier   classement parmi les pilotes du même tier XP dans la course (1 = premier)
+ * @param nInTier          nombre de pilotes du même tier XP dans la course
+ * @param totalInClass     nombre total de pilotes dans la classe (détermine le coefficient)
+ * @param positionInClass  classement dans la classe entière (utilisé quand le pilote est seul dans son tier)
  */
 export function calculateLadderDelta(
   positionInTier: number,
   nInTier: number,
   totalInClass: number,
-  formula: RewardFormula
+  formula: RewardFormula,
+  positionInClass?: number
 ): number {
   if (nInTier === 0) return 0;
   const coeff = ladderCoefficient(totalInClass, formula);
-  // Pilote seul dans son tier : la formule donnerait toujours 0 (score nul),
-  // ce qui bloque sa progression — on lui garantit un demi-score de victoire.
-  if (nInTier === 1) return Math.max(1, Math.round(coeff / 2));
-  const score = (nInTier + 1) / 2 - positionInTier;
+  let score: number;
+  if (nInTier === 1) {
+    // Pilote seul dans son tier : la formule intra-tier donnerait toujours 0,
+    // ce qui bloque sa progression — on le note contre la classe entière.
+    if (totalInClass <= 1 || positionInClass == null) {
+      // Également seul dans la classe : gain garanti d'un demi-score de victoire
+      return Math.max(1, Math.round(coeff / 2));
+    }
+    score = (totalInClass + 1) / 2 - positionInClass;
+  } else {
+    score = (nInTier + 1) / 2 - positionInTier;
+  }
   // Pertes (score négatif) atténuées de moitié par rapport aux gains
   const effectiveCoeff = score < 0 ? coeff / 2 : coeff;
   return Math.round(score * effectiveCoeff);
@@ -277,7 +287,8 @@ export function calculateAll(
         ladderPos.posInTier,
         ladderPos.nInTier,
         totalInClass,
-        formula
+        formula,
+        positionInClass
       );
 
       results.push({
