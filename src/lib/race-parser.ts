@@ -176,9 +176,21 @@ export function parseCSV(text: string): ParseResult {
 // Parses rFactor2 / Le Mans Ultimate result XML files.
 // Header tags supply race metadata; <Driver> blocks supply per-driver stats.
 
+/** Decode standard XML entities (named + numeric) so display text isn't left literal, e.g. "L&apos;Huillier" → "L'Huillier" */
+function decodeXmlEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
 function extractTag(block: string, tag: string): string | null {
   const m = block.match(new RegExp(`<${tag}>([^<]*)<\\/${tag}>`));
-  return m ? m[1].trim() : null;
+  return m ? decodeXmlEntities(m[1].trim()) : null;
 }
 
 /** Normalise les noms de classe LMU vers les valeurs attendues par CAR_CLASSES */
@@ -359,7 +371,7 @@ export function parseXML(text: string): ParseResult {
     if (driverAttr && wpAttr) {
       const wp = parseFloat(wpAttr[1]);
       if (wp > 0) {
-        const d = ensureDriver(driverAttr[1]);
+        const d = ensureDriver(decodeXmlEntities(driverAttr[1]));
         d.offtrackWarnings++;
         d.offtrackTimes.push(etAttr ? parseFloat(etAttr[1]) : -1);
       }
@@ -373,7 +385,7 @@ export function parseXML(text: string): ParseResult {
   while ((incMatch = incRegex.exec(text)) !== null) {
     const pm = incMatch[2].match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with another vehicle\s+(.+?)\(\d+\)/i);
     if (pm) {
-      contactForceMap.set(`${incMatch[1]}::${pm[1].trim()}::${pm[3].trim()}`, parseFloat(pm[2]));
+      contactForceMap.set(`${incMatch[1]}::${decodeXmlEntities(pm[1].trim())}::${decodeXmlEntities(pm[3].trim())}`, parseFloat(pm[2]));
     }
   }
 
@@ -387,7 +399,7 @@ export function parseXML(text: string): ParseResult {
 
     const immovable = content.match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with Immovable/i);
     if (immovable) {
-      const driver = immovable[1].trim();
+      const driver = decodeXmlEntities(immovable[1].trim());
       const etSec = parseFloat(et);
       const force = parseFloat(immovable[2]);
       const last = lastImmovableTime.get(driver);
@@ -402,9 +414,9 @@ export function parseXML(text: string): ParseResult {
 
     const pm = content.match(/^(.+?)\(\d+\)\s+reported contact\s+\(([\d.]+)\)\s+with another vehicle\s+(.+?)\(\d+\)/i);
     if (pm) {
-      const driver   = pm[1].trim();
+      const driver   = decodeXmlEntities(pm[1].trim());
       const myForce  = parseFloat(pm[2]);
-      const opponent = pm[3].trim();
+      const opponent = decodeXmlEntities(pm[3].trim());
       const etSec    = parseFloat(et);
       // Use numeric etSec (not raw string) to normalize "2594.1" vs "2594.10" formatting differences
       const contactKey = `${etSec}::${driver}::${opponent}`;
