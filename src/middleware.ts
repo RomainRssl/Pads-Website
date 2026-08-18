@@ -14,9 +14,18 @@ export default auth((req) => {
     }
   }
 
+  if (nextUrl.pathname.startsWith("/endurance")) {
+    if (!session) {
+      return NextResponse.redirect(new URL("/", nextUrl));
+    }
+    if (!session.user?.enduranceAccess && session.user?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", nextUrl));
+    }
+  }
+
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/endurance/:path*"],
 };

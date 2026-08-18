@@ -35,6 +35,78 @@ export async function fetchMemberRole(discordUserId: string): Promise<Role> {
   return member.roles.includes(config.adminRoleId) ? "ADMIN" : "USER";
 }
 
+export interface MemberAccess {
+  role: Role;
+  enduranceAccess: boolean;
+}
+
+// Un seul appel à l'API Discord pour dériver à la fois le rôle admin et
+// l'accès à la section endurance (utilisé au login, dans le callback jwt()).
+export async function fetchMemberAccess(discordUserId: string): Promise<MemberAccess> {
+  const config = await getGuildConfig();
+  if (!config) return { role: "USER", enduranceAccess: false };
+
+  const res = await fetch(
+    `${DISCORD_API}/guilds/${config.guildId}/members/${discordUserId}`,
+    { headers: botHeaders() }
+  );
+  if (!res.ok) return { role: "USER", enduranceAccess: false };
+
+  const member: GuildMember = await res.json();
+  return {
+    role: config.adminRoleId && member.roles.includes(config.adminRoleId) ? "ADMIN" : "USER",
+    enduranceAccess: !!config.enduranceRoleId && member.roles.includes(config.enduranceRoleId),
+  };
+}
+
+// Liste brute des rôles d'un membre — utilisé quand on a besoin de tester
+// l'appartenance à un rôle qui n'est ni adminRoleId ni enduranceRoleId.
+export async function fetchMemberRoles(discordUserId: string): Promise<string[]> {
+  const config = await getGuildConfig();
+  if (!config) return [];
+
+  const res = await fetch(
+    `${DISCORD_API}/guilds/${config.guildId}/members/${discordUserId}`,
+    { headers: botHeaders() }
+  );
+  if (!res.ok) return [];
+
+  const member: GuildMember = await res.json();
+  return member.roles;
+}
+
+// Ouvre (ou récupère) le canal DM d'un utilisateur puis y envoie un message.
+// Échoue silencieusement en renvoyant false (ex: DMs fermés) plutôt que de
+// faire échouer l'appelant — utile pour les envois en boucle sur un groupe.
+export async function sendDirectMessage(discordUserId: string, content: string): Promise<boolean> {
+  try {
+    const dmRes = await fetch(`${DISCORD_API}/users/@me/channels`, {
+      method: "POST",
+      headers: botHeaders(),
+      body: JSON.stringify({ recipient_id: discordUserId }),
+    });
+    if (!dmRes.ok) {
+      console.warn(`[discord-bot] Impossible d'ouvrir le DM avec ${discordUserId}: ${dmRes.status}`);
+      return false;
+    }
+    const channel: { id: string } = await dmRes.json();
+
+    const msgRes = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, {
+      method: "POST",
+      headers: botHeaders(),
+      body: JSON.stringify({ content }),
+    });
+    if (!msgRes.ok) {
+      console.warn(`[discord-bot] Échec d'envoi du DM à ${discordUserId}: ${msgRes.status}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error(`[discord-bot] Erreur DM ${discordUserId}:`, error);
+    return false;
+  }
+}
+
 export async function fetchGuildRoles(guildId: string): Promise<DiscordRole[]> {
   const res = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
     headers: botHeaders(),

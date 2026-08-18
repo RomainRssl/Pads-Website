@@ -24,14 +24,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.discordId = discordProfile.id;
 
         try {
-          const { fetchMemberRole } = await import("@/lib/discord-bot");
-          token.role = await fetchMemberRole(discordProfile.id);
+          const { fetchMemberAccess } = await import("@/lib/discord-bot");
+          const access = await fetchMemberAccess(discordProfile.id);
+          token.role = access.role;
+          token.enduranceAccess = access.enduranceAccess;
         } catch (error) {
           console.error(
             "[auth] Role fetch failed, defaulting to USER:",
             error
           );
           token.role = "USER";
+          token.enduranceAccess = false;
         }
 
         if (token.sub) {
@@ -50,6 +53,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.role = ((token.role as Role) ?? "USER");
         session.user.discordId = (token.discordId as string) ?? "";
+        session.user.enduranceAccess = (token.enduranceAccess as boolean) ?? false;
         session.user.id = token.sub!;
       }
       return session;

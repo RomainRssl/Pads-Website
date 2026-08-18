@@ -58,7 +58,7 @@ export async function GET(req: Request) {
   }
 
   // Sauvegarde partielle — adminRoleId sera défini à l'étape suivante
-  await saveGuildConfig({ guildId, webhookUrl, adminRoleId: null });
+  await saveGuildConfig({ guildId, webhookUrl, adminRoleId: null, enduranceRoleId: null });
 
   return NextResponse.redirect(new URL("/setup/roles", req.url));
 }

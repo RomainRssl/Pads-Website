@@ -22,6 +22,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   registrations EventRegistration[]
+  enduranceAvailabilities EnduranceAvailability[]
+  enduranceGroupMembers   EnduranceGroupMember[]
 }
 
 model Account {
@@ -143,11 +145,79 @@ model RaceHistory {
 
 // Singleton row — configuration du serveur Discord (remplie via /setup)
 model GuildConfig {
-  id           String   @id @default("singleton")
-  guildId      String
-  webhookUrl   String
-  adminRoleId  String?
-  configuredAt DateTime @default(now())
+  id              String   @id @default("singleton")
+  guildId         String
+  webhookUrl      String
+  adminRoleId     String?
+  enduranceRoleId String?
+  configuredAt    DateTime @default(now())
+}
+
+// ── Endurance — disponibilités & équipages ────────────────────────────────────
+// Accès réservé aux membres possédant le rôle Discord "enduranceRoleId" (GuildConfig)
+
+model Endurance {
+  id          String   @id @default(cuid())
+  title       String
+  track       String
+  carClasses  String   // JSON array parmi GT3 | HYPERCAR | LMP2 | LMP3 | GTE
+  startDate   DateTime // début du week-end d'endurance
+  endDate     DateTime // fin du week-end d'endurance
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  availabilities EnduranceAvailability[]
+  groups         EnduranceGroup[]
+}
+
+model EnduranceAvailability {
+  id          String    @id @default(cuid())
+  enduranceId String
+  endurance   Endurance @relation(fields: [enduranceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  carClass    String
+  startTime   DateTime
+  endTime     DateTime
+  // Vrai dès que ce créneau est engagé dans un groupe PENDING ou CONFIRMED —
+  // masqué du pool de disponibilités tant que non annulé.
+  locked      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  groupMembers EnduranceGroupMember[]
+
+  @@index([enduranceId, carClass, locked])
+}
+
+model EnduranceGroup {
+  id          String    @id @default(cuid())
+  enduranceId String
+  endurance   Endurance @relation(fields: [enduranceId], references: [id], onDelete: Cascade)
+  teamName    String
+  carClass    String
+  startTime   DateTime
+  endTime     DateTime
+  status      String    @default("PENDING") // PENDING | CONFIRMED | CANCELLED
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  members EnduranceGroupMember[]
+}
+
+model EnduranceGroupMember {
+  id             String                 @id @default(cuid())
+  groupId        String
+  group          EnduranceGroup         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availabilityId String?
+  availability   EnduranceAvailability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
+  status         String                 @default("PENDING") // PENDING | CONFIRMED
+  respondedAt    DateTime?
+
+  @@unique([groupId, userId])
 }
 
 // ── Sim Racing stats ──────────────────────────────────────────────────────────

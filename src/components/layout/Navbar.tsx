@@ -80,6 +80,9 @@ export default function Navbar() {
                 {session.user.role === "ADMIN" && (
                   <Link href="/admin" className="px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-sm font-medium hover:bg-brand-orange/20 transition-colors">Admin</Link>
                 )}
+                {(session.user.enduranceAccess || session.user.role === "ADMIN") && (
+                  <Link href="/endurance" className="hidden sm:block text-sm text-brand-muted hover:text-white transition-colors">🏁 Endurance</Link>
+                )}
                 <Link href={playerUsername ? `/pilotes/${encodeURIComponent(playerUsername)}` : "/pilotes"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   {session.user.image ? (
                     <Image src={session.user.image} alt={session.user.name ?? "Avatar"} width={32} height={32} className="rounded-full ring-2 ring-brand-border" />
@@ -118,6 +121,9 @@ export default function Navbar() {
           <Link href="/race-history" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">📚 Historique</Link>
           <Link href="/records" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">🏆 Records</Link>
           <Link href="/partenariats" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">Partenariats</Link>
+          {session?.user && (session.user.enduranceAccess || session.user.role === "ADMIN") && (
+            <Link href="/endurance" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm text-brand-muted hover:text-white hover:bg-brand-surface transition-colors">🏁 Endurance</Link>
+          )}
           <a href={boutiqueUrl} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-brand-orange hover:bg-brand-surface transition-colors">
             🛒 Boutique PADS
           </a>
