@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { parseCarClasses, ENDURANCE_CAR_CLASS_LABELS, type EnduranceCarClass } from "@/lib/endurance";
+import { parseCarClasses, parseStartTimes, ENDURANCE_CAR_CLASS_LABELS, type EnduranceCarClass } from "@/lib/endurance";
 import EnduranceSubNav from "@/components/endurance/EnduranceSubNav";
 
 function fmt(d: Date): string {
@@ -29,6 +29,18 @@ export default async function EnduranceDetailPage({
             </span>
           ))}
         </div>
+        {parseStartTimes(endurance.startTimes).length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-brand-muted mb-1.5">🏁 Heures de départ</p>
+            <div className="flex flex-wrap gap-1.5">
+              {parseStartTimes(endurance.startTimes).map((t, i) => (
+                <span key={i} className="px-2 py-0.5 rounded-full border border-brand-border text-brand-text text-xs">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ const createEnduranceSchema = z.object({
   carClasses: z.array(z.enum(ENDURANCE_CAR_CLASSES)).min(1),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
+  startTimes: z.array(z.string().min(1).max(50)).max(20).optional().default([]),
 });
 
 export async function GET() {
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
       carClasses: JSON.stringify(parsed.data.carClasses),
       startDate,
       endDate,
+      startTimes: JSON.stringify(parsed.data.startTimes),
       createdById: session.user.discordId,
     },
   });

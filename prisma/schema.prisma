@@ -163,6 +163,7 @@ model Endurance {
   carClasses  String   // JSON array parmi GT3 | HYPERCAR | LMP2 | LMP3 | GTE
   startDate   DateTime // début du week-end d'endurance
   endDate     DateTime // fin du week-end d'endurance
+  startTimes  String   @default("[]") // JSON array de libellés d'heures de départ (texte libre)
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

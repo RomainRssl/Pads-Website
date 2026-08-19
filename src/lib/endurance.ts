@@ -10,7 +10,7 @@ export const ENDURANCE_CAR_CLASS_LABELS: Record<EnduranceCarClass, string> = {
   GTE: "GTE",
 };
 
-export function parseCarClasses(raw: string): string[] {
+export function parseStringArray(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((c) => typeof c === "string") : [];
@@ -18,3 +18,6 @@ export function parseCarClasses(raw: string): string[] {
     return [];
   }
 }
+
+export const parseCarClasses = parseStringArray;
+export const parseStartTimes = parseStringArray;

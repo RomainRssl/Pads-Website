@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LMU_TRACKS } from "@/lib/tracks";
-import { ENDURANCE_CAR_CLASSES, ENDURANCE_CAR_CLASS_LABELS, parseCarClasses } from "@/lib/endurance";
+import { ENDURANCE_CAR_CLASSES, ENDURANCE_CAR_CLASS_LABELS, parseCarClasses, parseStartTimes } from "@/lib/endurance";
 
 interface EnduranceRow {
   id: string;
@@ -12,6 +12,7 @@ interface EnduranceRow {
   carClasses: string;
   startDate: string;
   endDate: string;
+  startTimes: string;
   _count: { availabilities: number; groups: number };
 }
 
@@ -31,6 +32,7 @@ export default function EnduranceManager() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(initialForm);
   const [carClasses, setCarClasses] = useState<string[]>([]);
+  const [startTimes, setStartTimes] = useState<string[]>([""]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +47,18 @@ export default function EnduranceManager() {
 
   function toggleCarClass(c: string) {
     setCarClasses((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  }
+
+  function updateStartTime(idx: number, val: string) {
+    setStartTimes((prev) => prev.map((t, i) => (i === idx ? val : t)));
+  }
+
+  function addStartTime() {
+    setStartTimes((prev) => [...prev, ""]);
+  }
+
+  function removeStartTime(idx: number) {
+    setStartTimes((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -64,12 +78,14 @@ export default function EnduranceManager() {
           carClasses,
           startDate: new Date(form.startDate).toISOString(),
           endDate: new Date(form.endDate).toISOString(),
+          startTimes: startTimes.map((t) => t.trim()).filter((t) => t !== ""),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Une erreur est survenue");
       setForm(initialForm);
       setCarClasses([]);
+      setStartTimes([""]);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -145,6 +161,37 @@ export default function EnduranceManager() {
           </div>
         </div>
 
+        <div>
+          <label className="block text-xs font-medium text-brand-muted mb-1.5">Heures de départ</label>
+          <div className="space-y-2">
+            {startTimes.map((t, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={t}
+                  onChange={(e) => updateStartTime(idx, e.target.value)}
+                  placeholder="ex : Samedi 14h00"
+                  className="flex-1 px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
+                />
+                {startTimes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeStartTime(idx)}
+                    className="shrink-0 px-3 py-2 rounded-lg border border-brand-border text-brand-muted hover:text-brand-red hover:border-brand-red transition-colors text-lg leading-none"
+                  >×</button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addStartTime}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-brand-border text-brand-muted hover:border-brand-orange hover:text-brand-orange transition-colors text-sm"
+            >
+              <span className="text-lg leading-none">+</span> Ajouter une heure de départ
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-brand-muted mb-1.5">Début du week-end</label>
@@ -193,6 +240,11 @@ export default function EnduranceManager() {
                     {e.track} · {parseCarClasses(e.carClasses).join(", ")}
                   </p>
                   <p className="text-xs text-brand-muted">{fmt(e.startDate)} → {fmt(e.endDate)}</p>
+                  {parseStartTimes(e.startTimes).length > 0 && (
+                    <p className="text-xs text-brand-muted mt-1">
+                      🏁 {parseStartTimes(e.startTimes).join(" · ")}
+                    </p>
+                  )}
                   <p className="text-xs text-brand-muted mt-1">
                     {e._count.availabilities} dispo{e._count.availabilities !== 1 ? "s" : ""} · {e._count.groups} équipage{e._count.groups !== 1 ? "s" : ""}
                   </p>
