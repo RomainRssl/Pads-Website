@@ -91,6 +91,21 @@ export default function TeamBuilder({
     );
   }, [pool, carClass, startTime, computedEndTime]);
 
+  // Regroupe les pilotes éligibles par heure de départ — plus lisible qu'une
+  // plage de disponibilité par pilote, surtout avant d'avoir choisi un début.
+  const groupedPool = useMemo(() => {
+    const map = new Map<string, PoolSlot[]>();
+    for (const s of eligiblePool) {
+      const key = s.startTime;
+      const arr = map.get(key);
+      if (arr) arr.push(s);
+      else map.set(key, [s]);
+    }
+    return [...map.entries()].sort(
+      ([a], [b]) => new Date(a).getTime() - new Date(b).getTime()
+    );
+  }, [eligiblePool]);
+
   function toggleSlot(slotId: string) {
     setSelected((prev) => (prev.includes(slotId) ? prev.filter((s) => s !== slotId) : [...prev, slotId]));
   }
@@ -203,31 +218,37 @@ export default function TeamBuilder({
           </label>
           {loading ? (
             <div className="h-10 rounded-lg bg-brand-border animate-pulse" />
-          ) : eligiblePool.length === 0 ? (
+          ) : groupedPool.length === 0 ? (
             <p className="text-xs text-brand-muted">Aucun pilote disponible pour ces critères.</p>
           ) : (
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {eligiblePool.map((s) => (
-                <label
-                  key={s.id}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    selected.includes(s.id)
-                      ? "border-brand-orange bg-brand-orange/10"
-                      : "border-brand-border hover:border-brand-muted"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(s.id)}
-                    onChange={() => toggleSlot(s.id)}
-                    className="shrink-0"
-                  />
-                  <span className="text-sm text-brand-text flex-1">
-                    {s.user.name ?? "Pilote"}
-                    {s.user.id === session?.user?.id && " (moi)"}
-                  </span>
-                  <span className="text-xs text-brand-muted">{fmt(s.startTime)} → {fmt(s.endTime)}</span>
-                </label>
+            <div className="space-y-3 max-h-72 overflow-y-auto">
+              {groupedPool.map(([groupStartTime, slots]) => (
+                <div key={groupStartTime}>
+                  <p className="text-xs font-medium text-brand-muted mb-1.5">🏁 {fmt(groupStartTime)}</p>
+                  <div className="space-y-1.5">
+                    {slots.map((s) => (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                          selected.includes(s.id)
+                            ? "border-brand-orange bg-brand-orange/10"
+                            : "border-brand-border hover:border-brand-muted"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(s.id)}
+                          onChange={() => toggleSlot(s.id)}
+                          className="shrink-0"
+                        />
+                        <span className="text-sm text-brand-text flex-1">
+                          {s.user.name ?? "Pilote"}
+                          {s.user.id === session?.user?.id && " (moi)"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
