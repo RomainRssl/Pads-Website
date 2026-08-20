@@ -107,6 +107,47 @@ export async function sendDirectMessage(discordUserId: string, content: string):
   }
 }
 
+interface GuildMemberWithUser {
+  user: { id: string };
+  roles: string[];
+}
+
+// Liste tous les membres du serveur possédant un rôle donné, directement
+// depuis Discord (pagination par tranches de 1000) — contrairement à une
+// itération sur la table User, ça touche aussi les membres qui n'ont jamais
+// mis les pieds sur le site. Nécessite l'intent privilégié "Server Members
+// Intent" activé pour le bot (Discord Developer Portal → Bot).
+export async function fetchGuildMemberIdsWithRole(roleId: string): Promise<string[]> {
+  const config = await getGuildConfig();
+  if (!config) return [];
+
+  const ids: string[] = [];
+  let after = "0";
+
+  while (true) {
+    const res = await fetch(
+      `${DISCORD_API}/guilds/${config.guildId}/members?limit=1000&after=${after}`,
+      { headers: botHeaders() }
+    );
+    if (!res.ok) {
+      console.warn(`[discord-bot] Échec de la récupération des membres du serveur: ${res.status}`);
+      break;
+    }
+
+    const page: GuildMemberWithUser[] = await res.json();
+    if (page.length === 0) break;
+
+    for (const m of page) {
+      if (m.roles.includes(roleId)) ids.push(m.user.id);
+    }
+
+    if (page.length < 1000) break;
+    after = page[page.length - 1].user.id;
+  }
+
+  return ids;
+}
+
 export async function fetchGuildRoles(guildId: string): Promise<DiscordRole[]> {
   const res = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
     headers: botHeaders(),

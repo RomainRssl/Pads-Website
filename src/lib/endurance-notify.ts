@@ -1,6 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import { getGuildConfig } from "@/lib/config";
-import { fetchMemberRoles, sendDirectMessage } from "@/lib/discord-bot";
+import { fetchGuildMemberIdsWithRole, sendDirectMessage } from "@/lib/discord-bot";
 import { ENDURANCE_CAR_CLASS_LABELS, type EnduranceCarClass } from "@/lib/endurance";
 import type { Endurance, EnduranceGroup } from "@prisma/client";
 
@@ -29,10 +28,10 @@ export async function notifyNewEndurance(endurance: Endurance): Promise<void> {
     return;
   }
 
-  const users = await prisma.user.findMany({
-    where: { discordId: { not: null } },
-    select: { discordId: true },
-  });
+  // Lecture directe des membres Discord ayant le rôle — touche tout le monde,
+  // pas seulement les membres qui se sont déjà connectés au site (sinon seul
+  // le créateur, forcément déjà en base pour accéder à l'admin, recevait le DM).
+  const discordIds = await fetchGuildMemberIdsWithRole(config.enduranceRoleId);
 
   const content =
     `🏁 **Nouvelle endurance en ligne : ${endurance.title}**\n` +
@@ -41,14 +40,7 @@ export async function notifyNewEndurance(endurance: Endurance): Promise<void> {
     `Pense à donner tes disponibilités (horaires + catégorie de voiture) sur le site :\n` +
     siteUrl(`/endurance/${endurance.id}/disponibilites`);
 
-  await Promise.all(
-    users.map(async (u) => {
-      if (!u.discordId) return;
-      const roles = await fetchMemberRoles(u.discordId);
-      if (!roles.includes(config.enduranceRoleId!)) return;
-      await sendDirectMessage(u.discordId, content);
-    })
-  );
+  await Promise.all(discordIds.map((id) => sendDirectMessage(id, content)));
 }
 
 export async function notifyGroupInvite(

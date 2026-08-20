@@ -22,6 +22,27 @@ export default async function EnduranceDetailPage({
     orderBy: { startTime: "asc" },
   });
 
+  // Regroupe les pilotes par créneau (heure de début → heure de fin) et par
+  // catégorie de voiture, pour répondre en un coup d'œil à "qui roule quand,
+  // sur quoi".
+  const slotGroups = new Map<
+    string,
+    { startTime: Date; endTime: Date; carClass: string; entries: typeof availabilities }
+  >();
+  for (const a of availabilities) {
+    const key = `${a.startTime.toISOString()}|${a.endTime.toISOString()}|${a.carClass}`;
+    const group = slotGroups.get(key);
+    if (group) {
+      group.entries.push(a);
+    } else {
+      slotGroups.set(key, { startTime: a.startTime, endTime: a.endTime, carClass: a.carClass, entries: [a] });
+    }
+  }
+  const sortedGroups = [...slotGroups.values()].sort((a, b) => {
+    const byTime = a.startTime.getTime() - b.startTime.getTime();
+    return byTime !== 0 ? byTime : a.carClass.localeCompare(b.carClass);
+  });
+
   return (
     <div>
       <EnduranceSubNav enduranceId={id} title={endurance.title} />
@@ -56,20 +77,27 @@ export default async function EnduranceDetailPage({
         {availabilities.length === 0 ? (
           <p className="text-sm text-brand-muted">Aucun pilote n&apos;a encore déclaré de disponibilité.</p>
         ) : (
-          <div className="space-y-2">
-            {availabilities.map((a) => (
-              <div key={a.id} className="bg-brand-surface border border-brand-border rounded-xl p-3.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm text-brand-text truncate">{a.user.name ?? "Pilote"}</p>
-                  <p className="text-xs text-brand-muted">
-                    {ENDURANCE_CAR_CLASS_LABELS[a.carClass as EnduranceCarClass] ?? a.carClass} · {fmt(a.startTime)} → {fmt(a.endTime)}
-                  </p>
+          <div className="space-y-3">
+            {sortedGroups.map((g) => (
+              <div key={`${g.startTime.toISOString()}|${g.endTime.toISOString()}|${g.carClass}`} className="bg-brand-surface border border-brand-border rounded-xl p-3.5">
+                <p className="text-xs font-medium text-brand-text mb-2">
+                  🏁 {fmt(g.startTime)} → {fmt(g.endTime)} · {ENDURANCE_CAR_CLASS_LABELS[g.carClass as EnduranceCarClass] ?? g.carClass}
+                  <span className="text-brand-muted font-normal"> — {g.entries.length} pilote{g.entries.length !== 1 ? "s" : ""}</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.entries.map((a) => (
+                    <span
+                      key={a.id}
+                      className={`px-2.5 py-1 rounded-full border text-xs ${
+                        a.locked
+                          ? "border-green-500/30 bg-green-500/10 text-green-400"
+                          : "border-brand-border text-brand-text"
+                      }`}
+                    >
+                      {a.user.name ?? "Pilote"}{a.locked && " ✓"}
+                    </span>
+                  ))}
                 </div>
-                {a.locked && (
-                  <span className="px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-xs shrink-0">
-                    Engagé
-                  </span>
-                )}
               </div>
             ))}
           </div>
