@@ -7,7 +7,6 @@ import { z } from "zod";
 const createAvailabilitySchema = z.object({
   carClass: z.enum(ENDURANCE_CAR_CLASSES),
   startTime: z.string().datetime(),
-  endTime: z.string().datetime(),
 });
 
 export async function GET(
@@ -61,18 +60,22 @@ export async function POST(
   }
 
   const startTime = new Date(parsed.data.startTime);
-  const endTime = new Date(parsed.data.endTime);
-  if (endTime <= startTime) {
+
+  // Le pilote choisit un seul départ parmi ceux imposés par les organisateurs
+  // — la fin du créneau est dérivée automatiquement (jusqu'au départ suivant,
+  // ou jusqu'à la fin du week-end pour le dernier départ de la liste).
+  const allowedTimes = parseStartTimes(endurance.startTimes);
+  const matchIndex = allowedTimes.findIndex((d) => d.getTime() === startTime.getTime());
+  if (matchIndex === -1) {
     return NextResponse.json(
-      { error: "L'heure de fin doit être après l'heure de début" },
+      { error: "Choisissez une heure de départ parmi celles proposées par les organisateurs" },
       { status: 400 }
     );
   }
-
-  const allowedTimes = parseStartTimes(endurance.startTimes).map((d) => d.getTime());
-  if (!allowedTimes.includes(startTime.getTime()) || !allowedTimes.includes(endTime.getTime())) {
+  const endTime = allowedTimes[matchIndex + 1] ?? endurance.endDate;
+  if (endTime <= startTime) {
     return NextResponse.json(
-      { error: "Choisissez une heure de début et de fin parmi les créneaux proposés par les organisateurs" },
+      { error: "La fin du week-end doit être après la dernière heure de départ" },
       { status: 400 }
     );
   }

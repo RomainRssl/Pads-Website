@@ -28,11 +28,8 @@ export default function AvailabilityManager({
   const [loading, setLoading] = useState(true);
   const [carClass, setCarClass] = useState(carClasses[0] ?? "");
   const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const endOptions = startTimes.filter((t) => !startTime || new Date(t) > new Date(startTime));
 
   function load() {
     fetch(`/api/endurance/${enduranceId}/availability`)
@@ -46,8 +43,8 @@ export default function AvailabilityManager({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!startTime || !endTime) {
-      setError("Choisissez une heure de début et une heure de fin parmi les créneaux proposés.");
+    if (!startTime) {
+      setError("Choisissez une heure de départ parmi celles proposées.");
       return;
     }
     setSubmitting(true);
@@ -58,13 +55,11 @@ export default function AvailabilityManager({
         body: JSON.stringify({
           carClass,
           startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString(),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Une erreur est survenue");
       setStartTime("");
-      setEndTime("");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -86,10 +81,10 @@ export default function AvailabilityManager({
   return (
     <div className="space-y-8">
       <form onSubmit={handleSubmit} className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-brand-text">Ajouter un créneau de disponibilité</h3>
+        <h3 className="text-sm font-semibold text-brand-text">Ajouter une disponibilité</h3>
         <p className="text-xs text-brand-muted">
-          Tu peux déclarer plusieurs créneaux, sur des catégories différentes si besoin. Les horaires
-          proposés sont ceux définis par les organisateurs pour ce week-end.
+          Indique à quelle heure de départ tu es disponible, pour quelle catégorie. Tu peux ajouter
+          plusieurs disponibilités (autres heures, autres catégories).
         </p>
 
         {error && (
@@ -98,7 +93,7 @@ export default function AvailabilityManager({
           </div>
         )}
 
-        {startTimes.length < 2 ? (
+        {startTimes.length === 0 ? (
           <p className="text-sm text-brand-muted">
             Les organisateurs n&apos;ont pas encore défini d&apos;heures de départ pour cette endurance.
           </p>
@@ -117,62 +112,46 @@ export default function AvailabilityManager({
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-brand-muted mb-1.5">Disponible à partir de</label>
-                <select
-                  value={startTime}
-                  onChange={(e) => { setStartTime(e.target.value); setEndTime(""); }}
-                  className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-                >
-                  <option value="">— Choisir —</option>
-                  {startTimes.map((t) => (
-                    <option key={t} value={t}>{fmt(t)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-brand-muted mb-1.5">Jusqu&apos;à</label>
-                <select
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  disabled={!startTime}
-                  className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange disabled:opacity-50"
-                >
-                  <option value="">— Choisir —</option>
-                  {endOptions.map((t) => (
-                    <option key={t} value={t}>{fmt(t)}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-brand-muted mb-1.5">Heure de départ</label>
+              <select
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
+              >
+                <option value="">— Choisir —</option>
+                {startTimes.map((t) => (
+                  <option key={t} value={t}>{fmt(t)}</option>
+                ))}
+              </select>
             </div>
 
             <button
               type="submit"
-              disabled={submitting || !carClass || !startTime || !endTime}
+              disabled={submitting || !carClass || !startTime}
               className="w-full py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
             >
-              {submitting ? "Ajout…" : "+ Ajouter ce créneau"}
+              {submitting ? "Ajout…" : "+ Ajouter cette disponibilité"}
             </button>
           </>
         )}
       </form>
 
       <div>
-        <h3 className="text-sm font-semibold text-brand-text mb-3">Mes créneaux déclarés</h3>
+        <h3 className="text-sm font-semibold text-brand-text mb-3">Mes disponibilités déclarées</h3>
         {loading ? (
           <div className="h-16 rounded-lg bg-brand-border animate-pulse" />
         ) : slots.length === 0 ? (
-          <p className="text-sm text-brand-muted">Aucun créneau déclaré pour le moment.</p>
+          <p className="text-sm text-brand-muted">Aucune disponibilité déclarée pour le moment.</p>
         ) : (
           <div className="space-y-2">
             {slots.map((s) => (
               <div key={s.id} className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-brand-text">
-                    {ENDURANCE_CAR_CLASS_LABELS[s.carClass as EnduranceCarClass] ?? s.carClass}
+                    {ENDURANCE_CAR_CLASS_LABELS[s.carClass as EnduranceCarClass] ?? s.carClass} · Départ {fmt(s.startTime)}
                   </p>
-                  <p className="text-xs text-brand-muted">{fmt(s.startTime)} → {fmt(s.endTime)}</p>
+                  <p className="text-xs text-brand-muted">Jusqu&apos;à {fmt(s.endTime)}</p>
                 </div>
                 {s.locked ? (
                   <span className="px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-xs shrink-0">
