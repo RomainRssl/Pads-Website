@@ -53,6 +53,21 @@ function expandTimesAcrossDays(times: string[], startDateStr: string, endDateStr
   return results.sort((a, b) => a.getTime() - b.getTime()).map((d) => d.toISOString());
 }
 
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+// Format attendu par un <input type="datetime-local"> — construit à partir
+// des composants locaux de la Date (pas un slice de l'ISO, qui est en UTC).
+function toDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toTimeValue(d: Date): string {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function EnduranceManager() {
   const [endurances, setEndurances] = useState<EnduranceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +76,7 @@ export default function EnduranceManager() {
   const [startTimes, setStartTimes] = useState<string[]>([""]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   function load() {
     fetch("/api/admin/endurances")
@@ -87,6 +103,29 @@ export default function EnduranceManager() {
     setStartTimes((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  function handleEdit(row: EnduranceRow) {
+    setEditingId(row.id);
+    setForm({
+      title: row.title,
+      track: row.track,
+      startDate: toDatetimeLocalValue(row.startDate),
+      endDate: toDatetimeLocalValue(row.endDate),
+    });
+    setCarClasses(parseCarClasses(row.carClasses));
+    const uniqueTimes = Array.from(new Set(parseStartTimes(row.startTimes).map(toTimeValue)));
+    setStartTimes(uniqueTimes.length > 0 ? uniqueTimes : [""]);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    setForm(initialForm);
+    setCarClasses([]);
+    setStartTimes([""]);
+    setError(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -96,19 +135,23 @@ export default function EnduranceManager() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/endurances", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          carClasses,
-          startDate: new Date(form.startDate).toISOString(),
-          endDate: new Date(form.endDate).toISOString(),
-          startTimes: expandTimesAcrossDays(startTimes.filter((t) => t !== ""), form.startDate, form.endDate),
-        }),
-      });
+      const res = await fetch(
+        editingId ? `/api/admin/endurances/${editingId}` : "/api/admin/endurances",
+        {
+          method: editingId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...form,
+            carClasses,
+            startDate: new Date(form.startDate).toISOString(),
+            endDate: new Date(form.endDate).toISOString(),
+            startTimes: expandTimesAcrossDays(startTimes.filter((t) => t !== ""), form.startDate, form.endDate),
+          }),
+        }
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Une erreur est survenue");
+      setEditingId(null);
       setForm(initialForm);
       setCarClasses([]);
       setStartTimes([""]);
@@ -124,12 +167,15 @@ export default function EnduranceManager() {
     if (!confirm("Supprimer cette endurance ? Les disponibilités et équipages associés seront supprimés.")) return;
     const res = await fetch(`/api/admin/endurances/${id}`, { method: "DELETE" });
     if (res.ok) setEndurances((prev) => prev.filter((e) => e.id !== id));
+    if (editingId === id) handleCancelEdit();
   }
 
   return (
     <div className="space-y-8">
       <form onSubmit={handleSubmit} className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-brand-text">Créer une endurance</h3>
+        <h3 className="text-sm font-semibold text-brand-text">
+          {editingId ? "Modifier l'endurance" : "Créer une endurance"}
+        </h3>
 
         {error && (
           <div className="p-3 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-xs">
@@ -242,13 +288,28 @@ export default function EnduranceManager() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
-        >
-          {submitting ? "Création…" : "Créer l'endurance et notifier les pilotes"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+          >
+            {submitting
+              ? "Enregistrement…"
+              : editingId
+              ? "Enregistrer les modifications"
+              : "Créer l'endurance et notifier les pilotes"}
+          </button>
+          {editingId && (
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="px-4 py-2.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text text-sm font-medium transition-colors"
+            >
+              Annuler
+            </button>
+          )}
+        </div>
       </form>
 
       <div>
@@ -282,6 +343,9 @@ export default function EnduranceManager() {
                   <Link href={`/endurance/${e.id}/calendrier`} className="px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text text-xs font-medium transition-colors">
                     📅 Calendrier
                   </Link>
+                  <button onClick={() => handleEdit(e)} className="px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-orange hover:border-brand-orange text-xs font-medium transition-colors">
+                    Modifier
+                  </button>
                   <button onClick={() => handleDelete(e.id)} className="px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted hover:text-brand-red hover:border-brand-red text-xs font-medium transition-colors">
                     Supprimer
                   </button>
