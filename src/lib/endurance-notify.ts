@@ -1,5 +1,5 @@
 import { getGuildConfig } from "@/lib/config";
-import { fetchGuildMemberIdsWithRole, sendDirectMessage } from "@/lib/discord-bot";
+import { fetchGuildMemberIdsWithRole, sendDirectMessage, sendDirectMessagesPaced } from "@/lib/discord-bot";
 import { ENDURANCE_CAR_CLASS_LABELS, type EnduranceCarClass } from "@/lib/endurance";
 import type { Endurance, EnduranceGroup } from "@prisma/client";
 
@@ -41,8 +41,7 @@ export async function notifyNewEndurance(endurance: Endurance): Promise<void> {
     `Pense à donner tes disponibilités (horaires + catégorie de voiture) sur le site :\n` +
     siteUrl(`/endurance/${endurance.id}/disponibilites`);
 
-  const results = await Promise.all(discordIds.map((id) => sendDirectMessage(id, content)));
-  const sent = results.filter(Boolean).length;
+  const sent = await sendDirectMessagesPaced(discordIds, content);
   console.log(`[endurance-notify] DM envoyés avec succès : ${sent}/${discordIds.length}`);
 }
 

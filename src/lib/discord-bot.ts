@@ -75,12 +75,31 @@ export async function fetchMemberRoles(discordUserId: string): Promise<string[]>
   return member.roles;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// fetch() avec ré-essai automatique sur 429 (rate limit Discord), en
+// respectant le délai "retry_after" renvoyé par l'API plutôt qu'un backoff
+// arbitraire. Nécessaire dès qu'on envoie plus de quelques requêtes d'affilée
+// (ex: DM à tous les membres d'un rôle) — Discord bloque sinon la rafale.
+async function discordFetch(url: string, init: RequestInit, maxRetries = 4): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, init);
+    if (res.status !== 429 || attempt >= maxRetries) return res;
+
+    const body = await res.clone().json().catch(() => ({} as { retry_after?: number }));
+    const retryAfterSec = typeof body.retry_after === "number" ? body.retry_after : 1;
+    await sleep(retryAfterSec * 1000 + 100);
+  }
+}
+
 // Ouvre (ou récupère) le canal DM d'un utilisateur puis y envoie un message.
 // Échoue silencieusement en renvoyant false (ex: DMs fermés) plutôt que de
 // faire échouer l'appelant — utile pour les envois en boucle sur un groupe.
 export async function sendDirectMessage(discordUserId: string, content: string): Promise<boolean> {
   try {
-    const dmRes = await fetch(`${DISCORD_API}/users/@me/channels`, {
+    const dmRes = await discordFetch(`${DISCORD_API}/users/@me/channels`, {
       method: "POST",
       headers: botHeaders(),
       body: JSON.stringify({ recipient_id: discordUserId }),
@@ -92,16 +111,15 @@ export async function sendDirectMessage(discordUserId: string, content: string):
     }
     const channel: { id: string } = await dmRes.json();
 
-    const msgRes = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, {
+    const msgRes = await discordFetch(`${DISCORD_API}/channels/${channel.id}/messages`, {
       method: "POST",
       headers: botHeaders(),
       body: JSON.stringify({ content }),
     });
     if (!msgRes.ok) {
       const body = await msgRes.text().catch(() => "");
-      // 403 ici = quasi toujours le destinataire qui a désactivé les DM
-      // depuis les membres du serveur (paramètres de confidentialité Discord),
-      // pas un problème côté bot.
+      // 403 "no mutual guilds" ou DMs fermés = quasi toujours un souci côté
+      // destinataire (paramètres de confidentialité Discord), pas le bot.
       console.warn(`[discord-bot] Échec d'envoi du DM à ${discordUserId}: ${msgRes.status} ${body}`);
       return false;
     }
@@ -110,6 +128,22 @@ export async function sendDirectMessage(discordUserId: string, content: string):
     console.error(`[discord-bot] Erreur DM ${discordUserId}:`, error);
     return false;
   }
+}
+
+// Envoie un DM à une liste de destinataires en les espaçant dans le temps —
+// contrairement à un Promise.all, ça évite de tous les tirer d'un coup et de
+// se prendre le rate limit global de Discord (429) sur la moitié des envois.
+export async function sendDirectMessagesPaced(
+  discordUserIds: string[],
+  content: string,
+  delayMs = 350
+): Promise<number> {
+  let sent = 0;
+  for (const id of discordUserIds) {
+    if (await sendDirectMessage(id, content)) sent++;
+    await sleep(delayMs);
+  }
+  return sent;
 }
 
 interface GuildMemberWithUser {
@@ -130,7 +164,7 @@ export async function fetchGuildMemberIdsWithRole(roleId: string): Promise<strin
   let after = "0";
 
   while (true) {
-    const res = await fetch(
+    const res = await discordFetch(
       `${DISCORD_API}/guilds/${config.guildId}/members?limit=1000&after=${after}`,
       { headers: botHeaders() }
     );
