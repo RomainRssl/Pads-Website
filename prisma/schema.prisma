@@ -164,6 +164,7 @@ model Endurance {
   startDate   DateTime // début du week-end d'endurance
   endDate     DateTime // fin du week-end d'endurance
   startTimes  String   @default("[]") // JSON array de libellés d'heures de départ (texte libre)
+  raceDurationHours Float @default(1) // durée de la course (heures) — combinée aux essais/qualifs fixes pour calculer la fin d'un relais
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -11,6 +11,7 @@ const updateEnduranceSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   startTimes: z.array(z.string().datetime()).max(20).optional(),
+  raceDurationHours: z.number().positive().max(48).optional(),
 });
 
 export async function GET(
@@ -56,6 +57,7 @@ export async function PATCH(
   if (parsed.data.startDate) data.startDate = new Date(parsed.data.startDate);
   if (parsed.data.endDate) data.endDate = new Date(parsed.data.endDate);
   if (parsed.data.startTimes) data.startTimes = JSON.stringify(parsed.data.startTimes);
+  if (parsed.data.raceDurationHours !== undefined) data.raceDurationHours = parsed.data.raceDurationHours;
 
   const endurance = await prisma.endurance.update({ where: { id }, data });
   return NextResponse.json(endurance);

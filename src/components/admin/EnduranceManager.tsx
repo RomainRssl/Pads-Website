@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LMU_TRACKS } from "@/lib/tracks";
-import { ENDURANCE_CAR_CLASSES, ENDURANCE_CAR_CLASS_LABELS, parseCarClasses, parseStartTimes } from "@/lib/endurance";
+import {
+  ENDURANCE_CAR_CLASSES,
+  ENDURANCE_CAR_CLASS_LABELS,
+  parseCarClasses,
+  parseStartTimes,
+  PRACTICE_DURATION_MIN,
+  QUALIFYING_DURATION_MIN,
+  computeStintDurationMin,
+} from "@/lib/endurance";
 
 interface EnduranceRow {
   id: string;
@@ -13,6 +21,7 @@ interface EnduranceRow {
   startDate: string;
   endDate: string;
   startTimes: string;
+  raceDurationHours: number;
   _count: { availabilities: number; groups: number };
 }
 
@@ -74,6 +83,7 @@ export default function EnduranceManager() {
   const [form, setForm] = useState(initialForm);
   const [carClasses, setCarClasses] = useState<string[]>([]);
   const [startTimes, setStartTimes] = useState<string[]>([""]);
+  const [raceDurationHours, setRaceDurationHours] = useState("1");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -114,6 +124,7 @@ export default function EnduranceManager() {
     setCarClasses(parseCarClasses(row.carClasses));
     const uniqueTimes = Array.from(new Set(parseStartTimes(row.startTimes).map(toTimeValue)));
     setStartTimes(uniqueTimes.length > 0 ? uniqueTimes : [""]);
+    setRaceDurationHours(String(row.raceDurationHours));
     setError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -123,6 +134,7 @@ export default function EnduranceManager() {
     setForm(initialForm);
     setCarClasses([]);
     setStartTimes([""]);
+    setRaceDurationHours("1");
     setError(null);
   }
 
@@ -131,6 +143,11 @@ export default function EnduranceManager() {
     setError(null);
     if (carClasses.length === 0) {
       setError("Sélectionnez au moins une catégorie de voiture");
+      return;
+    }
+    const hours = parseFloat(raceDurationHours);
+    if (!hours || hours <= 0) {
+      setError("Indiquez un temps de course valide (en heures)");
       return;
     }
     setSubmitting(true);
@@ -146,6 +163,7 @@ export default function EnduranceManager() {
             startDate: new Date(form.startDate).toISOString(),
             endDate: new Date(form.endDate).toISOString(),
             startTimes: expandTimesAcrossDays(startTimes.filter((t) => t !== ""), form.startDate, form.endDate),
+            raceDurationHours: hours,
           }),
         }
       );
@@ -155,6 +173,7 @@ export default function EnduranceManager() {
       setForm(initialForm);
       setCarClasses([]);
       setStartTimes([""]);
+      setRaceDurationHours("1");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -267,6 +286,25 @@ export default function EnduranceManager() {
           </div>
         </div>
 
+        <div>
+          <label className="block text-xs font-medium text-brand-muted mb-1.5">Temps de course (heures)</label>
+          <input
+            type="number"
+            min={0.25}
+            step={0.25}
+            required
+            value={raceDurationHours}
+            onChange={(e) => setRaceDurationHours(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
+          />
+          <p className="text-xs text-brand-muted mt-1.5">
+            + {QUALIFYING_DURATION_MIN} min de qualifs + {PRACTICE_DURATION_MIN} min d&apos;essais
+            {parseFloat(raceDurationHours) > 0 && (
+              <> = <strong className="text-brand-text">{computeStintDurationMin(parseFloat(raceDurationHours))} min</strong> par relais</>
+            )}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-brand-muted mb-1.5">Début du week-end</label>
@@ -335,6 +373,9 @@ export default function EnduranceManager() {
                       🏁 {parseStartTimes(e.startTimes).map((d) => fmt(d.toISOString())).join(" · ")}
                     </p>
                   )}
+                  <p className="text-xs text-brand-muted mt-1">
+                    Relais : {computeStintDurationMin(e.raceDurationHours)} min ({e.raceDurationHours}h course + {QUALIFYING_DURATION_MIN}min quali + {PRACTICE_DURATION_MIN}min essais)
+                  </p>
                   <p className="text-xs text-brand-muted mt-1">
                     {e._count.availabilities} dispo{e._count.availabilities !== 1 ? "s" : ""} · {e._count.groups} équipage{e._count.groups !== 1 ? "s" : ""}
                   </p>

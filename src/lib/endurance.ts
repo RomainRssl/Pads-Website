@@ -31,3 +31,16 @@ export function parseStartTimes(raw: string): Date[] {
     .filter((d) => !isNaN(d.getTime()))
     .sort((a, b) => a.getTime() - b.getTime());
 }
+
+// Durées fixes d'un relais, en minutes — seul le temps de course est
+// configurable par endurance (raceDurationHours).
+export const PRACTICE_DURATION_MIN = 5;
+export const QUALIFYING_DURATION_MIN = 15;
+
+export function computeStintDurationMin(raceDurationHours: number): number {
+  return PRACTICE_DURATION_MIN + QUALIFYING_DURATION_MIN + Math.round(raceDurationHours * 60);
+}
+
+export function computeStintEnd(start: Date, raceDurationHours: number): Date {
+  return new Date(start.getTime() + computeStintDurationMin(raceDurationHours) * 60_000);
+}

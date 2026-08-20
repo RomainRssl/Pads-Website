@@ -20,6 +20,7 @@ export default async function EquipePage({
         enduranceId={id}
         carClasses={parseCarClasses(endurance.carClasses)}
         startTimes={parseStartTimes(endurance.startTimes).map((d) => d.toISOString())}
+        raceDurationHours={endurance.raceDurationHours}
       />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ENDURANCE_CAR_CLASS_LABELS, type EnduranceCarClass } from "@/lib/endurance";
+import { ENDURANCE_CAR_CLASS_LABELS, computeStintEnd, type EnduranceCarClass } from "@/lib/endurance";
 
 interface PoolSlot {
   id: string;
@@ -43,10 +43,12 @@ export default function TeamBuilder({
   enduranceId,
   carClasses,
   startTimes,
+  raceDurationHours,
 }: {
   enduranceId: string;
   carClasses: string[];
   startTimes: string[];
+  raceDurationHours: number;
 }) {
   const { data: session } = useSession();
   const [pool, setPool] = useState<PoolSlot[]>([]);
@@ -56,11 +58,17 @@ export default function TeamBuilder({
   const [teamName, setTeamName] = useState("");
   const [carClass, setCarClass] = useState(carClasses[0] ?? "");
   const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // La fin du relais est déduite automatiquement (essais + qualifs fixes +
+  // temps de course défini par l'admin) — plus besoin de la choisir.
+  const computedEndTime = useMemo(
+    () => (startTime ? computeStintEnd(new Date(startTime), raceDurationHours).toISOString() : ""),
+    [startTime, raceDurationHours]
+  );
 
   function load() {
     Promise.all([
@@ -75,13 +83,13 @@ export default function TeamBuilder({
   useEffect(load, [enduranceId]);
 
   const eligiblePool = useMemo(() => {
-    if (!startTime || !endTime) return pool.filter((s) => s.carClass === carClass);
+    if (!startTime) return pool.filter((s) => s.carClass === carClass);
     const start = new Date(startTime);
-    const end = new Date(endTime);
+    const end = new Date(computedEndTime);
     return pool.filter(
       (s) => s.carClass === carClass && new Date(s.startTime) <= start && new Date(s.endTime) >= end
     );
-  }, [pool, carClass, startTime, endTime]);
+  }, [pool, carClass, startTime, computedEndTime]);
 
   function toggleSlot(slotId: string) {
     setSelected((prev) => (prev.includes(slotId) ? prev.filter((s) => s !== slotId) : [...prev, slotId]));
@@ -103,7 +111,6 @@ export default function TeamBuilder({
           teamName,
           carClass,
           startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString(),
           availabilityIds: selected,
         }),
       });
@@ -170,41 +177,29 @@ export default function TeamBuilder({
           </select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-brand-muted mb-1.5">Début du relais/stint</label>
-            <select
-              required
-              value={startTime}
-              onChange={(e) => { setStartTime(e.target.value); setEndTime(""); setSelected([]); }}
-              className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-            >
-              <option value="">— Choisir —</option>
-              {startTimes.map((t) => (
-                <option key={t} value={t}>{fmt(t)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-brand-muted mb-1.5">Fin</label>
-            <select
-              required
-              value={endTime}
-              disabled={!startTime}
-              onChange={(e) => { setEndTime(e.target.value); setSelected([]); }}
-              className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange disabled:opacity-50"
-            >
-              <option value="">— Choisir —</option>
-              {startTimes.filter((t) => !startTime || new Date(t) > new Date(startTime)).map((t) => (
-                <option key={t} value={t}>{fmt(t)}</option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block text-xs font-medium text-brand-muted mb-1.5">Début du relais</label>
+          <select
+            required
+            value={startTime}
+            onChange={(e) => { setStartTime(e.target.value); setSelected([]); }}
+            className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
+          >
+            <option value="">— Choisir —</option>
+            {startTimes.map((t) => (
+              <option key={t} value={t}>{fmt(t)}</option>
+            ))}
+          </select>
+          {computedEndTime && (
+            <p className="text-xs text-brand-muted mt-1.5">
+              Fin estimée (essais + qualifs + course) : <strong className="text-brand-text">{fmt(computedEndTime)}</strong>
+            </p>
+          )}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-brand-muted mb-1.5">
-            Pilotes disponibles {startTime && endTime ? "sur ce créneau" : "pour cette catégorie"}
+            Pilotes disponibles {startTime ? "sur ce créneau" : "pour cette catégorie"}
           </label>
           {loading ? (
             <div className="h-10 rounded-lg bg-brand-border animate-pulse" />

@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ENDURANCE_CAR_CLASSES, parseStartTimes } from "@/lib/endurance";
+import { ENDURANCE_CAR_CLASSES, parseStartTimes, computeStintEnd } from "@/lib/endurance";
 import { notifyGroupInvite } from "@/lib/endurance-notify";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -9,7 +9,6 @@ const createGroupSchema = z.object({
   teamName: z.string().min(1).max(100),
   carClass: z.enum(ENDURANCE_CAR_CLASSES),
   startTime: z.string().datetime(),
-  endTime: z.string().datetime(),
   availabilityIds: z.array(z.string()).min(1).max(20),
 });
 
@@ -57,21 +56,18 @@ export async function POST(
   }
 
   const startTime = new Date(parsed.data.startTime);
-  const endTime = new Date(parsed.data.endTime);
-  if (endTime <= startTime) {
+
+  const allowedTimes = parseStartTimes(endurance.startTimes).map((d) => d.getTime());
+  if (!allowedTimes.includes(startTime.getTime())) {
     return NextResponse.json(
-      { error: "L'heure de fin doit être après l'heure de début" },
+      { error: "Choisissez une heure de départ parmi celles proposées par les organisateurs" },
       { status: 400 }
     );
   }
 
-  const allowedTimes = parseStartTimes(endurance.startTimes).map((d) => d.getTime());
-  if (!allowedTimes.includes(startTime.getTime()) || !allowedTimes.includes(endTime.getTime())) {
-    return NextResponse.json(
-      { error: "Choisissez une heure de début et de fin parmi les créneaux proposés par les organisateurs" },
-      { status: 400 }
-    );
-  }
+  // La fin du relais est calculée automatiquement (essais + qualifs fixes +
+  // temps de course défini par l'admin), pas choisie par le créateur.
+  const endTime = computeStintEnd(startTime, endurance.raceDurationHours);
 
   const slots = await prisma.enduranceAvailability.findMany({
     where: { id: { in: parsed.data.availabilityIds }, enduranceId: id },

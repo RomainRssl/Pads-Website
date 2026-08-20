@@ -12,6 +12,7 @@ const createEnduranceSchema = z.object({
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
   startTimes: z.array(z.string().datetime()).max(20).optional().default([]),
+  raceDurationHours: z.number().positive().max(48),
 });
 
 export async function GET() {
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
       startDate,
       endDate,
       startTimes: JSON.stringify(parsed.data.startTimes),
+      raceDurationHours: parsed.data.raceDurationHours,
       createdById: session.user.discordId,
     },
   });
