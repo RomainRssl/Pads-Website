@@ -32,6 +32,7 @@ export async function notifyNewEndurance(endurance: Endurance): Promise<void> {
   // pas seulement les membres qui se sont déjà connectés au site (sinon seul
   // le créateur, forcément déjà en base pour accéder à l'admin, recevait le DM).
   const discordIds = await fetchGuildMemberIdsWithRole(config.enduranceRoleId);
+  console.log(`[endurance-notify] ${discordIds.length} membre(s) avec le rôle endurance trouvé(s)`);
 
   const content =
     `🏁 **Nouvelle endurance en ligne : ${endurance.title}**\n` +
@@ -40,7 +41,9 @@ export async function notifyNewEndurance(endurance: Endurance): Promise<void> {
     `Pense à donner tes disponibilités (horaires + catégorie de voiture) sur le site :\n` +
     siteUrl(`/endurance/${endurance.id}/disponibilites`);
 
-  await Promise.all(discordIds.map((id) => sendDirectMessage(id, content)));
+  const results = await Promise.all(discordIds.map((id) => sendDirectMessage(id, content)));
+  const sent = results.filter(Boolean).length;
+  console.log(`[endurance-notify] DM envoyés avec succès : ${sent}/${discordIds.length}`);
 }
 
 export async function notifyGroupInvite(

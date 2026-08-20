@@ -86,7 +86,8 @@ export async function sendDirectMessage(discordUserId: string, content: string):
       body: JSON.stringify({ recipient_id: discordUserId }),
     });
     if (!dmRes.ok) {
-      console.warn(`[discord-bot] Impossible d'ouvrir le DM avec ${discordUserId}: ${dmRes.status}`);
+      const body = await dmRes.text().catch(() => "");
+      console.warn(`[discord-bot] Impossible d'ouvrir le DM avec ${discordUserId}: ${dmRes.status} ${body}`);
       return false;
     }
     const channel: { id: string } = await dmRes.json();
@@ -97,7 +98,11 @@ export async function sendDirectMessage(discordUserId: string, content: string):
       body: JSON.stringify({ content }),
     });
     if (!msgRes.ok) {
-      console.warn(`[discord-bot] Échec d'envoi du DM à ${discordUserId}: ${msgRes.status}`);
+      const body = await msgRes.text().catch(() => "");
+      // 403 ici = quasi toujours le destinataire qui a désactivé les DM
+      // depuis les membres du serveur (paramètres de confidentialité Discord),
+      // pas un problème côté bot.
+      console.warn(`[discord-bot] Échec d'envoi du DM à ${discordUserId}: ${msgRes.status} ${body}`);
       return false;
     }
     return true;
@@ -130,7 +135,10 @@ export async function fetchGuildMemberIdsWithRole(roleId: string): Promise<strin
       { headers: botHeaders() }
     );
     if (!res.ok) {
-      console.warn(`[discord-bot] Échec de la récupération des membres du serveur: ${res.status}`);
+      const body = await res.text().catch(() => "");
+      // 401/403 ici = très souvent le "Server Members Intent" pas activé
+      // pour le bot dans le Discord Developer Portal.
+      console.warn(`[discord-bot] Échec de la récupération des membres du serveur: ${res.status} ${body}`);
       break;
     }
 
