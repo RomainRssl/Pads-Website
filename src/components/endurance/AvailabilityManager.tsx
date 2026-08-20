@@ -27,7 +27,7 @@ export default function AvailabilityManager({
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [carClass, setCarClass] = useState(carClasses[0] ?? "");
-  const [startTime, setStartTime] = useState("");
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,29 +40,44 @@ export default function AvailabilityManager({
 
   useEffect(load, [enduranceId]);
 
+  const alreadyDeclared = new Set(
+    slots.filter((s) => s.carClass === carClass).map((s) => s.startTime)
+  );
+
+  function toggleTime(t: string) {
+    setSelectedTimes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  }
+
+  function handleCarClassChange(c: string) {
+    setCarClass(c);
+    setSelectedTimes([]);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!startTime) {
-      setError("Choisissez une heure de départ parmi celles proposées.");
+    if (selectedTimes.length === 0) {
+      setError("Cochez au moins une heure de départ.");
       return;
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/endurance/${enduranceId}/availability`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          carClass,
-          startTime: new Date(startTime).toISOString(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Une erreur est survenue");
-      setStartTime("");
+      for (const t of selectedTimes) {
+        const res = await fetch(`/api/endurance/${enduranceId}/availability`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ carClass, startTime: t }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? "Une erreur est survenue");
+        }
+      }
+      setSelectedTimes([]);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      load();
     } finally {
       setSubmitting(false);
     }
@@ -83,8 +98,8 @@ export default function AvailabilityManager({
       <form onSubmit={handleSubmit} className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-brand-text">Ajouter une disponibilité</h3>
         <p className="text-xs text-brand-muted">
-          Indique à quelle heure de départ tu es disponible, pour quelle catégorie. Tu peux ajouter
-          plusieurs disponibilités (autres heures, autres catégories).
+          Choisis une catégorie, puis coche toutes les heures de départ où tu es disponible — tu peux
+          en cocher plusieurs d&apos;un coup.
         </p>
 
         {error && (
@@ -103,7 +118,7 @@ export default function AvailabilityManager({
               <label className="block text-xs font-medium text-brand-muted mb-1.5">Catégorie de voiture</label>
               <select
                 value={carClass}
-                onChange={(e) => setCarClass(e.target.value)}
+                onChange={(e) => handleCarClassChange(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
               >
                 {carClasses.map((c) => (
@@ -113,25 +128,44 @@ export default function AvailabilityManager({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-brand-muted mb-1.5">Heure de départ</label>
-              <select
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-              >
-                <option value="">— Choisir —</option>
-                {startTimes.map((t) => (
-                  <option key={t} value={t}>{fmt(t)}</option>
-                ))}
-              </select>
+              <label className="block text-xs font-medium text-brand-muted mb-1.5">Heures de départ</label>
+              <div className="space-y-1.5">
+                {startTimes.map((t) => {
+                  const declared = alreadyDeclared.has(t);
+                  return (
+                    <label
+                      key={t}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
+                        declared
+                          ? "border-brand-border/50 opacity-50 cursor-not-allowed"
+                          : selectedTimes.includes(t)
+                          ? "border-brand-orange bg-brand-orange/10 cursor-pointer"
+                          : "border-brand-border hover:border-brand-muted cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTimes.includes(t)}
+                        disabled={declared}
+                        onChange={() => toggleTime(t)}
+                        className="shrink-0"
+                      />
+                      <span className="text-sm text-brand-text flex-1">{fmt(t)}</span>
+                      {declared && <span className="text-xs text-brand-muted">Déjà déclaré</span>}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <button
               type="submit"
-              disabled={submitting || !carClass || !startTime}
+              disabled={submitting || !carClass || selectedTimes.length === 0}
               className="w-full py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
             >
-              {submitting ? "Ajout…" : "+ Ajouter cette disponibilité"}
+              {submitting
+                ? "Ajout…"
+                : `+ Ajouter ${selectedTimes.length > 1 ? `ces ${selectedTimes.length} disponibilités` : "cette disponibilité"}`}
             </button>
           </>
         )}
