@@ -27,6 +27,32 @@ function fmt(d: string): string {
   return new Date(d).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 }
 
+// Les heures de départ sont les mêmes chaque jour du week-end — l'admin ne
+// saisit qu'un horaire (HH:MM) par départ, appliqué automatiquement à chaque
+// jour couvert par [startDate, endDate], sans avoir à ressaisir la date.
+function expandTimesAcrossDays(times: string[], startDateStr: string, endDateStr: string): string[] {
+  if (!startDateStr || !endDateStr || times.length === 0) return [];
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return [];
+
+  const results: Date[] = [];
+  const day = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const lastDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+  while (day <= lastDay) {
+    for (const t of times) {
+      const [h, m] = t.split(":").map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) continue;
+      const candidate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m);
+      if (candidate >= start && candidate <= end) results.push(candidate);
+    }
+    day.setDate(day.getDate() + 1);
+  }
+
+  return results.sort((a, b) => a.getTime() - b.getTime()).map((d) => d.toISOString());
+}
+
 export default function EnduranceManager() {
   const [endurances, setEndurances] = useState<EnduranceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +104,7 @@ export default function EnduranceManager() {
           carClasses,
           startDate: new Date(form.startDate).toISOString(),
           endDate: new Date(form.endDate).toISOString(),
-          startTimes: startTimes.filter((t) => t !== "").map((t) => new Date(t).toISOString()),
+          startTimes: expandTimesAcrossDays(startTimes.filter((t) => t !== ""), form.startDate, form.endDate),
         }),
       });
       const data = await res.json();
@@ -164,16 +190,15 @@ export default function EnduranceManager() {
         <div>
           <label className="block text-xs font-medium text-brand-muted mb-1.5">Heures de départ</label>
           <p className="text-xs text-brand-muted mb-2">
-            Ce sont les seuls horaires que les pilotes pourront choisir en déclarant leurs disponibilités.
+            Un horaire par départ (identique chaque jour du week-end) — pas besoin de préciser la date,
+            il sera automatiquement appliqué à chaque jour entre le début et la fin ci-dessous.
           </p>
           <div className="space-y-2">
             {startTimes.map((t, idx) => (
               <div key={idx} className="flex gap-2 items-center">
                 <input
-                  type="datetime-local"
+                  type="time"
                   value={t}
-                  min={form.startDate}
-                  max={form.endDate}
                   onChange={(e) => updateStartTime(idx, e.target.value)}
                   className="flex-1 px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
                 />
