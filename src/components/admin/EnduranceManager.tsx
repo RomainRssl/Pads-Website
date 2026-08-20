@@ -78,7 +78,7 @@ export default function EnduranceManager() {
           carClasses,
           startDate: new Date(form.startDate).toISOString(),
           endDate: new Date(form.endDate).toISOString(),
-          startTimes: startTimes.map((t) => t.trim()).filter((t) => t !== ""),
+          startTimes: startTimes.filter((t) => t !== "").map((t) => new Date(t).toISOString()),
         }),
       });
       const data = await res.json();
@@ -163,14 +163,18 @@ export default function EnduranceManager() {
 
         <div>
           <label className="block text-xs font-medium text-brand-muted mb-1.5">Heures de départ</label>
+          <p className="text-xs text-brand-muted mb-2">
+            Ce sont les seuls horaires que les pilotes pourront choisir en déclarant leurs disponibilités.
+          </p>
           <div className="space-y-2">
             {startTimes.map((t, idx) => (
               <div key={idx} className="flex gap-2 items-center">
                 <input
-                  type="text"
+                  type="datetime-local"
                   value={t}
+                  min={form.startDate}
+                  max={form.endDate}
                   onChange={(e) => updateStartTime(idx, e.target.value)}
-                  placeholder="ex : Samedi 14h00"
                   className="flex-1 px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
                 />
                 {startTimes.length > 1 && (
@@ -242,7 +246,7 @@ export default function EnduranceManager() {
                   <p className="text-xs text-brand-muted">{fmt(e.startDate)} → {fmt(e.endDate)}</p>
                   {parseStartTimes(e.startTimes).length > 0 && (
                     <p className="text-xs text-brand-muted mt-1">
-                      🏁 {parseStartTimes(e.startTimes).join(" · ")}
+                      🏁 {parseStartTimes(e.startTimes).map((d) => fmt(d.toISOString())).join(" · ")}
                     </p>
                   )}
                   <p className="text-xs text-brand-muted mt-1">

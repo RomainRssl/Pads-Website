@@ -18,13 +18,11 @@ function fmt(d: string): string {
 export default function AvailabilityManager({
   enduranceId,
   carClasses,
-  enduranceStart,
-  enduranceEnd,
+  startTimes,
 }: {
   enduranceId: string;
   carClasses: string[];
-  enduranceStart: string;
-  enduranceEnd: string;
+  startTimes: string[];
 }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +31,8 @@ export default function AvailabilityManager({
   const [endTime, setEndTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const endOptions = startTimes.filter((t) => !startTime || new Date(t) > new Date(startTime));
 
   function load() {
     fetch(`/api/endurance/${enduranceId}/availability`)
@@ -46,6 +46,10 @@ export default function AvailabilityManager({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!startTime || !endTime) {
+      setError("Choisissez une heure de début et une heure de fin parmi les créneaux proposés.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/endurance/${enduranceId}/availability`, {
@@ -83,7 +87,10 @@ export default function AvailabilityManager({
     <div className="space-y-8">
       <form onSubmit={handleSubmit} className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-brand-text">Ajouter un créneau de disponibilité</h3>
-        <p className="text-xs text-brand-muted">Tu peux déclarer plusieurs créneaux, sur des catégories différentes si besoin.</p>
+        <p className="text-xs text-brand-muted">
+          Tu peux déclarer plusieurs créneaux, sur des catégories différentes si besoin. Les horaires
+          proposés sont ceux définis par les organisateurs pour ce week-end.
+        </p>
 
         {error && (
           <div className="p-3 rounded-lg bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-xs">
@@ -91,51 +98,64 @@ export default function AvailabilityManager({
           </div>
         )}
 
-        <div>
-          <label className="block text-xs font-medium text-brand-muted mb-1.5">Catégorie de voiture</label>
-          <select
-            value={carClass}
-            onChange={(e) => setCarClass(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-          >
-            {carClasses.map((c) => (
-              <option key={c} value={c}>{ENDURANCE_CAR_CLASS_LABELS[c as EnduranceCarClass] ?? c}</option>
-            ))}
-          </select>
-        </div>
+        {startTimes.length < 2 ? (
+          <p className="text-sm text-brand-muted">
+            Les organisateurs n&apos;ont pas encore défini d&apos;heures de départ pour cette endurance.
+          </p>
+        ) : (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-brand-muted mb-1.5">Catégorie de voiture</label>
+              <select
+                value={carClass}
+                onChange={(e) => setCarClass(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
+              >
+                {carClasses.map((c) => (
+                  <option key={c} value={c}>{ENDURANCE_CAR_CLASS_LABELS[c as EnduranceCarClass] ?? c}</option>
+                ))}
+              </select>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-brand-muted mb-1.5">Disponible à partir de</label>
-            <input
-              type="datetime-local" required
-              min={enduranceStart.slice(0, 16)}
-              max={enduranceEnd.slice(0, 16)}
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-brand-muted mb-1.5">Jusqu&apos;à</label>
-            <input
-              type="datetime-local" required
-              min={enduranceStart.slice(0, 16)}
-              max={enduranceEnd.slice(0, 16)}
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-            />
-          </div>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-brand-muted mb-1.5">Disponible à partir de</label>
+                <select
+                  value={startTime}
+                  onChange={(e) => { setStartTime(e.target.value); setEndTime(""); }}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
+                >
+                  <option value="">— Choisir —</option>
+                  {startTimes.map((t) => (
+                    <option key={t} value={t}>{fmt(t)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-brand-muted mb-1.5">Jusqu&apos;à</label>
+                <select
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  disabled={!startTime}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange disabled:opacity-50"
+                >
+                  <option value="">— Choisir —</option>
+                  {endOptions.map((t) => (
+                    <option key={t} value={t}>{fmt(t)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-        <button
-          type="submit"
-          disabled={submitting || !carClass}
-          className="w-full py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
-        >
-          {submitting ? "Ajout…" : "+ Ajouter ce créneau"}
-        </button>
+            <button
+              type="submit"
+              disabled={submitting || !carClass || !startTime || !endTime}
+              className="w-full py-2.5 rounded-lg bg-brand-orange hover:bg-brand-orange/80 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+            >
+              {submitting ? "Ajout…" : "+ Ajouter ce créneau"}
+            </button>
+          </>
+        )}
       </form>
 
       <div>

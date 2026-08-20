@@ -42,13 +42,11 @@ const STATUS_LABEL: Record<string, string> = {
 export default function TeamBuilder({
   enduranceId,
   carClasses,
-  enduranceStart,
-  enduranceEnd,
+  startTimes,
 }: {
   enduranceId: string;
   carClasses: string[];
-  enduranceStart: string;
-  enduranceEnd: string;
+  startTimes: string[];
 }) {
   const { data: session } = useSession();
   const [pool, setPool] = useState<PoolSlot[]>([]);
@@ -175,25 +173,32 @@ export default function TeamBuilder({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-brand-muted mb-1.5">Début du relais/stint</label>
-            <input
-              type="datetime-local" required
-              min={enduranceStart.slice(0, 16)}
-              max={enduranceEnd.slice(0, 16)}
+            <select
+              required
               value={startTime}
-              onChange={(e) => { setStartTime(e.target.value); setSelected([]); }}
+              onChange={(e) => { setStartTime(e.target.value); setEndTime(""); setSelected([]); }}
               className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-            />
+            >
+              <option value="">— Choisir —</option>
+              {startTimes.map((t) => (
+                <option key={t} value={t}>{fmt(t)}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-brand-muted mb-1.5">Fin</label>
-            <input
-              type="datetime-local" required
-              min={enduranceStart.slice(0, 16)}
-              max={enduranceEnd.slice(0, 16)}
+            <select
+              required
               value={endTime}
+              disabled={!startTime}
               onChange={(e) => { setEndTime(e.target.value); setSelected([]); }}
-              className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-            />
+              className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange disabled:opacity-50"
+            >
+              <option value="">— Choisir —</option>
+              {startTimes.filter((t) => !startTime || new Date(t) > new Date(startTime)).map((t) => (
+                <option key={t} value={t}>{fmt(t)}</option>
+              ))}
+            </select>
           </div>
         </div>
 

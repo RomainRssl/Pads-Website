@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import EnduranceSubNav from "@/components/endurance/EnduranceSubNav";
 import TeamBuilder from "@/components/endurance/TeamBuilder";
-import { parseCarClasses } from "@/lib/endurance";
+import { parseCarClasses, parseStartTimes } from "@/lib/endurance";
 
 export default async function EquipePage({
   params,
@@ -19,8 +19,7 @@ export default async function EquipePage({
       <TeamBuilder
         enduranceId={id}
         carClasses={parseCarClasses(endurance.carClasses)}
-        enduranceStart={endurance.startDate.toISOString()}
-        enduranceEnd={endurance.endDate.toISOString()}
+        startTimes={parseStartTimes(endurance.startTimes).map((d) => d.toISOString())}
       />
     </div>
   );

@@ -11,7 +11,7 @@ const createEnduranceSchema = z.object({
   carClasses: z.array(z.enum(ENDURANCE_CAR_CLASSES)).min(1),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
-  startTimes: z.array(z.string().min(1).max(50)).max(20).optional().default([]),
+  startTimes: z.array(z.string().datetime()).max(20).optional().default([]),
 });
 
 export async function GET() {
@@ -48,6 +48,17 @@ export async function POST(req: Request) {
   if (endDate <= startDate) {
     return NextResponse.json(
       { error: "La date de fin doit être après la date de début" },
+      { status: 400 }
+    );
+  }
+
+  const outOfRange = parsed.data.startTimes.some((t) => {
+    const d = new Date(t);
+    return d < startDate || d > endDate;
+  });
+  if (outOfRange) {
+    return NextResponse.json(
+      { error: "Les heures de départ doivent être comprises dans la plage du week-end" },
       { status: 400 }
     );
   }

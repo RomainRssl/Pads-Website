@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ENDURANCE_CAR_CLASSES } from "@/lib/endurance";
+import { ENDURANCE_CAR_CLASSES, parseStartTimes } from "@/lib/endurance";
 import { notifyGroupInvite } from "@/lib/endurance-notify";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -61,6 +61,14 @@ export async function POST(
   if (endTime <= startTime) {
     return NextResponse.json(
       { error: "L'heure de fin doit être après l'heure de début" },
+      { status: 400 }
+    );
+  }
+
+  const allowedTimes = parseStartTimes(endurance.startTimes).map((d) => d.getTime());
+  if (!allowedTimes.includes(startTime.getTime()) || !allowedTimes.includes(endTime.getTime())) {
+    return NextResponse.json(
+      { error: "Choisissez une heure de début et de fin parmi les créneaux proposés par les organisateurs" },
       { status: 400 }
     );
   }

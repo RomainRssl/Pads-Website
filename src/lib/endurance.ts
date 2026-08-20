@@ -20,4 +20,14 @@ export function parseStringArray(raw: string): string[] {
 }
 
 export const parseCarClasses = parseStringArray;
-export const parseStartTimes = parseStringArray;
+
+// Les heures de départ sont stockées en JSON comme un tableau de dates ISO —
+// choisies par l'admin à la création, imposées aux pilotes à la déclaration
+// de dispo. On filtre les entrées invalides (ex: anciens libellés texte
+// saisis avant ce format) plutôt que de planter l'affichage.
+export function parseStartTimes(raw: string): Date[] {
+  return parseStringArray(raw)
+    .map((t) => new Date(t))
+    .filter((d) => !isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+}

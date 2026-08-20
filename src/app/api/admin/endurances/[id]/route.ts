@@ -10,7 +10,7 @@ const updateEnduranceSchema = z.object({
   carClasses: z.array(z.enum(ENDURANCE_CAR_CLASSES)).min(1).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
-  startTimes: z.array(z.string().min(1).max(50)).max(20).optional(),
+  startTimes: z.array(z.string().datetime()).max(20).optional(),
 });
 
 export async function GET(
