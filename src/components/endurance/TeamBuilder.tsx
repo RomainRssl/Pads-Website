@@ -77,6 +77,15 @@ export default function TeamBuilder({
     [pool, carClass]
   );
 
+  // Un pilote peut apparaître dans un groupe "15h00" tout en n'ayant déclaré
+  // sa dispo que jusqu'à 22h00 (prochain départ) — insuffisant si le format
+  // de course (essais+qualifs+course) dépasse cet écart. On ne le propose
+  // que si sa dispo couvre bien la durée totale du relais.
+  function coversFullStint(s: PoolSlot): boolean {
+    const requiredEnd = computeStintEnd(new Date(s.startTime), raceDurationHours);
+    return new Date(s.endTime) >= requiredEnd;
+  }
+
   // Regroupe les pilotes par heure de départ — sélectionner des pilotes dans
   // un groupe détermine directement le créneau de l'équipage, plus besoin de
   // le choisir séparément.
@@ -99,11 +108,12 @@ export default function TeamBuilder({
     return carClassPool.find((s) => s.id === selected[0])?.startTime ?? null;
   }, [selected, carClassPool]);
 
-  function toggleSlot(slotId: string, slotStartTime: string) {
+  function toggleSlot(slot: PoolSlot) {
     setSelected((prev) => {
-      if (prev.includes(slotId)) return prev.filter((s) => s !== slotId);
-      if (activeStartTime && slotStartTime !== activeStartTime) return prev;
-      return [...prev, slotId];
+      if (prev.includes(slot.id)) return prev.filter((s) => s !== slot.id);
+      if (activeStartTime && slot.startTime !== activeStartTime) return prev;
+      if (!coversFullStint(slot)) return prev;
+      return [...prev, slot.id];
     });
   }
 
@@ -212,30 +222,37 @@ export default function TeamBuilder({
                       <span className="text-brand-muted/70"> → fin estimée {fmt(computeStintEnd(new Date(groupStartTime), raceDurationHours).toISOString())}</span>
                     </p>
                     <div className="space-y-1.5">
-                      {slots.map((s) => (
-                        <label
-                          key={s.id}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
-                            isOtherGroup ? "border-brand-border/50 cursor-not-allowed" : "cursor-pointer"
-                          } ${
-                            selected.includes(s.id)
-                              ? "border-brand-orange bg-brand-orange/10"
-                              : !isOtherGroup && "border-brand-border hover:border-brand-muted"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected.includes(s.id)}
-                            disabled={isOtherGroup}
-                            onChange={() => toggleSlot(s.id, s.startTime)}
-                            className="shrink-0"
-                          />
-                          <span className="text-sm text-brand-text flex-1">
-                            {s.user.name ?? "Pilote"}
-                            {s.user.id === session?.user?.id && " (moi)"}
-                          </span>
-                        </label>
-                      ))}
+                      {slots.map((s) => {
+                        const eligible = coversFullStint(s);
+                        const disabled = isOtherGroup || !eligible;
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
+                              disabled ? "border-brand-border/50 cursor-not-allowed" : "cursor-pointer"
+                            } ${
+                              selected.includes(s.id)
+                                ? "border-brand-orange bg-brand-orange/10"
+                                : !disabled && "border-brand-border hover:border-brand-muted"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected.includes(s.id)}
+                              disabled={disabled}
+                              onChange={() => toggleSlot(s)}
+                              className="shrink-0"
+                            />
+                            <span className="text-sm text-brand-text flex-1">
+                              {s.user.name ?? "Pilote"}
+                              {s.user.id === session?.user?.id && " (moi)"}
+                            </span>
+                            {!eligible && (
+                              <span className="text-xs text-brand-muted">Dispo trop courte</span>
+                            )}
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
                 );
