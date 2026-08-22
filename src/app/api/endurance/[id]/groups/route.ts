@@ -92,9 +92,12 @@ export async function POST(
         { status: 409 }
       );
     }
-    if (slot.startTime > startTime || slot.endTime < endTime) {
+    // La dispo d'un pilote correspond à un départ précis (son startTime), pas
+    // à une plage — son endTime ("jusqu'au prochain départ") n'a aucun lien
+    // avec la durée réelle du relais et ne doit pas être comparé à celle-ci.
+    if (slot.startTime.getTime() !== startTime.getTime()) {
       return NextResponse.json(
-        { error: `${slot.user.name ?? "Un pilote"} n'est pas disponible sur tout le créneau demandé` },
+        { error: `${slot.user.name ?? "Un pilote"} n'est pas disponible sur ce créneau` },
         { status: 409 }
       );
     }
