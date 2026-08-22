@@ -42,12 +42,10 @@ const STATUS_LABEL: Record<string, string> = {
 export default function TeamBuilder({
   enduranceId,
   carClasses,
-  startTimes,
   raceDurationHours,
 }: {
   enduranceId: string;
   carClasses: string[];
-  startTimes: string[];
   raceDurationHours: number;
 }) {
   const { data: session } = useSession();
@@ -57,18 +55,10 @@ export default function TeamBuilder({
 
   const [teamName, setTeamName] = useState("");
   const [carClass, setCarClass] = useState(carClasses[0] ?? "");
-  const [startTime, setStartTime] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  // La fin du relais est déduite automatiquement (essais + qualifs fixes +
-  // temps de course défini par l'admin) — plus besoin de la choisir.
-  const computedEndTime = useMemo(
-    () => (startTime ? computeStintEnd(new Date(startTime), raceDurationHours).toISOString() : ""),
-    [startTime, raceDurationHours]
-  );
 
   function load() {
     Promise.all([
@@ -82,38 +72,50 @@ export default function TeamBuilder({
 
   useEffect(load, [enduranceId]);
 
-  const eligiblePool = useMemo(() => {
-    if (!startTime) return pool.filter((s) => s.carClass === carClass);
-    const start = new Date(startTime);
-    const end = new Date(computedEndTime);
-    return pool.filter(
-      (s) => s.carClass === carClass && new Date(s.startTime) <= start && new Date(s.endTime) >= end
-    );
-  }, [pool, carClass, startTime, computedEndTime]);
+  const carClassPool = useMemo(
+    () => pool.filter((s) => s.carClass === carClass),
+    [pool, carClass]
+  );
 
-  // Regroupe les pilotes éligibles par heure de départ — plus lisible qu'une
-  // plage de disponibilité par pilote, surtout avant d'avoir choisi un début.
+  // Regroupe les pilotes par heure de départ — sélectionner des pilotes dans
+  // un groupe détermine directement le créneau de l'équipage, plus besoin de
+  // le choisir séparément.
   const groupedPool = useMemo(() => {
     const map = new Map<string, PoolSlot[]>();
-    for (const s of eligiblePool) {
-      const key = s.startTime;
-      const arr = map.get(key);
+    for (const s of carClassPool) {
+      const arr = map.get(s.startTime);
       if (arr) arr.push(s);
-      else map.set(key, [s]);
+      else map.set(s.startTime, [s]);
     }
     return [...map.entries()].sort(
       ([a], [b]) => new Date(a).getTime() - new Date(b).getTime()
     );
-  }, [eligiblePool]);
+  }, [carClassPool]);
 
-  function toggleSlot(slotId: string) {
-    setSelected((prev) => (prev.includes(slotId) ? prev.filter((s) => s !== slotId) : [...prev, slotId]));
+  // Le créneau de l'équipage est celui du groupe où la première sélection a
+  // été faite — les autres groupes se grisent tant qu'elle n'est pas vidée.
+  const activeStartTime = useMemo(() => {
+    if (selected.length === 0) return null;
+    return carClassPool.find((s) => s.id === selected[0])?.startTime ?? null;
+  }, [selected, carClassPool]);
+
+  function toggleSlot(slotId: string, slotStartTime: string) {
+    setSelected((prev) => {
+      if (prev.includes(slotId)) return prev.filter((s) => s !== slotId);
+      if (activeStartTime && slotStartTime !== activeStartTime) return prev;
+      return [...prev, slotId];
+    });
+  }
+
+  function handleCarClassChange(c: string) {
+    setCarClass(c);
+    setSelected([]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (selected.length === 0) {
+    if (selected.length === 0 || !activeStartTime) {
       setError("Sélectionne au moins un pilote (dont toi-même si tu conduis).");
       return;
     }
@@ -125,7 +127,7 @@ export default function TeamBuilder({
         body: JSON.stringify({
           teamName,
           carClass,
-          startTime: new Date(startTime).toISOString(),
+          startTime: activeStartTime,
           availabilityIds: selected,
         }),
       });
@@ -158,8 +160,9 @@ export default function TeamBuilder({
       <form onSubmit={handleSubmit} className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-brand-text">Former un équipage</h3>
         <p className="text-xs text-brand-muted">
-          Choisis une catégorie et un créneau, puis sélectionne les pilotes disponibles à intégrer.
-          Chacun recevra un DM pour confirmer sa participation.
+          Choisis une catégorie, puis sélectionne les pilotes disponibles à intégrer — cocher un
+          pilote dans un créneau fige l&apos;équipage sur ce créneau. Chacun recevra un DM pour
+          confirmer sa participation.
         </p>
 
         {error && (
@@ -183,7 +186,7 @@ export default function TeamBuilder({
           <label className="block text-xs font-medium text-brand-muted mb-1.5">Catégorie</label>
           <select
             value={carClass}
-            onChange={(e) => { setCarClass(e.target.value); setSelected([]); }}
+            onChange={(e) => handleCarClassChange(e.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
           >
             {carClasses.map((c) => (
@@ -193,63 +196,50 @@ export default function TeamBuilder({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-brand-muted mb-1.5">Début du relais</label>
-          <select
-            required
-            value={startTime}
-            onChange={(e) => { setStartTime(e.target.value); setSelected([]); }}
-            className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
-          >
-            <option value="">— Choisir —</option>
-            {startTimes.map((t) => (
-              <option key={t} value={t}>{fmt(t)}</option>
-            ))}
-          </select>
-          {computedEndTime && (
-            <p className="text-xs text-brand-muted mt-1.5">
-              Fin estimée (essais + qualifs + course) : <strong className="text-brand-text">{fmt(computedEndTime)}</strong>
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-brand-muted mb-1.5">
-            Pilotes disponibles {startTime ? "sur ce créneau" : "pour cette catégorie"}
-          </label>
+          <label className="block text-xs font-medium text-brand-muted mb-1.5">Pilotes disponibles</label>
           {loading ? (
             <div className="h-10 rounded-lg bg-brand-border animate-pulse" />
           ) : groupedPool.length === 0 ? (
-            <p className="text-xs text-brand-muted">Aucun pilote disponible pour ces critères.</p>
+            <p className="text-xs text-brand-muted">Aucun pilote disponible pour cette catégorie.</p>
           ) : (
-            <div className="space-y-3 max-h-72 overflow-y-auto">
-              {groupedPool.map(([groupStartTime, slots]) => (
-                <div key={groupStartTime}>
-                  <p className="text-xs font-medium text-brand-muted mb-1.5">🏁 {fmt(groupStartTime)}</p>
-                  <div className="space-y-1.5">
-                    {slots.map((s) => (
-                      <label
-                        key={s.id}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                          selected.includes(s.id)
-                            ? "border-brand-orange bg-brand-orange/10"
-                            : "border-brand-border hover:border-brand-muted"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected.includes(s.id)}
-                          onChange={() => toggleSlot(s.id)}
-                          className="shrink-0"
-                        />
-                        <span className="text-sm text-brand-text flex-1">
-                          {s.user.name ?? "Pilote"}
-                          {s.user.id === session?.user?.id && " (moi)"}
-                        </span>
-                      </label>
-                    ))}
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {groupedPool.map(([groupStartTime, slots]) => {
+                const isOtherGroup = activeStartTime !== null && groupStartTime !== activeStartTime;
+                return (
+                  <div key={groupStartTime} className={isOtherGroup ? "opacity-40" : undefined}>
+                    <p className="text-xs font-medium text-brand-muted mb-1.5">
+                      🏁 {fmt(groupStartTime)}
+                      <span className="text-brand-muted/70"> → fin estimée {fmt(computeStintEnd(new Date(groupStartTime), raceDurationHours).toISOString())}</span>
+                    </p>
+                    <div className="space-y-1.5">
+                      {slots.map((s) => (
+                        <label
+                          key={s.id}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
+                            isOtherGroup ? "border-brand-border/50 cursor-not-allowed" : "cursor-pointer"
+                          } ${
+                            selected.includes(s.id)
+                              ? "border-brand-orange bg-brand-orange/10"
+                              : !isOtherGroup && "border-brand-border hover:border-brand-muted"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected.includes(s.id)}
+                            disabled={isOtherGroup}
+                            onChange={() => toggleSlot(s.id, s.startTime)}
+                            className="shrink-0"
+                          />
+                          <span className="text-sm text-brand-text flex-1">
+                            {s.user.name ?? "Pilote"}
+                            {s.user.id === session?.user?.id && " (moi)"}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
