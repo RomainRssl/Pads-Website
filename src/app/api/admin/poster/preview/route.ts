@@ -36,6 +36,8 @@ const previewSchema = z.object({
       location: z.string().min(1).max(200),
     })
     .optional(),
+  // Visuel fourni par l'admin (data URI ou base64 nu) : aucune génération.
+  sceneImage: z.string().max(14_000_000).optional(),
 });
 
 export async function POST(req: Request) {
@@ -70,6 +72,10 @@ export async function POST(req: Request) {
     });
   }
 
+  const sceneFournie = d.sceneImage
+    ? Buffer.from(d.sceneImage.replace(/^data:[^;]+;base64,/, ""), "base64")
+    : undefined;
+
   const resultat = await generatePosterPreview(
     {
       date: new Date(d.date),
@@ -81,7 +87,8 @@ export async function POST(req: Request) {
       practiceMinutes: 10,
       qualiMinutes: 10,
     },
-    d.track
+    d.track,
+    sceneFournie
   );
 
   const status =

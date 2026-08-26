@@ -130,6 +130,15 @@ export async function generatePoster(
 
 // ── Brouillons (prévisualisation depuis le formulaire de création) ───────────
 
+/** Met une image fournie au format attendu par le gabarit : 1200 × 1100. */
+async function normaliserScene(brut: Buffer): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+  return sharp(brut)
+    .resize(1200, 1100, { fit: "cover", position: "centre" })
+    .jpeg({ quality: 88 })
+    .toBuffer();
+}
+
 export type ResultatPreview =
   | { statut: "READY"; token: string; url: string }
   | { statut: "QUEUED"; message: string }
@@ -143,6 +152,8 @@ export type ResultatPreview =
 export async function generatePosterPreview(
   source: PosterSource,
   trackKey: string,
+  /** Visuel fourni par l'utilisateur : aucun appel au générateur d'images. */
+  sceneFournie?: Buffer,
 ): Promise<ResultatPreview> {
   const track = await prisma.track.findUnique({ where: { track: trackKey } });
   if (!track) {
@@ -157,10 +168,12 @@ export async function generatePosterPreview(
   await ensureMediaDirs();
   const token = randomBytes(16).toString("hex");
 
-  // ── 1. Visuel de scène (Gemini) ────────────────────────────────────────────
+  // ── 1. Visuel de scène ─────────────────────────────────────────────────────
   let sceneJpeg: Buffer;
   try {
-    sceneJpeg = await generateScene(buildScenePrompt(source, track));
+    sceneJpeg = sceneFournie
+      ? await normaliserScene(sceneFournie)
+      : await generateScene(buildScenePrompt(source, track));
   } catch (err) {
     if (err instanceof QuotaError && err.retryable) {
       return { statut: "QUEUED", message: err.message };
