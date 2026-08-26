@@ -71,7 +71,9 @@ export async function generatePoster(
     try {
       sceneJpeg = await generateScene(prompt);
     } catch (err) {
-      if (err instanceof QuotaError) {
+      // Un quota non « retryable » ne s'arrangera pas tout seul : le laisser
+      // en file ferait tourner la boucle de retry pour rien.
+      if (err instanceof QuotaError && err.retryable) {
         // La course reste publiée sans affiche ; la demande reste en file.
         await prisma.event.update({
           where: { id: eventId },
@@ -160,7 +162,7 @@ export async function generatePosterPreview(
   try {
     sceneJpeg = await generateScene(buildScenePrompt(source, track));
   } catch (err) {
-    if (err instanceof QuotaError) {
+    if (err instanceof QuotaError && err.retryable) {
       return { statut: "QUEUED", message: err.message };
     }
     return {
