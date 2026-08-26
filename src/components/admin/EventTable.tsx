@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import type { Event } from "@prisma/client";
 import EventBadge from "@/components/events/EventBadge";
-import { LMU_TRACKS } from "@/lib/tracks";
+import { useTrackGroups } from "@/lib/use-track-groups";
 
 interface EventTableProps {
   initialEvents: Event[];
@@ -23,6 +23,7 @@ function toDatetimeLocal(date: Date): string {
 }
 
 export default function EventTable({ initialEvents }: EventTableProps) {
+  const trackGroups = useTrackGroups();
   const [events, setEvents] = useState(initialEvents);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deletingPast, setDeletingPast] = useState(false);
@@ -260,7 +261,7 @@ export default function EventTable({ initialEvents }: EventTableProps) {
                             className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-red"
                           >
                             <option value="">— Choisir un circuit —</option>
-                            {LMU_TRACKS.map((group) => (
+                            {trackGroups.map((group) => (
                               <optgroup key={group.group} label={group.group}>
                                 {group.options.map((opt) => (
                                   <option key={opt} value={opt}>{opt}</option>

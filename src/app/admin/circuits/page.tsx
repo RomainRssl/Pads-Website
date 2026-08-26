@@ -10,9 +10,9 @@ export default function CircuitsPage() {
       </p>
       <TrackSheetManager />
 
-      <h1 className="font-heading text-2xl font-bold text-white mt-12 mb-2">Capacités des circuits</h1>
+      <h1 className="font-heading text-2xl font-bold text-white mt-12 mb-2">Circuits</h1>
       <p className="text-brand-muted text-sm mb-8">
-        Définissez le nombre maximum de pilotes par circuit. Cette valeur sera pré-remplie automatiquement lors de la création d&apos;une course.
+        Ajoutez des circuits manuellement et définissez le nombre maximum de pilotes par circuit. La capacité sera pré-remplie automatiquement lors de la création d&apos;une course.
       </p>
       <CircuitsManager />
     </div>

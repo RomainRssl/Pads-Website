@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
-import { LMU_TRACKS } from "@/lib/tracks";
+import { useTrackGroups } from "@/lib/use-track-groups";
 import { LMU_CARS } from "@/lib/lmu-cars";
 
 type SplitMode = "RANKED" | "RANDOM" | "MANUAL";
@@ -56,6 +56,7 @@ const initialState: FormState = {
 
 export default function CreateEventForm() {
   const router = useRouter();
+  const trackGroups = useTrackGroups();
   const [form, setForm] = useState<FormState>(initialState);
   const [cars, setCars] = useState<CarEntry[]>([{ name: "", maxCars: "" }]);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -227,7 +228,7 @@ export default function CreateEventForm() {
             className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
           >
             <option value="">— Choisir un circuit —</option>
-            {LMU_TRACKS.map((group) => (
+            {trackGroups.map((group) => (
               <optgroup key={group.group} label={group.group}>
                 {group.options.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>

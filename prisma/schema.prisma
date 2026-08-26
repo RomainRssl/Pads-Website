@@ -437,6 +437,12 @@ model TrackCapacity {
   updatedAt DateTime @updatedAt
 }
 
+// ── Custom tracks (ajoutés manuellement via l'admin) ──────────────────────────
+model CustomTrack {
+  name      String   @id
+  createdAt DateTime @default(now())
+}
+
 // ── Fiche d'identité d'un circuit (affiches FIS) ─────────────────────────────
 // Même convention de clé que TrackCapacity : le nom exact du circuit tel qu'il
 // apparaît dans Event.track. Remplie une fois par circuit, le formulaire de

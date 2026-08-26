@@ -20,6 +20,8 @@ export const CIRCUIT_CAPACITY: Record<string, number> = {
   "Bahrain International Paddock Circuit":                             50,
   "Circuit of the Americas (2024 Pack 2 DLC)":                        50,
   "COTA National":                                                     50,
+  "Daytona International Speedway":                                    50,
+  "Laguna Seca (WeatherTech Raceway)":                                 50,
   "Fuji International Speedway":                                       50,
   "Fuji Classic Layout (No Chicane)":                                  50,
   "Lusail International Circuit (2024 Pack 5 DLC)":                   50,

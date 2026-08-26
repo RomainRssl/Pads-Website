@@ -12,15 +12,18 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [tracks, eventTracks] = await Promise.all([
+  const [tracks, eventTracks, customTracks] = await Promise.all([
     prisma.track.findMany({ orderBy: { track: "asc" } }),
     prisma.event.findMany({ distinct: ["track"], select: { track: true } }),
+    prisma.customTrack.findMany({ select: { name: true } }),
   ]);
 
-  // Aide à la saisie : liste officielle + valeurs réellement utilisées en base.
+  // Aide à la saisie : liste officielle + circuits ajoutés manuellement
+  // + valeurs réellement utilisées en base.
   const knownTracks = [
     ...new Set([
       ...LMU_TRACKS.flatMap((g) => g.options),
+      ...customTracks.map((c) => c.name),
       ...eventTracks.map((e) => e.track),
     ]),
   ].sort();
