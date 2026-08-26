@@ -8,14 +8,19 @@
 // Un refus pour quota Gemini laisse la course en QUEUED : la boucle de retry
 // (démarrée par src/instrumentation.ts) retente toutes les 10 minutes.
 
-import { writeFile } from "fs/promises";
+import { randomBytes } from "crypto";
+import { rename, writeFile } from "fs/promises";
 import { prisma } from "./prisma";
-import { buildPosterData, buildScenePrompt } from "./poster";
+import { buildPosterData, buildScenePrompt, type PosterSource } from "./poster";
 import { generateScene, QuotaError } from "./gemini";
 import { renderPoster } from "./poster-render";
 import {
+  draftPosterRelPath,
+  draftSceneRelPath,
   ensureMediaDirs,
+  isDraftToken,
   mediaAbsPath,
+  mediaUrl,
   posterRelPath,
   sceneRelPath,
 } from "./media";
@@ -119,6 +124,106 @@ export async function generatePoster(
     });
     return { statut: "FAILED", message };
   }
+}
+
+// ── Brouillons (prévisualisation depuis le formulaire de création) ───────────
+
+export type ResultatPreview =
+  | { statut: "READY"; token: string; url: string }
+  | { statut: "QUEUED"; message: string }
+  | { statut: "FAILED"; message: string };
+
+/**
+ * Génère une affiche à partir des données du formulaire, avant que la course
+ * n'existe. Les fichiers sont écrits sous un jeton et rattachés à la course
+ * par attachDraftPoster() au moment de la création.
+ */
+export async function generatePosterPreview(
+  source: PosterSource,
+  trackKey: string,
+): Promise<ResultatPreview> {
+  const track = await prisma.track.findUnique({ where: { track: trackKey } });
+  if (!track) {
+    return {
+      statut: "FAILED",
+      message:
+        `Aucune fiche circuit pour « ${trackKey} » — ` +
+        `créez-la dans Admin → Circuits avant de générer l'affiche.`,
+    };
+  }
+
+  await ensureMediaDirs();
+  const token = randomBytes(16).toString("hex");
+
+  // ── 1. Visuel de scène (Gemini) ────────────────────────────────────────────
+  let sceneJpeg: Buffer;
+  try {
+    sceneJpeg = await generateScene(buildScenePrompt(source, track));
+  } catch (err) {
+    if (err instanceof QuotaError) {
+      return { statut: "QUEUED", message: err.message };
+    }
+    return {
+      statut: "FAILED",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  const sceneRel = draftSceneRelPath(token);
+  await writeFile(mediaAbsPath(sceneRel), sceneJpeg);
+
+  // ── 2. Rendu de l'affiche (Puppeteer) ──────────────────────────────────────
+  try {
+    const sceneUrl = `data:image/jpeg;base64,${sceneJpeg.toString("base64")}`;
+    const png = await renderPoster(buildPosterData(source, track, sceneUrl));
+    const posterRel = draftPosterRelPath(token);
+    await writeFile(mediaAbsPath(posterRel), png);
+    return { statut: "READY", token, url: mediaUrl(posterRel) };
+  } catch (err) {
+    return {
+      statut: "FAILED",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/**
+ * Rattache un brouillon validé à la course qui vient d'être créée : les
+ * fichiers sont renommés et la course passe en READY. Silencieux si le
+ * brouillon a disparu — la course reste publiée, l'affiche est régénérable
+ * depuis le tableau d'administration.
+ */
+export async function attachDraftPoster(
+  eventId: string,
+  token: string,
+  scenePrompt?: string,
+): Promise<boolean> {
+  if (!isDraftToken(token)) return false;
+
+  const sceneRel = sceneRelPath(eventId);
+  const posterRel = posterRelPath(eventId);
+
+  try {
+    await ensureMediaDirs();
+    await rename(mediaAbsPath(draftSceneRelPath(token)), mediaAbsPath(sceneRel));
+    await rename(mediaAbsPath(draftPosterRelPath(token)), mediaAbsPath(posterRel));
+  } catch (err) {
+    console.error("[poster] Brouillon introuvable au rattachement :", err);
+    return false;
+  }
+
+  await prisma.event.update({
+    where: { id: eventId },
+    data: {
+      scenePath: sceneRel,
+      posterPath: posterRel,
+      scenePrompt: scenePrompt ?? null,
+      posterStatus: "READY",
+      posterError: null,
+      posterAt: new Date(),
+    },
+  });
+  return true;
 }
 
 // ── Boucle de retry ──────────────────────────────────────────────────────────

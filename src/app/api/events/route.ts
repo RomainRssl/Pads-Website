@@ -73,6 +73,8 @@ const createEventSchema = z.object({
   posterAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   entryCredits: z.number().int().min(0).nullable().optional(),
   raceDuration: z.number().int().min(1).nullable().optional(),
+  // Jeton d'une affiche prévisualisée avant création, à rattacher à la course
+  posterDraftToken: z.string().regex(/^[0-9a-f]{32}$/).nullable().optional(),
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -133,9 +135,19 @@ export async function POST(req: Request) {
     },
   });
 
+  // Affiche prévisualisée au formulaire : on rattache exactement le fichier
+  // validé, le visuel Gemini n'étant pas reproductible.
+  if (parsed.data.posterDraftToken) {
+    const { attachDraftPoster } = await import("@/lib/poster-pipeline");
+    await attachDraftPoster(event.id, parsed.data.posterDraftToken).catch((err) =>
+      console.error("[poster] Rattachement du brouillon échoué :", err)
+    );
+  }
+
   sendEventNotification(event).catch((err) =>
     console.error("[webhook] Failed to send Discord notification:", err)
   );
 
-  return NextResponse.json(enrichEvent(event), { status: 201 });
+  const created = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
+  return NextResponse.json(enrichEvent(created), { status: 201 });
 }
