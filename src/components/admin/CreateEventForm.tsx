@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
 import { useTrackGroups } from "@/lib/use-track-groups";
-import { LMU_CARS } from "@/lib/lmu-cars";
 
 type SplitMode = "RANKED" | "RANDOM" | "MANUAL";
 
@@ -19,50 +18,12 @@ interface FormState {
   splitMode: SplitMode;
   trackCapacity: string;
   freeSlots: string;
-  weekNumber: string;
-  entryCredits: string;
-  raceDuration: string;
-  posterAccent: string;
 }
 
 // Each car entry now carries an optional max-car count per class
 interface CarEntry {
   name: string;
   maxCars: number | "";
-}
-
-// Identité du circuit utilisée par l'affiche — saisie ici, mémorisée ensuite
-interface TrackSheet {
-  officialName: string;
-  displayName: string;
-  country: string;
-  countryCode: string;
-  location: string;
-}
-
-const EMPTY_SHEET: TrackSheet = {
-  officialName: "",
-  displayName: "",
-  country: "",
-  countryCode: "",
-  location: "",
-};
-
-/**
- * Première ébauche de fiche à partir du nom du circuit, pour éviter de tout
- * taper : « Autodromo … (Imola) (2024 Pack 1 DLC) » propose « IMOLA ».
- * Les mentions de DLC ou de variante ne sont pas des noms de circuit.
- */
-function draftSheetFromTrack(track: string): TrackSheet {
-  const parentheses = [...track.matchAll(/\(([^)]+)\)/g)].map((m) => m[1].trim());
-  const base = track.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
-  const alias = parentheses.find((p) => !/DLC|pack|ELMS|WEC|layout|short|national|gp\b/i.test(p));
-
-  return {
-    ...EMPTY_SHEET,
-    officialName: base.toUpperCase(),
-    displayName: (alias ?? base).toUpperCase(),
-  };
 }
 
 const SPLIT_MODE_OPTIONS: { value: SplitMode; label: string; description: string }[] = [
@@ -82,11 +43,62 @@ const initialState: FormState = {
   splitMode: "RANKED",
   trackCapacity: "",
   freeSlots: "0",
-  weekNumber: "",
-  entryCredits: "",
-  raceDuration: "60",
-  posterAccent: "#F07000",
 };
+
+const LMU_CARS = [
+  { group: "LMGT3", options: [
+    "LMGT3 (toute classe)",
+    "Aston Martin Vantage AMR LMGT3 Evo",
+    "BMW M4 LMGT3",
+    "BMW M4 LMGT3 Evo",
+    "Chevrolet Corvette Z06 LMGT3.R",
+    "Ferrari 296 LMGT3",
+    "Ford Mustang LMGT3",
+    "Lamborghini Huracán LMGT3 Evo 2",
+    "Lexus RC F LMGT3",
+    "Mercedes-AMG LMGT3",
+    "McLaren 720S LMGT3 Evo",
+    "Porsche 911 LMGT3 R (992)",
+  ]},
+  { group: "Hypercar", options: [
+    "Hypercar (toute classe)",
+    "Alpine A424",
+    "Aston Martin Valkyrie AMR LMH",
+    "BMW M Hybrid V8",
+    "Cadillac V-Series.R",
+    "Ferrari 499P",
+    "Genesis GMR-001 LMDh",
+    "Glickenhaus SCG 007",
+    "Isotta Fraschini Tipo 6-C",
+    "Lamborghini SC63",
+    "Peugeot 9X8 2023",
+    "Peugeot 9X8 2024",
+    "Porsche 963",
+    "Toyota GR010-Hybrid",
+    "Vanwall Vandervell 680",
+  ]},
+  { group: "LMP2", options: [
+    "LMP2 (toute classe)",
+    "Oreca 07 Gibson",
+    "Oreca 07 Gibson ELMS",
+  ]},
+  { group: "LMP3", options: [
+    "LMP3 (toute classe)",
+    "Ligier JS P325",
+    "Ginetta G61-LT-P3 Evo",
+    "Duqueine D09",
+  ]},
+  { group: "GTE", options: [
+    "GTE (toute classe)",
+    "Aston Martin Vantage GTE",
+    "Chevrolet Corvette C8.R",
+    "Ferrari 488 GTE Evo",
+    "Porsche 911 RSR-19",
+  ]},
+  { group: "Mystère", options: [
+    "Mystère",
+  ]},
+];
 
 export default function CreateEventForm() {
   const router = useRouter();
@@ -98,38 +110,11 @@ export default function CreateEventForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [trackCapacities, setTrackCapacities] = useState<Record<string, number>>({});
-  const [sheet, setSheet] = useState<TrackSheet>(EMPTY_SHEET);
-  const [knownSheets, setKnownSheets] = useState<Record<string, TrackSheet>>({});
-  const [posterToken, setPosterToken] = useState<string | null>(null);
-  const [posterUrl, setPosterUrl] = useState<string | null>(null);
-  const [posterLoading, setPosterLoading] = useState(false);
-  const [posterError, setPosterError] = useState<string | null>(null);
-  // Visuel fourni par l'admin : prioritaire sur la génération automatique
-  const [sceneImage, setSceneImage] = useState<string | null>(null);
-  const [sceneName, setSceneName] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/track-capacities")
       .then((r) => r.json())
       .then((data: Record<string, number>) => setTrackCapacities(data));
-
-    // Fiches circuit déjà enregistrées : elles pré-remplissent le bloc affiche
-    fetch("/api/admin/tracks")
-      .then((r) => (r.ok ? r.json() : { tracks: [] }))
-      .then((data: { tracks: (TrackSheet & { track: string })[] }) => {
-        const map: Record<string, TrackSheet> = {};
-        for (const t of data.tracks ?? []) {
-          map[t.track] = {
-            officialName: t.officialName,
-            displayName: t.displayName,
-            country: t.country,
-            countryCode: t.countryCode,
-            location: t.location,
-          };
-        }
-        setKnownSheets(map);
-      })
-      .catch(() => {});
   }, []);
 
   function updateCarName(idx: number, val: string) {
@@ -159,71 +144,9 @@ export default function CreateEventForm() {
       }
       return next;
     });
-
-    // Fiche circuit : celle déjà enregistrée, sinon une ébauche à compléter
-    if (name === "track") {
-      setSheet(value ? knownSheets[value] ?? draftSheetFromTrack(value) : EMPTY_SHEET);
-      setPosterToken(null);
-      setPosterUrl(null);
-      setPosterError(null);
-    }
-
     setError(null);
   }
 
-
-  // Génère l'affiche avant création : le résultat est conservé sous un jeton
-  // et rattaché à la course au moment de la soumission.
-  async function handleGeneratePoster() {
-    setPosterLoading(true);
-    setPosterError(null);
-    try {
-      const carsPayload = cars
-        .filter((c) => c.name.trim() !== "")
-        .map((c) => ({ name: c.name, maxCars: c.maxCars === "" ? null : c.maxCars }));
-
-      if (!form.track || !form.date || carsPayload.length === 0) {
-        throw new Error("Renseignez le circuit, la date et au moins une classe.");
-      }
-
-      const sheetComplete = Object.values(sheet).every((v) => v.trim() !== "");
-      if (!sheetComplete) {
-        throw new Error(
-          "Complétez l'identité du circuit ci-dessous (nom affiché, pays, code pays, localisation)."
-        );
-      }
-
-      const res = await fetch("/api/admin/poster/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          track: form.track,
-          date: new Date(form.date).toISOString(),
-          cars: carsPayload,
-          weekNumber: form.weekNumber ? parseInt(form.weekNumber, 10) : null,
-          entryCredits: form.entryCredits ? parseInt(form.entryCredits, 10) : null,
-          raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
-          posterAccent: form.posterAccent || null,
-          trackSheet: sheet,
-          sceneImage,
-        }),
-      });
-
-      const d = await res.json();
-      if (d.statut === "READY") {
-        setPosterToken(d.token);
-        setPosterUrl(d.url);
-      } else {
-        setPosterToken(null);
-        setPosterUrl(null);
-        setPosterError(d.message ?? d.error ?? "La génération a échoué.");
-      }
-    } catch (err) {
-      setPosterError(err instanceof Error ? err.message : "Erreur inconnue");
-    } finally {
-      setPosterLoading(false);
-    }
-  }
 
   async function uploadImage(): Promise<string | null> {
     if (!imageFile) return null;
@@ -265,11 +188,6 @@ export default function CreateEventForm() {
           splitMode: form.splitMode,
           trackCapacity: form.trackCapacity ? parseInt(form.trackCapacity, 10) : null,
           freeSlots: parseInt(form.freeSlots, 10) || 0,
-          weekNumber: form.weekNumber ? parseInt(form.weekNumber, 10) : null,
-          entryCredits: form.entryCredits ? parseInt(form.entryCredits, 10) : null,
-          raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
-          posterAccent: form.posterAccent || null,
-          posterDraftToken: posterToken,
         }),
       });
 
@@ -282,8 +200,6 @@ export default function CreateEventForm() {
       setForm(initialState);
       setCars([{ name: "", maxCars: "" }]);
       setImageFile(null);
-      setPosterToken(null);
-      setPosterUrl(null);
 
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err) {
@@ -523,190 +439,6 @@ export default function CreateEventForm() {
             <p className="text-xs text-brand-muted mt-1">
               → {Math.max(0, parseInt(form.trackCapacity, 10) - (parseInt(form.freeSlots, 10) || 0))} pilotes max par split
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* Affiche FIS */}
-      <div className="border border-brand-border rounded-xl p-4 space-y-4">
-        <p className="text-sm font-medium text-brand-text">
-          Affiche <span className="text-brand-muted font-normal">(générée automatiquement à la création — suivi et régénération depuis le tableau des événements)</span>
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="weekNumber" className="block text-sm font-medium text-brand-text mb-1.5">
-              Semaine
-            </label>
-            <input
-              id="weekNumber" name="weekNumber" type="number" min={1} max={53}
-              value={form.weekNumber} onChange={handleChange}
-              placeholder="ex: 12"
-              className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
-            />
-          </div>
-          <div>
-            <label htmlFor="entryCredits" className="block text-sm font-medium text-brand-text mb-1.5">
-              Inscription <span className="text-brand-muted font-normal">(crédits)</span>
-            </label>
-            <input
-              id="entryCredits" name="entryCredits" type="number" min={0}
-              value={form.entryCredits} onChange={handleChange}
-              placeholder="ex: 1500"
-              className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
-            />
-          </div>
-          <div>
-            <label htmlFor="raceDuration" className="block text-sm font-medium text-brand-text mb-1.5">
-              Durée <span className="text-brand-muted font-normal">(minutes)</span>
-            </label>
-            <input
-              id="raceDuration" name="raceDuration" type="number" min={1}
-              value={form.raceDuration} onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
-            />
-          </div>
-        </div>
-        <div>
-          <label htmlFor="posterAccent" className="block text-sm font-medium text-brand-text mb-1.5">
-            Couleur d&apos;accent
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              id="posterAccent" name="posterAccent" type="color"
-              value={form.posterAccent} onChange={handleChange}
-              className="h-10 w-14 rounded-lg bg-brand-surface border border-brand-border cursor-pointer"
-            />
-            <span className="font-mono text-sm text-brand-muted">{form.posterAccent}</span>
-            <span
-              className="px-3 py-1 rounded-full text-xs font-semibold"
-              style={{ backgroundColor: `${form.posterAccent}22`, color: form.posterAccent, border: `1px solid ${form.posterAccent}55` }}
-            >
-              Aperçu accent
-            </span>
-          </div>
-        </div>
-
-        {/* Identité du circuit — mémorisée pour les prochaines courses */}
-        <div className="border-t border-brand-border pt-4">
-          <p className="text-sm font-medium text-brand-text mb-1">
-            Circuit sur l&apos;affiche
-          </p>
-          <p className="text-xs text-brand-muted mb-3">
-            {form.track
-              ? knownSheets[form.track]
-                ? "Fiche déjà enregistrée pour ce circuit — modifiable ici."
-                : "Première course sur ce circuit : complétez, ce sera mémorisé pour les suivantes."
-              : "Choisissez d’abord un circuit plus haut."}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {([
-              { key: "displayName", label: "Nom affiché (grand titre)", ph: "LE MANS" },
-              { key: "officialName", label: "Nom officiel", ph: "CIRCUIT DES 24 HEURES DU MANS" },
-              { key: "country", label: "Pays", ph: "FRANCE" },
-              { key: "countryCode", label: "Code pays (drapeau)", ph: "fr" },
-              { key: "location", label: "Localisation", ph: "LE MANS · SARTHE" },
-            ] as const).map((f) => (
-              <div key={f.key}>
-                <label className="block text-xs text-brand-muted mb-1">{f.label}</label>
-                <input
-                  type="text"
-                  value={sheet[f.key]}
-                  maxLength={f.key === "countryCode" ? 2 : undefined}
-                  disabled={!form.track}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSheet((p) => ({ ...p, [f.key]: v }));
-                    setPosterError(null);
-                  }}
-                  placeholder={f.ph}
-                  className="w-full px-3 py-2 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted text-sm focus:outline-none focus:border-brand-orange disabled:opacity-40 transition-colors"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Visuel de fond */}
-        <div className="border-t border-brand-border pt-4">
-          <label className="block text-sm font-medium text-brand-text mb-1">
-            Visuel de course
-          </label>
-          <p className="text-xs text-brand-muted mb-3">
-            Déposez votre propre image (capture LMU, rendu Gemini…) pour un
-            circuit reconnaissable. Sans image, un visuel est généré
-            automatiquement — plus générique.
-          </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                if (file.size > 10 * 1024 * 1024) {
-                  setPosterError("Image trop volumineuse (max 10 Mo).");
-                  return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                  setSceneImage(String(reader.result));
-                  setSceneName(file.name);
-                  setPosterError(null);
-                };
-                reader.readAsDataURL(file);
-              }}
-              className="text-xs text-brand-muted file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-brand-border file:bg-brand-surface file:text-brand-text file:text-xs file:cursor-pointer"
-            />
-            {sceneName && (
-              <button
-                type="button"
-                onClick={() => { setSceneImage(null); setSceneName(null); }}
-                className="text-xs text-brand-muted hover:text-brand-orange transition-colors"
-              >
-                Retirer « {sceneName} »
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Génération + aperçu */}
-        <div className="border-t border-brand-border pt-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={handleGeneratePoster}
-              disabled={posterLoading}
-              className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-orange/10 border border-brand-orange/30 text-brand-orange hover:bg-brand-orange/20 disabled:opacity-40 transition-colors"
-            >
-              {posterLoading
-                ? "Composition en cours…"
-                : posterUrl ? "Régénérer l'affiche" : "Composer l'affiche"}
-            </button>
-            {posterUrl && (
-              <span className="text-xs text-green-400">
-                ✓ Affiche prête — elle sera attachée à la course
-              </span>
-            )}
-            {!posterUrl && !posterLoading && (
-              <span className="text-xs text-brand-muted">
-                {sceneImage
-                  ? "Votre image sera utilisée telle quelle"
-                  : "Optionnel — composable aussi plus tard depuis le tableau"}
-              </span>
-            )}
-          </div>
-
-          {posterError && (
-            <p className="text-xs text-brand-orange mt-2">{posterError}</p>
-          )}
-
-          {posterUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={posterUrl}
-              alt="Aperçu de l'affiche"
-              className="mt-3 w-full max-w-xs rounded-lg border border-brand-border"
-            />
           )}
         </div>
       </div>

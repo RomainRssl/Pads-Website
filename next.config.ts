@@ -21,12 +21,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
-  // Les affiches sont exposées sous /media/. En production Nginx sert ce
-  // préfixe directement depuis MEDIA_DIR ; cette réécriture couvre le dev
-  // et sert de repli quand la requête atteint Node.
-  async rewrites() {
-    return [{ source: "/media/:path*", destination: "/api/media/:path*" }];
-  },
 };
 
 export default nextConfig;
