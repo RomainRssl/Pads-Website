@@ -104,6 +104,9 @@ export default function CreateEventForm() {
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [posterLoading, setPosterLoading] = useState(false);
   const [posterError, setPosterError] = useState<string | null>(null);
+  // Visuel fourni par l'admin : prioritaire sur la génération automatique
+  const [sceneImage, setSceneImage] = useState<string | null>(null);
+  const [sceneName, setSceneName] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/track-capacities")
@@ -202,6 +205,7 @@ export default function CreateEventForm() {
           raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
           posterAccent: form.posterAccent || null,
           trackSheet: sheet,
+          sceneImage,
         }),
       });
 
@@ -622,6 +626,49 @@ export default function CreateEventForm() {
           </div>
         </div>
 
+        {/* Visuel de fond */}
+        <div className="border-t border-brand-border pt-4">
+          <label className="block text-sm font-medium text-brand-text mb-1">
+            Visuel de course
+          </label>
+          <p className="text-xs text-brand-muted mb-3">
+            Déposez votre propre image (capture LMU, rendu Gemini…) pour un
+            circuit reconnaissable. Sans image, un visuel est généré
+            automatiquement — plus générique.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 10 * 1024 * 1024) {
+                  setPosterError("Image trop volumineuse (max 10 Mo).");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setSceneImage(String(reader.result));
+                  setSceneName(file.name);
+                  setPosterError(null);
+                };
+                reader.readAsDataURL(file);
+              }}
+              className="text-xs text-brand-muted file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-brand-border file:bg-brand-surface file:text-brand-text file:text-xs file:cursor-pointer"
+            />
+            {sceneName && (
+              <button
+                type="button"
+                onClick={() => { setSceneImage(null); setSceneName(null); }}
+                className="text-xs text-brand-muted hover:text-brand-orange transition-colors"
+              >
+                Retirer « {sceneName} »
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Génération + aperçu */}
         <div className="border-t border-brand-border pt-4">
           <div className="flex items-center gap-3 flex-wrap">
@@ -632,8 +679,8 @@ export default function CreateEventForm() {
               className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-orange/10 border border-brand-orange/30 text-brand-orange hover:bg-brand-orange/20 disabled:opacity-40 transition-colors"
             >
               {posterLoading
-                ? "Génération en cours… (30 à 60 s)"
-                : posterUrl ? "Régénérer l'affiche" : "Générer l'affiche"}
+                ? "Composition en cours…"
+                : posterUrl ? "Régénérer l'affiche" : "Composer l'affiche"}
             </button>
             {posterUrl && (
               <span className="text-xs text-green-400">
@@ -642,7 +689,9 @@ export default function CreateEventForm() {
             )}
             {!posterUrl && !posterLoading && (
               <span className="text-xs text-brand-muted">
-                Optionnel — générable aussi plus tard depuis le tableau
+                {sceneImage
+                  ? "Votre image sera utilisée telle quelle"
+                  : "Optionnel — composable aussi plus tard depuis le tableau"}
               </span>
             )}
           </div>
