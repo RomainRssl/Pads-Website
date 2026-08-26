@@ -12,7 +12,7 @@ import { randomBytes } from "crypto";
 import { rename, writeFile } from "fs/promises";
 import { prisma } from "./prisma";
 import { buildPosterData, buildScenePrompt, type PosterSource } from "./poster";
-import { generateScene, QuotaError } from "./gemini";
+import { generateScene, QuotaError } from "./image-provider";
 import { renderPoster } from "./poster-render";
 import {
   draftPosterRelPath,
