@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "./ImageUpload";
 import { useTrackGroups } from "@/lib/use-track-groups";
+import { LMU_CARS } from "@/lib/lmu-cars";
 
 type SplitMode = "RANKED" | "RANDOM" | "MANUAL";
 
@@ -18,6 +19,10 @@ interface FormState {
   splitMode: SplitMode;
   trackCapacity: string;
   freeSlots: string;
+  weekNumber: string;
+  entryCredits: string;
+  raceDuration: string;
+  posterAccent: string;
 }
 
 // Each car entry now carries an optional max-car count per class
@@ -43,62 +48,11 @@ const initialState: FormState = {
   splitMode: "RANKED",
   trackCapacity: "",
   freeSlots: "0",
+  weekNumber: "",
+  entryCredits: "",
+  raceDuration: "60",
+  posterAccent: "#F07000",
 };
-
-const LMU_CARS = [
-  { group: "LMGT3", options: [
-    "LMGT3 (toute classe)",
-    "Aston Martin Vantage AMR LMGT3 Evo",
-    "BMW M4 LMGT3",
-    "BMW M4 LMGT3 Evo",
-    "Chevrolet Corvette Z06 LMGT3.R",
-    "Ferrari 296 LMGT3",
-    "Ford Mustang LMGT3",
-    "Lamborghini Huracán LMGT3 Evo 2",
-    "Lexus RC F LMGT3",
-    "Mercedes-AMG LMGT3",
-    "McLaren 720S LMGT3 Evo",
-    "Porsche 911 LMGT3 R (992)",
-  ]},
-  { group: "Hypercar", options: [
-    "Hypercar (toute classe)",
-    "Alpine A424",
-    "Aston Martin Valkyrie AMR LMH",
-    "BMW M Hybrid V8",
-    "Cadillac V-Series.R",
-    "Ferrari 499P",
-    "Genesis GMR-001 LMDh",
-    "Glickenhaus SCG 007",
-    "Isotta Fraschini Tipo 6-C",
-    "Lamborghini SC63",
-    "Peugeot 9X8 2023",
-    "Peugeot 9X8 2024",
-    "Porsche 963",
-    "Toyota GR010-Hybrid",
-    "Vanwall Vandervell 680",
-  ]},
-  { group: "LMP2", options: [
-    "LMP2 (toute classe)",
-    "Oreca 07 Gibson",
-    "Oreca 07 Gibson ELMS",
-  ]},
-  { group: "LMP3", options: [
-    "LMP3 (toute classe)",
-    "Ligier JS P325",
-    "Ginetta G61-LT-P3 Evo",
-    "Duqueine D09",
-  ]},
-  { group: "GTE", options: [
-    "GTE (toute classe)",
-    "Aston Martin Vantage GTE",
-    "Chevrolet Corvette C8.R",
-    "Ferrari 488 GTE Evo",
-    "Porsche 911 RSR-19",
-  ]},
-  { group: "Mystère", options: [
-    "Mystère",
-  ]},
-];
 
 export default function CreateEventForm() {
   const router = useRouter();
@@ -188,6 +142,10 @@ export default function CreateEventForm() {
           splitMode: form.splitMode,
           trackCapacity: form.trackCapacity ? parseInt(form.trackCapacity, 10) : null,
           freeSlots: parseInt(form.freeSlots, 10) || 0,
+          weekNumber: form.weekNumber ? parseInt(form.weekNumber, 10) : null,
+          entryCredits: form.entryCredits ? parseInt(form.entryCredits, 10) : null,
+          raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
+          posterAccent: form.posterAccent || null,
         }),
       });
 
@@ -440,6 +398,66 @@ export default function CreateEventForm() {
               → {Math.max(0, parseInt(form.trackCapacity, 10) - (parseInt(form.freeSlots, 10) || 0))} pilotes max par split
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Affiche FIS */}
+      <div className="border border-brand-border rounded-xl p-4 space-y-4">
+        <p className="text-sm font-medium text-brand-text">
+          Affiche <span className="text-brand-muted font-normal">(générable après création, depuis le tableau des événements)</span>
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="weekNumber" className="block text-sm font-medium text-brand-text mb-1.5">
+              Semaine
+            </label>
+            <input
+              id="weekNumber" name="weekNumber" type="number" min={1} max={53}
+              value={form.weekNumber} onChange={handleChange}
+              placeholder="ex: 12"
+              className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="entryCredits" className="block text-sm font-medium text-brand-text mb-1.5">
+              Inscription <span className="text-brand-muted font-normal">(crédits)</span>
+            </label>
+            <input
+              id="entryCredits" name="entryCredits" type="number" min={0}
+              value={form.entryCredits} onChange={handleChange}
+              placeholder="ex: 1500"
+              className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="raceDuration" className="block text-sm font-medium text-brand-text mb-1.5">
+              Durée <span className="text-brand-muted font-normal">(minutes)</span>
+            </label>
+            <input
+              id="raceDuration" name="raceDuration" type="number" min={1}
+              value={form.raceDuration} onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-colors"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="posterAccent" className="block text-sm font-medium text-brand-text mb-1.5">
+            Couleur d&apos;accent
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              id="posterAccent" name="posterAccent" type="color"
+              value={form.posterAccent} onChange={handleChange}
+              className="h-10 w-14 rounded-lg bg-brand-surface border border-brand-border cursor-pointer"
+            />
+            <span className="font-mono text-sm text-brand-muted">{form.posterAccent}</span>
+            <span
+              className="px-3 py-1 rounded-full text-xs font-semibold"
+              style={{ backgroundColor: `${form.posterAccent}22`, color: form.posterAccent, border: `1px solid ${form.posterAccent}55` }}
+            >
+              Aperçu accent
+            </span>
+          </div>
         </div>
       </div>
 

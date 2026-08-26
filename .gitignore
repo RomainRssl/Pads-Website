@@ -37,3 +37,6 @@ next-env.d.ts
 # Uploaded files (keep directory structure, ignore actual files)
 public/uploads/events/*
 !public/uploads/events/.gitkeep
+
+# Affiches générées (dev — en production MEDIA_DIR vit hors du dépôt)
+media/
