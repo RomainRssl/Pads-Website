@@ -423,3 +423,9 @@ model TrackCapacity {
   capacity  Int
   updatedAt DateTime @updatedAt
 }
+
+// ── Custom tracks (ajoutés manuellement via l'admin) ──────────────────────────
+model CustomTrack {
+  name      String   @id
+  createdAt DateTime @default(now())
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LMU_TRACKS } from "@/lib/tracks";
+import { useTrackGroups } from "@/lib/use-track-groups";
 import {
   ENDURANCE_CAR_CLASSES,
   ENDURANCE_CAR_CLASS_LABELS,
@@ -78,6 +78,7 @@ function toTimeValue(d: Date): string {
 }
 
 export default function EnduranceManager() {
+  const trackGroups = useTrackGroups();
   const [endurances, setEndurances] = useState<EnduranceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(initialForm);
@@ -222,7 +223,7 @@ export default function EnduranceManager() {
             className="w-full px-3 py-2 rounded-lg bg-brand-dark border border-brand-border text-brand-text text-sm focus:outline-none focus:border-brand-orange"
           >
             <option value="">— Choisir un circuit —</option>
-            {LMU_TRACKS.map((group) => (
+            {trackGroups.map((group) => (
               <optgroup key={group.group} label={group.group}>
                 {group.options.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
