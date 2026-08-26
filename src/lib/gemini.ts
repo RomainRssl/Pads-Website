@@ -8,14 +8,28 @@
 import { GoogleGenAI } from "@google/genai";
 import sharp from "sharp";
 
-const MODEL = "gemini-2.5-flash-image";
+// Modèle d'image, surchargeable sans redéploiement : les droits varient
+// beaucoup d'un modèle à l'autre selon le plan Google (voir GEMINI_IMAGE_MODEL
+// dans .env.example).
+const MODEL = process.env.GEMINI_IMAGE_MODEL ?? "gemini-3.1-flash-image";
 const PAUSE_ENTRE_APPELS_MS = 8_000;
 
-/** Quota atteint : à retenter plus tard, ce n'est pas une erreur définitive. */
+/**
+ * Refus pour cause de quota (429).
+ *
+ * Deux situations très différentes derrière le même code :
+ *  - `retryable` : limite de débit momentanée, une nouvelle tentative aboutira.
+ *  - sinon : le plan ne donne aucun droit sur ce modèle (« limit: 0 »),
+ *    typiquement la génération d'images sur le niveau sans frais. Réessayer
+ *    est inutile — seule l'activation de la facturation débloque.
+ */
 export class QuotaError extends Error {
-  constructor(message: string) {
+  readonly retryable: boolean;
+
+  constructor(message: string, retryable: boolean) {
     super(message);
     this.name = "QuotaError";
+    this.retryable = retryable;
   }
 }
 
@@ -35,14 +49,22 @@ function enfiler<T>(job: () => Promise<T>): Promise<T> {
 
 // ── Appel Gemini ─────────────────────────────────────────────────────────────
 
-function estQuota(err: unknown): boolean {
-  const texte = err instanceof Error ? err.message : String(err);
+function estQuota(texte: string): boolean {
   return (
     /\b429\b/.test(texte) ||
     /RESOURCE_EXHAUSTED/i.test(texte) ||
     /quota/i.test(texte) ||
     /rate limit/i.test(texte)
   );
+}
+
+/**
+ * « limit: 0 » signale un plan sans aucun droit sur ce modèle, pas une
+ * limite momentanée : la génération d'images n'est pas incluse dans le
+ * niveau sans frais de l'API Gemini.
+ */
+function estPlanSansDroit(texte: string): boolean {
+  return /limit:\s*0\b/.test(texte);
 }
 
 async function appelerGemini(prompt: string): Promise<Buffer> {
@@ -60,9 +82,23 @@ async function appelerGemini(prompt: string): Promise<Buffer> {
       contents: prompt,
     });
   } catch (err) {
-    if (estQuota(err)) {
+    const texte = err instanceof Error ? err.message : String(err);
+    // Le message d'origine est journalisé : sans lui, un refus de quota est
+    // indiscernable d'un modèle inaccessible.
+    console.error(`[gemini] Échec sur ${MODEL} :`, texte);
+
+    if (estQuota(texte)) {
+      if (estPlanSansDroit(texte)) {
+        throw new QuotaError(
+          `Le plan Google associé à cette clé n'accorde aucun droit sur le ` +
+            `modèle « ${MODEL} » (quota 0). Activez la facturation, ou ` +
+            `choisissez un autre modèle via GEMINI_IMAGE_MODEL.`,
+          false
+        );
+      }
       throw new QuotaError(
-        "Quota Gemini atteint — la génération sera retentée automatiquement."
+        "Limite de débit Gemini atteinte — nouvelle tentative automatique dans quelques minutes.",
+        true
       );
     }
     throw err;
