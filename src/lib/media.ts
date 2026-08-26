@@ -19,6 +19,25 @@ export function posterRelPath(eventId: string): string {
   return `posters/${eventId}.png`;
 }
 
+// ── Brouillons ───────────────────────────────────────────────────────────────
+// Une affiche prévisualisée depuis le formulaire de création n'a pas encore
+// de course à laquelle se rattacher : elle est écrite sous un jeton, puis
+// renommée à la création de la course (le visuel Gemini n'étant pas
+// reproductible, il faut conserver exactement celui qui a été validé).
+
+/** Jeton de brouillon : hexadécimal, sans quoi le chemin serait manipulable. */
+export function isDraftToken(token: string): boolean {
+  return /^[0-9a-f]{32}$/.test(token);
+}
+
+export function draftSceneRelPath(token: string): string {
+  return `scenes/draft-${token}.jpg`;
+}
+
+export function draftPosterRelPath(token: string): string {
+  return `posters/draft-${token}.png`;
+}
+
 /** Chemin absolu sur le disque d'un chemin relatif stocké en base. */
 export function mediaAbsPath(relPath: string): string {
   const abs = normalize(join(MEDIA_DIR, relPath));

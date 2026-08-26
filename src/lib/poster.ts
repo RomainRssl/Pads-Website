@@ -38,6 +38,23 @@ export type PosterData = {
 const FUSEAU = 'Europe/Paris';
 const SAISON = 'SAISON 1';
 
+/**
+ * Les seuls champs dont l'affiche a besoin. Un Event complet satisfait ce
+ * type, mais un brouillon issu du formulaire de création aussi — c'est ce
+ * qui permet de prévisualiser une affiche avant que la course existe.
+ */
+export type PosterSource = Pick<
+  Event,
+  | 'date'
+  | 'cars'
+  | 'weekNumber'
+  | 'posterAccent'
+  | 'entryCredits'
+  | 'raceDuration'
+  | 'practiceMinutes'
+  | 'qualiMinutes'
+>;
+
 // -- Dates -------------------------------------------------------------------
 
 function partiesDate(d: Date) {
@@ -86,7 +103,7 @@ export function categories(event: Pick<Event, 'cars'>): string[] {
 // -- Données d'affiche -------------------------------------------------------
 
 export function buildPosterData(
-  event: Event,
+  event: PosterSource,
   track: Track,
   sceneUrl: string,
 ): PosterData {
@@ -160,7 +177,10 @@ function silhouette(categorie: string): string {
  * Le prompt ne demande QUE la scène : aucun texte, aucun logo, aucune bordure.
  * Tout le reste de l'affiche est composé par le template.
  */
-export function buildScenePrompt(event: Event, track: Track): string {
+export function buildScenePrompt(
+  event: Pick<Event, 'cars'>,
+  track: Track,
+): string {
   // "???" (course mystère) ne décrit aucune voiture : on retombe sur un
   // peloton générique plutôt que de demander une "??? racing car".
   const cats = categories(event).filter((c) => c !== '???');

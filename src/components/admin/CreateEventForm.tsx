@@ -64,6 +64,10 @@ export default function CreateEventForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [trackCapacities, setTrackCapacities] = useState<Record<string, number>>({});
+  const [posterToken, setPosterToken] = useState<string | null>(null);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [posterLoading, setPosterLoading] = useState(false);
+  const [posterError, setPosterError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/track-capacities")
@@ -101,6 +105,50 @@ export default function CreateEventForm() {
     setError(null);
   }
 
+
+  // Génère l'affiche avant création : le résultat est conservé sous un jeton
+  // et rattaché à la course au moment de la soumission.
+  async function handleGeneratePoster() {
+    setPosterLoading(true);
+    setPosterError(null);
+    try {
+      const carsPayload = cars
+        .filter((c) => c.name.trim() !== "")
+        .map((c) => ({ name: c.name, maxCars: c.maxCars === "" ? null : c.maxCars }));
+
+      if (!form.track || !form.date || carsPayload.length === 0) {
+        throw new Error("Renseignez le circuit, la date et au moins une classe.");
+      }
+
+      const res = await fetch("/api/admin/poster/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          track: form.track,
+          date: new Date(form.date).toISOString(),
+          cars: carsPayload,
+          weekNumber: form.weekNumber ? parseInt(form.weekNumber, 10) : null,
+          entryCredits: form.entryCredits ? parseInt(form.entryCredits, 10) : null,
+          raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
+          posterAccent: form.posterAccent || null,
+        }),
+      });
+
+      const d = await res.json();
+      if (d.statut === "READY") {
+        setPosterToken(d.token);
+        setPosterUrl(d.url);
+      } else {
+        setPosterToken(null);
+        setPosterUrl(null);
+        setPosterError(d.message ?? d.error ?? "La génération a échoué.");
+      }
+    } catch (err) {
+      setPosterError(err instanceof Error ? err.message : "Erreur inconnue");
+    } finally {
+      setPosterLoading(false);
+    }
+  }
 
   async function uploadImage(): Promise<string | null> {
     if (!imageFile) return null;
@@ -146,6 +194,7 @@ export default function CreateEventForm() {
           entryCredits: form.entryCredits ? parseInt(form.entryCredits, 10) : null,
           raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
           posterAccent: form.posterAccent || null,
+          posterDraftToken: posterToken,
         }),
       });
 
@@ -158,6 +207,8 @@ export default function CreateEventForm() {
       setForm(initialState);
       setCars([{ name: "", maxCars: "" }]);
       setImageFile(null);
+      setPosterToken(null);
+      setPosterUrl(null);
 
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err) {
@@ -404,7 +455,7 @@ export default function CreateEventForm() {
       {/* Affiche FIS */}
       <div className="border border-brand-border rounded-xl p-4 space-y-4">
         <p className="text-sm font-medium text-brand-text">
-          Affiche <span className="text-brand-muted font-normal">(générable après création, depuis le tableau des événements)</span>
+          Affiche <span className="text-brand-muted font-normal">(générée automatiquement à la création — suivi et régénération depuis le tableau des événements)</span>
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -458,6 +509,45 @@ export default function CreateEventForm() {
               Aperçu accent
             </span>
           </div>
+        </div>
+
+        {/* Génération + aperçu */}
+        <div className="border-t border-brand-border pt-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={handleGeneratePoster}
+              disabled={posterLoading}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-orange/10 border border-brand-orange/30 text-brand-orange hover:bg-brand-orange/20 disabled:opacity-40 transition-colors"
+            >
+              {posterLoading
+                ? "Génération en cours… (30 à 60 s)"
+                : posterUrl ? "Régénérer l'affiche" : "Générer l'affiche"}
+            </button>
+            {posterUrl && (
+              <span className="text-xs text-green-400">
+                ✓ Affiche prête — elle sera attachée à la course
+              </span>
+            )}
+            {!posterUrl && !posterLoading && (
+              <span className="text-xs text-brand-muted">
+                Optionnel — générable aussi plus tard depuis le tableau
+              </span>
+            )}
+          </div>
+
+          {posterError && (
+            <p className="text-xs text-brand-orange mt-2">{posterError}</p>
+          )}
+
+          {posterUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={posterUrl}
+              alt="Aperçu de l'affiche"
+              className="mt-3 w-full max-w-xs rounded-lg border border-brand-border"
+            />
+          )}
         </div>
       </div>
 

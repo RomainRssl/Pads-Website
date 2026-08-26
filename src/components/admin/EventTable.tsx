@@ -182,6 +182,22 @@ export default function EventTable({ initialEvents }: EventTableProps) {
     PURGED: "Purgée (course terminée)",
   };
 
+  // Libellés courts pour la colonne du tableau
+  const POSTER_SHORT: Record<string, string> = {
+    NONE: "—",
+    QUEUED: "En file",
+    SCENE_OK: "En cours",
+    READY: "Prête",
+    FAILED: "Échec",
+    PURGED: "Purgée",
+  };
+
+  function posterBadgeClass(status: string): string {
+    if (status === "READY") return "bg-green-500/10 border-green-500/40 text-green-400";
+    if (status === "FAILED") return "bg-brand-orange/10 border-brand-orange/40 text-brand-orange";
+    return "bg-brand-surface border-brand-border text-brand-muted";
+  }
+
   const pastCount = events.filter((e) => new Date(e.date) < new Date()).length;
 
   if (events.length === 0) {
@@ -215,6 +231,7 @@ export default function EventTable({ initialEvents }: EventTableProps) {
               <th className="text-left px-4 py-3 font-semibold text-brand-muted hidden sm:table-cell">Jeu</th>
               <th className="text-left px-4 py-3 font-semibold text-brand-muted hidden md:table-cell">Circuit</th>
               <th className="text-left px-4 py-3 font-semibold text-brand-muted">Date</th>
+              <th className="text-left px-4 py-3 font-semibold text-brand-muted">Affiche</th>
               <th className="text-right px-4 py-3 font-semibold text-brand-muted">Actions</th>
             </tr>
           </thead>
@@ -224,7 +241,7 @@ export default function EventTable({ initialEvents }: EventTableProps) {
               if (editing === event.id) {
                 return (
                   <tr key={event.id} className="border-b border-brand-border bg-brand-surface/30">
-                    <td colSpan={5} className="px-4 py-4">
+                    <td colSpan={6} className="px-4 py-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
                         <div>
                           <label className="text-xs text-brand-muted mb-1 block">Titre</label>
@@ -490,6 +507,28 @@ export default function EventTable({ initialEvents }: EventTableProps) {
                   </td>
                   <td className="px-4 py-3 text-brand-muted whitespace-nowrap">
                     {formatDate(event.date)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${posterBadgeClass(event.posterStatus ?? "NONE")}`}>
+                        {POSTER_SHORT[event.posterStatus ?? "NONE"] ?? event.posterStatus}
+                      </span>
+                      {event.posterStatus !== "PURGED" && (
+                        <button
+                          onClick={() => handleGeneratePoster(event.id, event.posterStatus === "READY")}
+                          disabled={posterBusy === event.id}
+                          title={event.posterStatus === "READY" ? "Régénérer avec un nouveau visuel" : "Générer l'affiche"}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium border border-brand-orange/30 text-brand-orange hover:bg-brand-orange/10 disabled:opacity-40 whitespace-nowrap transition-colors"
+                        >
+                          {posterBusy === event.id
+                            ? "…"
+                            : event.posterStatus === "READY" ? "Régénérer" : "Générer"}
+                        </button>
+                      )}
+                    </div>
+                    {event.posterStatus === "FAILED" && event.posterError && (
+                      <p className="text-xs text-brand-orange mt-1 max-w-xs">{event.posterError}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
