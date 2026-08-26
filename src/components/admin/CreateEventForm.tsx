@@ -31,6 +31,40 @@ interface CarEntry {
   maxCars: number | "";
 }
 
+// Identité du circuit utilisée par l'affiche — saisie ici, mémorisée ensuite
+interface TrackSheet {
+  officialName: string;
+  displayName: string;
+  country: string;
+  countryCode: string;
+  location: string;
+}
+
+const EMPTY_SHEET: TrackSheet = {
+  officialName: "",
+  displayName: "",
+  country: "",
+  countryCode: "",
+  location: "",
+};
+
+/**
+ * Première ébauche de fiche à partir du nom du circuit, pour éviter de tout
+ * taper : « Autodromo … (Imola) (2024 Pack 1 DLC) » propose « IMOLA ».
+ * Les mentions de DLC ou de variante ne sont pas des noms de circuit.
+ */
+function draftSheetFromTrack(track: string): TrackSheet {
+  const parentheses = [...track.matchAll(/\(([^)]+)\)/g)].map((m) => m[1].trim());
+  const base = track.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const alias = parentheses.find((p) => !/DLC|pack|ELMS|WEC|layout|short|national|gp\b/i.test(p));
+
+  return {
+    ...EMPTY_SHEET,
+    officialName: base.toUpperCase(),
+    displayName: (alias ?? base).toUpperCase(),
+  };
+}
+
 const SPLIT_MODE_OPTIONS: { value: SplitMode; label: string; description: string }[] = [
   { value: "RANKED", label: "Par classement", description: "Les meilleurs du ladder en plateau 1" },
   { value: "RANDOM", label: "Aléatoire", description: "Répartition aléatoire entre les plateaux" },
@@ -64,6 +98,8 @@ export default function CreateEventForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [trackCapacities, setTrackCapacities] = useState<Record<string, number>>({});
+  const [sheet, setSheet] = useState<TrackSheet>(EMPTY_SHEET);
+  const [knownSheets, setKnownSheets] = useState<Record<string, TrackSheet>>({});
   const [posterToken, setPosterToken] = useState<string | null>(null);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [posterLoading, setPosterLoading] = useState(false);
@@ -73,6 +109,24 @@ export default function CreateEventForm() {
     fetch("/api/admin/track-capacities")
       .then((r) => r.json())
       .then((data: Record<string, number>) => setTrackCapacities(data));
+
+    // Fiches circuit déjà enregistrées : elles pré-remplissent le bloc affiche
+    fetch("/api/admin/tracks")
+      .then((r) => (r.ok ? r.json() : { tracks: [] }))
+      .then((data: { tracks: (TrackSheet & { track: string })[] }) => {
+        const map: Record<string, TrackSheet> = {};
+        for (const t of data.tracks ?? []) {
+          map[t.track] = {
+            officialName: t.officialName,
+            displayName: t.displayName,
+            country: t.country,
+            countryCode: t.countryCode,
+            location: t.location,
+          };
+        }
+        setKnownSheets(map);
+      })
+      .catch(() => {});
   }, []);
 
   function updateCarName(idx: number, val: string) {
@@ -102,6 +156,15 @@ export default function CreateEventForm() {
       }
       return next;
     });
+
+    // Fiche circuit : celle déjà enregistrée, sinon une ébauche à compléter
+    if (name === "track") {
+      setSheet(value ? knownSheets[value] ?? draftSheetFromTrack(value) : EMPTY_SHEET);
+      setPosterToken(null);
+      setPosterUrl(null);
+      setPosterError(null);
+    }
+
     setError(null);
   }
 
@@ -120,6 +183,13 @@ export default function CreateEventForm() {
         throw new Error("Renseignez le circuit, la date et au moins une classe.");
       }
 
+      const sheetComplete = Object.values(sheet).every((v) => v.trim() !== "");
+      if (!sheetComplete) {
+        throw new Error(
+          "Complétez l'identité du circuit ci-dessous (nom affiché, pays, code pays, localisation)."
+        );
+      }
+
       const res = await fetch("/api/admin/poster/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,6 +201,7 @@ export default function CreateEventForm() {
           entryCredits: form.entryCredits ? parseInt(form.entryCredits, 10) : null,
           raceDuration: form.raceDuration ? parseInt(form.raceDuration, 10) : null,
           posterAccent: form.posterAccent || null,
+          trackSheet: sheet,
         }),
       });
 
@@ -508,6 +579,46 @@ export default function CreateEventForm() {
             >
               Aperçu accent
             </span>
+          </div>
+        </div>
+
+        {/* Identité du circuit — mémorisée pour les prochaines courses */}
+        <div className="border-t border-brand-border pt-4">
+          <p className="text-sm font-medium text-brand-text mb-1">
+            Circuit sur l&apos;affiche
+          </p>
+          <p className="text-xs text-brand-muted mb-3">
+            {form.track
+              ? knownSheets[form.track]
+                ? "Fiche déjà enregistrée pour ce circuit — modifiable ici."
+                : "Première course sur ce circuit : complétez, ce sera mémorisé pour les suivantes."
+              : "Choisissez d’abord un circuit plus haut."}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {([
+              { key: "displayName", label: "Nom affiché (grand titre)", ph: "LE MANS" },
+              { key: "officialName", label: "Nom officiel", ph: "CIRCUIT DES 24 HEURES DU MANS" },
+              { key: "country", label: "Pays", ph: "FRANCE" },
+              { key: "countryCode", label: "Code pays (drapeau)", ph: "fr" },
+              { key: "location", label: "Localisation", ph: "LE MANS · SARTHE" },
+            ] as const).map((f) => (
+              <div key={f.key}>
+                <label className="block text-xs text-brand-muted mb-1">{f.label}</label>
+                <input
+                  type="text"
+                  value={sheet[f.key]}
+                  maxLength={f.key === "countryCode" ? 2 : undefined}
+                  disabled={!form.track}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSheet((p) => ({ ...p, [f.key]: v }));
+                    setPosterError(null);
+                  }}
+                  placeholder={f.ph}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-surface border border-brand-border text-brand-text placeholder-brand-muted text-sm focus:outline-none focus:border-brand-orange disabled:opacity-40 transition-colors"
+                />
+              </div>
+            ))}
           </div>
         </div>
 

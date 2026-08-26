@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { generatePosterPreview } from "@/lib/poster-pipeline";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -24,6 +25,17 @@ const previewSchema = z.object({
   entryCredits: z.number().int().min(0).nullable().optional(),
   raceDuration: z.number().int().min(1).nullable().optional(),
   posterAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  // Identité du circuit saisie depuis le formulaire de course : enregistrée
+  // au passage, pour que les courses suivantes sur ce circuit la retrouvent.
+  trackSheet: z
+    .object({
+      officialName: z.string().min(1).max(200),
+      displayName: z.string().min(1).max(100),
+      country: z.string().min(1).max(100),
+      countryCode: z.string().length(2),
+      location: z.string().min(1).max(200),
+    })
+    .optional(),
 });
 
 export async function POST(req: Request) {
@@ -43,6 +55,20 @@ export async function POST(req: Request) {
 
   const d = parsed.data;
   const names = d.cars.map((c) => (typeof c === "string" ? c : c.name));
+
+  // La fiche circuit est créée ou mise à jour depuis le formulaire de course :
+  // pas besoin de passer par l'écran d'administration des circuits.
+  if (d.trackSheet) {
+    const sheet = {
+      ...d.trackSheet,
+      countryCode: d.trackSheet.countryCode.toLowerCase(),
+    };
+    await prisma.track.upsert({
+      where: { track: d.track },
+      update: sheet,
+      create: { track: d.track, ...sheet },
+    });
+  }
 
   const resultat = await generatePosterPreview(
     {
