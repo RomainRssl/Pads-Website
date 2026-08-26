@@ -48,17 +48,6 @@ export default function EventCard({ event }: EventCardProps) {
       {/* Racing stripe accent */}
       <div className="h-1 bg-gradient-to-r from-brand-orange via-brand-orange to-brand-orange" />
 
-      {/* Affiche officielle — repli silencieux quand purgée ou jamais générée */}
-      {event.posterStatus === "READY" && event.posterPath && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/media/${event.posterPath}`}
-          alt={`Affiche — ${event.title}`}
-          className="w-full aspect-[2/3] object-cover"
-          loading="lazy"
-        />
-      )}
-
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">

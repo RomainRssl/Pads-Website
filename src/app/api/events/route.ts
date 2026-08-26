@@ -68,13 +68,6 @@ const createEventSchema = z.object({
   splitMode: z.enum(["RANKED", "RANDOM", "MANUAL"]).default("RANKED"),
   trackCapacity: z.number().int().min(1).nullable().optional(),
   freeSlots: z.number().int().min(0).default(0),
-  // ── Affiche ─────────────────────────────────────────────────────────────
-  weekNumber: z.number().int().min(1).max(53).nullable().optional(),
-  posterAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
-  entryCredits: z.number().int().min(0).nullable().optional(),
-  raceDuration: z.number().int().min(1).nullable().optional(),
-  // Jeton d'une affiche prévisualisée avant création, à rattacher à la course
-  posterDraftToken: z.string().regex(/^[0-9a-f]{32}$/).nullable().optional(),
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -127,27 +120,13 @@ export async function POST(req: Request) {
       splitMode: parsed.data.splitMode,
       trackCapacity: parsed.data.trackCapacity ?? null,
       freeSlots: parsed.data.freeSlots,
-      weekNumber: parsed.data.weekNumber ?? null,
-      posterAccent: parsed.data.posterAccent ?? "#F07000",
-      entryCredits: parsed.data.entryCredits ?? null,
-      raceDuration: parsed.data.raceDuration ?? 60,
       createdById: session.user.discordId,
     },
   });
-
-  // Affiche prévisualisée au formulaire : on rattache exactement le fichier
-  // validé, le visuel Gemini n'étant pas reproductible.
-  if (parsed.data.posterDraftToken) {
-    const { attachDraftPoster } = await import("@/lib/poster-pipeline");
-    await attachDraftPoster(event.id, parsed.data.posterDraftToken).catch((err) =>
-      console.error("[poster] Rattachement du brouillon échoué :", err)
-    );
-  }
 
   sendEventNotification(event).catch((err) =>
     console.error("[webhook] Failed to send Discord notification:", err)
   );
 
-  const created = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
-  return NextResponse.json(enrichEvent(created), { status: 201 });
+  return NextResponse.json(enrichEvent(event), { status: 201 });
 }
