@@ -53,6 +53,11 @@ const updateEventSchema = z.object({
   imageUrl: z.string().url().optional().nullable().or(z.literal("")),
   serverName: z.string().max(100).optional().nullable(),
   serverPassword: z.string().max(100).optional().nullable(),
+  // ── Affiche ─────────────────────────────────────────────────────────────
+  weekNumber: z.number().int().min(1).max(53).optional().nullable(),
+  posterAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  entryCredits: z.number().int().min(0).optional().nullable(),
+  raceDuration: z.number().int().min(1).optional().nullable(),
 });
 
 export async function GET(

@@ -85,6 +85,19 @@ model Event {
   registrations EventRegistration[]
   splits        Split[]
   raceHistory RaceHistory[]
+  // ── Affiche ───────────────────────────────────────────────────────────────
+  weekNumber      Int?       // numéro de SEMAINE affiché sur l'affiche
+  posterAccent    String?    @default("#F07000") // couleur d'accent, format hex
+  entryCredits    Int?       // prix d'inscription
+  raceDuration    Int?       @default(60) // minutes de course
+  practiceMinutes Int?       @default(10)
+  qualiMinutes    Int?       @default(10)
+  scenePath       String?    // visuel généré par Gemini, sur le disque du VPS
+  scenePrompt     String?    // prompt réellement envoyé — utile pour rejouer
+  posterPath      String?    // affiche PNG rendue, sur le disque du VPS
+  posterStatus    String     @default("NONE") // NONE | QUEUED | SCENE_OK | READY | FAILED | PURGED
+  posterError     String?    // message de la dernière tentative ratée
+  posterAt        DateTime?  // date de génération, sert à la purge
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdById String
@@ -422,4 +435,18 @@ model TrackCapacity {
   track     String   @id  // Nom exact du circuit (clé)
   capacity  Int
   updatedAt DateTime @updatedAt
+}
+
+// ── Fiche d'identité d'un circuit (affiches FIS) ─────────────────────────────
+// Même convention de clé que TrackCapacity : le nom exact du circuit tel qu'il
+// apparaît dans Event.track. Remplie une fois par circuit, le formulaire de
+// course pré-remplit tout seul.
+model Track {
+  track        String   @id // clé : identique à Event.track
+  officialName String   // "CIRCUIT DES 24 HEURES DU MANS"
+  displayName  String   // "LE MANS" — le grand titre de l'affiche
+  country      String   // "FRANCE"
+  countryCode  String   // "fr" — code ISO, sert au drapeau
+  location     String   // "LE MANS · SARTHE"
+  updatedAt    DateTime @updatedAt
 }
